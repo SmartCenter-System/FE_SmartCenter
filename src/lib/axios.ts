@@ -1,9 +1,9 @@
 import { toast } from "sonner";
 import axios from "axios";
-import { API_URL } from "./env";
+import { env } from "./env";
 //Task 1.1.1:Khởi tạo Axios Instance
 export const apiClient = axios.create({
-  baseURL: API_URL,
+  baseURL: env.API_URL,
   timeout: 15000,
   headers: {
     "Content-Type": "application/json",
@@ -33,6 +33,7 @@ apiClient.interceptors.response.use(
       //TODO: Ở Week 2, mình sẽ thêm logic Queue Refresh Token vào đây
       //Tạm thời bây giờ: Xóa token và bắt đăng nhập lại.
       localStorage.removeItem("accessToken");
+      toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
       localStorage.removeItem("refreshToken");
       window.location.href = "/login";
       return Promise.reject(error);
