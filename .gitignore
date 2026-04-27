@@ -25,5 +25,7 @@ sketch
 .env.development
 .env.test
 .env.production
+.agent
+
 
 # End of https://www.toptal.com/developers/gitignore/api/react
