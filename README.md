@@ -1,12 +1,12 @@
 # FE SmartCenter 🚀
 
-Dự án Frontend cho hệ thống **SmartCenter**, được xây dựng dựa trên nguyên tắc kiến trúc **Feature-based Architecture** (chuẩn Bulletproof React), giúp code base dễ mở rộng, dễ quản lý và dễ maintain khi làm việc nhóm.
+Dự án Frontend cho hệ thống **SmartCenter** (Nền tảng B2C EdTech - Phân phối khóa học luyện thi THPT), được xây dựng dựa trên nguyên tắc kiến trúc **Feature-based Architecture** (chuẩn Bulletproof React), giúp code base dễ mở rộng, dễ quản lý và dễ maintain khi làm việc nhóm.
 
 ## 🛠 Công nghệ sử dụng
 - **Core**: React 19, TypeScript 6, Vite 8
-- **Styling**: Tailwind CSS v4, shadcn/ui
+- **Styling**: Tailwind CSS v4, shadcn/ui (Hỗ trợ Light/Dark Mode hoàn hảo)
 - **Routing**: React Router v7
-- **State Management**: Zustand v5
+- **State Management**: Zustand v5 (kèm persist middleware)
 - **Data Fetching & Caching**: TanStack Query (React Query) v5 & Axios
 - **Form & Validation**: React Hook Form & Zod
 - **Notifications**: Sonner
@@ -26,26 +26,30 @@ src/
 └── styles/            # Thiết lập CSS toàn cục (tailwind base)
 ```
 
-### 🧩 Core Utilities (Tính năng cốt lõi đã xây dựng)
+### 🧩 Core Features & Utilities (Tính năng cốt lõi đã xây dựng)
 
-Dự án đã được tích hợp sẵn các core utilities phục vụ phát triển mạnh mẽ:
+1. **Authentication Flow Hoàn Chỉnh (Card 2.1)**
+   - Quản lý phiên đăng nhập (Token/Role) bằng `Zustand` kết hợp `persist` lưu trữ an toàn dưới `localStorage`.
+   - Tích hợp các Custom Hooks API (`useLogin`, `useRegister`, `useLogout`) với React Query.
+   - Các Form Đăng nhập/Đăng ký chuẩn mực bằng Shadcn UI `Form`, quản lý trạng thái qua `react-hook-form` và kiểm tra logic bằng `zod`.
+   - Bảo vệ thông tin đăng nhập Dev (không hardcode) thông qua biến môi trường tại `.env.local`.
 
-1. **Khởi tạo và Intercept Axios (`src/lib/axios.ts`)**
+2. **Hệ thống Design System Hiện Đại**
+   - Các components tái sử dụng 100% bằng Shadcn UI, hỗ trợ mượt mà **Dark/Light Mode** bằng biến CSS toàn cục.
+   - Tích hợp component `ThemeToggle` để chuyển đổi giao diện linh hoạt.
+   - Giao diện Landing Page cực đẹp, phong cách Glassmorphism, thân thiện với đối tượng Học sinh THPT.
+
+3. **Khởi tạo và Intercept Axios (`src/lib/axios.ts`)**
    - Đính kèm Token Bearer tự động vào mọi request.
    - Bắt lỗi HTTP 4xx, 5xx toàn cục và hiển thị Toast thông báo.
    - Xử lý hết hạn phiên đăng nhập (lỗi 401) và điều hướng về trang Login.
 
-2. **Generic BaseService Factory (`src/shared/services/BaseService.ts`)**
-   - Cung cấp hàm `createBaseService` trả về 100% các thao tác CRUD cơ bản (`getAll`, `getById`, `create`, `update`, `remove`, `getSelectOptions`) cho các Model mà không cần viết lại mã gọi API. Có thể override dễ dàng nếu tính năng có hành vi khác.
+4. **Generic BaseService Factory (`src/shared/services/BaseService.ts`)**
+   - Cung cấp hàm `createBaseService` trả về 100% các thao tác CRUD cơ bản cho các Model mà không cần viết lại mã.
 
-3. **Tanstack Query Config (`src/lib/queryClient.ts`)**
-   - Cài đặt mặc định thời gian `staleTime` 5 phút, tự động refetch lúc focus trình duyệt để UI đồng bộ thời gian thực chuẩn xác.
-
-4. **Khai báo Type Toàn Cục (`src/shared/types/index.ts`)**
-   - Chứa các generic intefaces phục vụ fetch data chuẩn như `PaginatedResponse<T>`, `BaseFilterParams`, `ApiError`, `SelectOption`.
-
-5. **Môi Trường Khắt Khe (`src/lib/env.ts`)**
-   - Đảm bảo app không chạy / bắn lỗi log sớm (throw error) nếu khởi động thiếu file `.env` chứa `VITE_API_URL`.
+5. **Khai báo Type Toàn Cục & Query Config**
+   - `Tanstack Query`: Cài đặt thời gian `staleTime` 5 phút, tự động refetch lúc focus trình duyệt.
+   - Generic intefaces phục vụ fetch data chuẩn như `PaginatedResponse<T>`, `BaseFilterParams`, `ApiError`.
 
 ---
 

@@ -1,3 +1,5 @@
+export type RoleType = "ADMIN" | "STUDENT" | "LECTURER" | "STAFF" | "GUEST";
+
 // ─── Pagination ──────────────────────────────────────────
 export interface PaginationMeta {
   totalItems: number;
