@@ -1,86 +1,170 @@
-# FE SmartCenter 🚀
+# FE SmartCenter 🎓
 
-Dự án Frontend cho hệ thống **SmartCenter** (Nền tảng B2C EdTech - Phân phối khóa học luyện thi THPT), được xây dựng dựa trên nguyên tắc kiến trúc **Feature-based Architecture** (chuẩn Bulletproof React), giúp code base dễ mở rộng, dễ quản lý và dễ maintain khi làm việc nhóm.
+Dự án **Frontend** cho hệ thống **SmartCenter** — Nền tảng B2C EdTech phân phối khóa học luyện thi THPT.
 
-## 🛠 Công nghệ sử dụng
-- **Core**: React 19, TypeScript 6, Vite 8
-- **Styling**: Tailwind CSS v4, shadcn/ui (Hỗ trợ Light/Dark Mode hoàn hảo)
-- **Routing**: React Router v7
-- **State Management**: Zustand v5 (kèm persist middleware)
-- **Data Fetching & Caching**: TanStack Query (React Query) v5 & Axios
-- **Form & Validation**: React Hook Form & Zod
-- **Notifications**: Sonner
+Được xây dựng theo kiến trúc **Feature-based (Bulletproof React)**, hướng tới khả năng mở rộng, dễ maintain và làm việc nhóm hiệu quả.
 
 ---
 
-## 📁 Cấu trúc thư mục (Advanced Architecture)
+## 🛠 Tech Stack
 
-Dự án được phân chia triệt để theo các module tính năng (`features/*`). Mỗi tính năng tự giới hạn logic bên trong nó:
+| Hạng mục | Công nghệ |
+|---|---|
+| **Core** | React 19, TypeScript, Vite |
+| **Styling** | Tailwind CSS v4 + shadcn/ui (Light/Dark Mode) |
+| **Routing** | React Router v7 |
+| **State** | Zustand v5 (+ persist middleware) |
+| **Data Fetching** | TanStack Query v5 + Axios |
+| **Form & Validation** | React Hook Form + Zod |
+| **Notifications** | Sonner |
+
+---
+
+## 📁 Cấu Trúc Thư Mục
 
 ```text
 src/
-├── app/               # Setup cấu hình bắt đầu cho app (App.tsx, Router, Global Providers)
-├── features/          # ⭐ Nơi chứa các module tính năng chính (auth, course, user...)
-├── lib/               # Utility libs & configs (axios interceptors, env parsers, queryClient)
-├── shared/            # Các code tái sử dụng (components UI chung, generic types, BaseService factory)
-└── styles/            # Thiết lập CSS toàn cục (tailwind base)
+├── app/               # Bootstrap: App.tsx, Router, Global Providers
+├── features/          # ⭐ Core modules (auth, courses, users, classes, landing)
+├── lib/               # Configs & utils (axios instance, queryClient, env)
+├── pages/             # Page-level components, phân theo role:
+│   ├── admin/         #   └── courses/, users/, enrollments/
+│   ├── staff/         #   └── enrollments/
+│   ├── courses/       # User-facing course pages
+│   ├── checkout/      # Checkout flow
+│   └── auth/          # Login, Register
+├── shared/            # Reusable code: UI components, layouts, services, types
+└── styles/            # Global CSS (Tailwind base)
 ```
-
-### 🧩 Core Features & Utilities (Tính năng cốt lõi đã xây dựng)
-
-1. **Authentication Flow Hoàn Chỉnh (Card 2.1)**
-   - Quản lý phiên đăng nhập (Token/Role) bằng `Zustand` kết hợp `persist` lưu trữ an toàn dưới `localStorage`.
-   - Tích hợp các Custom Hooks API (`useLogin`, `useRegister`, `useLogout`) với React Query.
-   - Các Form Đăng nhập/Đăng ký chuẩn mực bằng Shadcn UI `Form`, quản lý trạng thái qua `react-hook-form` và kiểm tra logic bằng `zod`.
-   - Bảo vệ thông tin đăng nhập Dev (không hardcode) thông qua biến môi trường tại `.env.local`.
-
-2. **Hệ thống Design System Hiện Đại**
-   - Các components tái sử dụng 100% bằng Shadcn UI, hỗ trợ mượt mà **Dark/Light Mode** bằng biến CSS toàn cục.
-   - Tích hợp component `ThemeToggle` để chuyển đổi giao diện linh hoạt.
-   - Giao diện Landing Page cực đẹp, phong cách Glassmorphism, thân thiện với đối tượng Học sinh THPT.
-
-3. **Khởi tạo và Intercept Axios (`src/lib/axios.ts`)**
-   - Đính kèm Token Bearer tự động vào mọi request.
-   - Bắt lỗi HTTP 4xx, 5xx toàn cục và hiển thị Toast thông báo.
-   - Xử lý hết hạn phiên đăng nhập (lỗi 401) và điều hướng về trang Login.
-
-4. **Generic BaseService Factory (`src/shared/services/BaseService.ts`)**
-   - Cung cấp hàm `createBaseService` trả về 100% các thao tác CRUD cơ bản cho các Model mà không cần viết lại mã.
-
-5. **Khai báo Type Toàn Cục & Query Config**
-   - `Tanstack Query`: Cài đặt thời gian `staleTime` 5 phút, tự động refetch lúc focus trình duyệt.
-   - Generic intefaces phục vụ fetch data chuẩn như `PaginatedResponse<T>`, `BaseFilterParams`, `ApiError`.
 
 ---
 
-## 💻 Hướng dẫn chạy dự án
+## ✅ Tính Năng Đã Hoàn Thành
 
-### Cài đặt dependencies
-Yêu cầu: Node.js bản mới (>=20) + `npm`.
+### 🔐 Authentication System
+- Login / Register với Shadcn UI Form + `react-hook-form` + Zod validation
+- Quản lý session bằng **Zustand** (kèm `persist` → `localStorage`)
+- Custom hooks: `useLogin`, `useRegister`, `useLogout` tích hợp React Query
+- Axios interceptor: tự đính token Bearer, bắt lỗi 401 toàn cục
+
+### 🎨 Design System
+- Component library 100% từ **shadcn/ui** — Dark / Light Mode native
+- `ThemeToggle` component chuyển chế độ linh hoạt
+- Landing Page glassmorphism (HeroSection, FAQ, Testimonials)
+
+### 📚 User — Khóa Học
+- Danh sách khóa học với filter (format Online/Offline, level, search)
+- Trang chi tiết khóa học (`/courses/:id`)
+- Checkout page: chọn phương thức SePay / VietQR, nhập voucher, tính giá
+
+### 🛡 Admin Panel (`/admin`)
+- **Quản lý Khóa Học**: Danh sách + tạo/sửa khóa học (CourseEditorPage)
+- **Course Content Editor**: Editor nội dung chương trình học
+- **Quản lý Người Dùng**: Table phân trang, filter role/status, khoá/mở tài khoản, tạo tài khoản mới (Staff/Lecturer)
+
+### 👔 Staff Panel (`/staff`)
+- **Quản lý Đăng Ký**: Xem và xử lý danh sách enrollment
+
+### 🔐 Route Guard & Phân Quyền
+- **`PrivateRoute`**: Bảo vệ route yêu cầu đăng nhập — redirect về `/login` nèu chưa có session
+- **`RoleGuard`**: Bảo vệ route theo role — redirect về `/unauthorized` nếu không đủ quyền
+  - `/admin/*` → chỉ role `ADMIN`
+  - `/staff/*` → role `STAFF` hoặc `ADMIN`
+  - `/checkout/:id`, `/dashboard` → mọi user đã đăng nhập
+- Post-login redirect thông minh: `ADMIN` → `/admin` · `STAFF` → `/staff/enrollments` · `STUDENT` → `/dashboard`
+
+### 🎓 Student Dashboard (`/dashboard`)
+- Trang tổng quan sau đăng nhập: thống kê học tập (streak, thời gian, chứng chỉ)
+- Danh sách khóa học đang học kèm progress bar trực quan
+- Section gợi ý khóa học phù hợp
+
+### ⚙️ Hạ Tầng
+- `createBaseService` factory: CRUD generic cho mọi model, không viết lại code
+- `PaginatedResponse<T>`, `BaseFilterParams`, `ApiError` — type-safe data layer
+- TanStack Query: `staleTime` 5 phút, auto-refetch on focus
+
+---
+
+## ⏳ Đang Phát Triển (WIP)
+
+- **Payment Integration**: Kết nối SePay API tạo đơn hàng + QR thanh toán thực
+- **Dashboard mock data**: `StudentDashboardPage` hiện dùng mock enrollments — cần BE endpoint `/me/enrollments`
+- **Admin – Enrollment Management**: Submodule quản lý đăng ký từ góc nhìn Admin
+- **Classes / Lịch Học**: Module quản lý lớp học (đang skeleton, chưa route)
+- **Voucher API**: Thay thế hardcode `"SMARTCENTER"` bằng API call thực
+
+---
+
+## 💻 Hướng Dẫn Chạy Dự Án
+
+### Yêu cầu
+- Node.js ≥ 20
+- npm
+
+### Cài đặt
 ```bash
 npm install
 ```
 
-### Cấu hình môi trường (.env)
-Tạo file `.env` ở gốc (đã được Ignore):
+### Cấu hình môi trường
+Tạo file `.env.local` ở gốc dự án:
 ```env
 VITE_API_URL=http://localhost:3000/api
 ```
 
-### Chạy môi trường Dev
+### Chạy Dev Server
 ```bash
 npm run dev
-# Tip: Sử dụng `Ctrl + Shift + B` để truy cập VS Code Tasks -> "Mở server Dev"
 ```
+> 💡 Tip: Dùng `Ctrl + Shift + B` → VS Code Task "Mở server Dev"
 
-### Lệnh đóng gói 
-- Build App ra `dist`: `npm run build`
-- Chạy Linter: `npm run lint`
+### Lệnh khác
+```bash
+npm run build   # Build production → dist/
+npm run lint    # Chạy ESLint
+```
 
 ---
 
-## 📝 Quy chuẩn chung
-1. **Thư mục & File thường**: Tên viết thường (lowercase) dùng gạch ngang (`-`).
-2. **Feature Name**: Luôn là **số ít** (`auth`, `user`, `course`) để kiến trúc đồng bộ nhất quán.
-3. **Components**: Sống bên trong feature hoặc `shared` cần định dạng PascalCase (VD: `LoginForm.tsx`).
-4. **Export (Barrel Pattern)**: Tránh import sâu `../auth/pages/Xyz.tsx`. Luôn tạo `index.ts` để gộp export và rút ngắn đường dẫn thành `../auth`.
+## 📐 Quy Chuẩn Code
+
+| Loại | Quy tắc | Ví dụ |
+|---|---|---|
+| Thư mục / File thường | `kebab-case` | `auth-guard/`, `base-service.ts` |
+| Feature name | **Số ít** | `auth`, `user`, `course` |
+| Component | `PascalCase` | `LoginForm.tsx`, `CourseTable.tsx` |
+| Export | Barrel pattern (`index.ts`) | `import { CourseTable } from "@/features/courses"` |
+
+---
+
+## 🗺 Kiến Trúc Route
+
+```
+/                     → Landing Page (LandingLayout)
+├── /login            → Đăng nhập
+├── /register         → Đăng ký
+├── /courses          → Danh sách khóa học
+└── /courses/:id      → Chi tiết khóa học
+
+[PrivateRoute — yêu cầu đăng nhập]
+├── /dashboard        → Student Dashboard 🎓
+└── /checkout/:id     → Thanh toán
+
+[RoleGuard: ADMIN only]
+/admin                → Admin Panel (AdminLayout)
+├── /admin/courses          → Quản lý khóa học
+├── /admin/courses/create   → Tạo mới
+├── /admin/courses/:id/edit → Chỉnh sửa
+├── /admin/courses/:id/content → Content Editor
+└── /admin/users            → Quản lý người dùng
+
+[RoleGuard: STAFF + ADMIN]
+/staff                → Staff Panel (StaffLayout)
+└── /staff/enrollments      → Quản lý đăng ký
+
+/unauthorized         → Trang không có quyền
+```
+
+---
+
+*Cập nhật lần cuối: 06/05/2026*
