@@ -1,284 +1,263 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Button } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/shared/components/ui/form";
-import { Badge } from "@/shared/components/ui/badge";
-import { toast } from "sonner";
-import { Link } from "react-router-dom";
-import { GraduationCap, ArrowRight, CheckCircle2, Sparkles, LayoutDashboard, Users, BookOpen } from "lucide-react";
-import { ThemeToggle } from "@/shared/components/ui/theme-toggle";
 
-const consultationSchema = z.object({
-  name: z.string().min(2, "Vui lòng nhập họ tên của bạn"),
-  email: z.string().email("Email không hợp lệ"),
-  topic: z.string().min(1, "Vui lòng nhập chủ đề bạn quan tâm"),
-});
+import { ArrowUpRight } from "lucide-react";
+import Header from "@/shared/components/common/Header";
+import Footer from "@/shared/components/common/Footer";
+import FullscreenHero from "./components/FullscreenHero";
 
-type ConsultationValues = z.infer<typeof consultationSchema>;
+
 
 export default function HomePage() {
-  const form = useForm<ConsultationValues>({
-    resolver: zodResolver(consultationSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      topic: "",
-    },
-  });
 
-  const onSubmit = (data: ConsultationValues) => {
-    // TODO: Tích hợp việc gọi API để gửi dữ liệu về Backend
-    console.log(data);
-    toast.success("Đăng ký tư vấn thành công!", {
-      description: "Đội ngũ Smart Center sẽ liên hệ với bạn trong vòng 24h tới.",
-    });
-    form.reset();
-  };
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary/20">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-8">
-          <div className="flex items-center gap-2 font-bold text-xl text-primary">
-            <GraduationCap className="h-6 w-6" />
-            <span>Smart Center</span>
-          </div>
-          <nav className="flex items-center gap-2 sm:gap-4">
-            <ThemeToggle />
-            <Link to="/login">
-              <Button variant="ghost" className="hidden sm:inline-flex font-medium">
-                Đăng nhập
-              </Button>
-            </Link>
-            <Link to="/register">
-              <Button className="font-medium rounded-full px-4 sm:px-6">Dùng thử miễn phí</Button>
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="relative flex flex-col items-center justify-center overflow-hidden px-6 py-24 md:py-32 text-center">
-          {/* Abstract Background Effects */}
-          <div className="absolute left-1/2 top-0 -z-10 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/4 rounded-full bg-primary/10 blur-[120px]"></div>
+        <FullscreenHero className="relative isolate h-screen w-full overflow-hidden bg-[#0E3BAF] pt-[72px]" />
 
-          <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000 w-full max-w-4xl space-y-8 flex flex-col items-center">
-            <Badge
-              variant="outline"
-              className="px-4 py-1.5 rounded-full border-primary/20 bg-primary/5 text-primary text-sm"
-            >
-              <Sparkles className="mr-2 h-3.5 w-3.5" />
-              Nền tảng Khóa học dành cho Học sinh Cấp 3
-            </Badge>
-
-            <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl md:text-7xl">
-              Học tập bứt phá <br className="hidden sm:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">
-                Chinh phục Đại học
-              </span>
-            </h1>
-
-            <p className="mx-auto max-w-2xl text-lg text-muted-foreground sm:text-xl md:text-2xl font-light">
-              Hệ thống học trực tuyến thông minh cung cấp các lộ trình luyện thi và khóa học chất lượng cao, giúp học
-              sinh THPT nắm chắc kiến thức và tự tin đạt điểm cao.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 w-full sm:w-auto">
-              <Link to="/register" className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  className="w-full rounded-full px-8 h-14 text-base font-medium shadow-[0_0_40px_-10px_var(--primary)] transition-all hover:scale-105"
-                >
-                  Bắt đầu ngay <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Button
-                size="lg"
-                variant="outline"
-                className="w-full sm:w-auto rounded-full px-8 h-14 text-base font-medium transition-all hover:bg-secondary"
-              >
-                Xem bảng giá
-              </Button>
-            </div>
-          </div>
-
-          {/* Dashboard Mockup Image */}
-          <div className="mt-16 w-full max-w-5xl relative mx-auto animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300 fill-mode-both">
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10 bottom-0 h-1/3 mt-auto" />
-            <div className="rounded-xl overflow-hidden border border-border/50 shadow-2xl shadow-primary/20 bg-background">
-              <img
-                src="/images/dashboard_mockup.png"
-                alt="Giao diện nền tảng khóa học THPT"
-                className="w-full object-cover"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Features Section */}
-        <section className="py-24 bg-muted/30">
-          <div className="container mx-auto px-4 md:px-8">
-            <div className="text-center mb-16 space-y-4">
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Hệ sinh thái tính năng</h2>
-              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                Mọi công cụ bạn cần để điều hành một trung tâm giáo dục hàng đầu đều có sẵn tại đây.
+       
+        {/* Values Section */}
+        <section className="relative z-10 py-24 px-6 bg-background overflow-hidden">
+          <div className="mx-auto w-full max-w-6xl">
+            <div className="mb-16 space-y-4">
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+                Những Giá Trị Bạn Sẽ Nhận Được
+              </h2>
+              <p className="text-muted-foreground text-base leading-relaxed max-w-4xl">
+                Chúng tôi không chỉ cung cấp kiến thức, mà còn mang đến một môi trường học tập biến đổi, giúp học sinh THPT phát triển toàn diện kỹ năng và tự duy.
               </p>
             </div>
-            <div className="grid md:grid-cols-3 gap-8">
+
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
               {[
                 {
-                  title: "Bài giảng sinh động",
-                  desc: "Kho video bài giảng chất lượng cao, hình ảnh minh họa thực quan giúp tiếp thu nhanh.",
-                  icon: BookOpen,
+                  number: "01",
+                  title: "Lịch học linh hoạt",
+                  description:
+                    "Học yêu lựa, một nơi trên một thiết bị. Phù hợp với lịch học dạy độc trên trường của học sinh cấp 3.",
                 },
                 {
-                  title: "Lộ trình cá nhân hóa",
-                  desc: "Theo sát tiến độ từng học sinh, đề xuất bài tập và bài kiểm tra phù hợp với năng lực.",
-                  icon: Users,
+                  number: "02",
+                  title: "Đội ngũ giáo viên giỏi",
+                  description:
+                    "Được đón đặt bối các thầy cô có nhiều năm kinh nghiệm ôn thi học lực và có phương pháp dạy hiệu quả.",
                 },
                 {
-                  title: "Phân tích điểm số",
-                  desc: "Hệ thống tự động chấm điểm và đánh giá ưu/nhược điểm từng môn học để học sinh dễ dàng theo dõi.",
-                  icon: LayoutDashboard,
+                  number: "03",
+                  title: "Kho tài liệu phong phú",
+                  description:
+                    "Hơn 1000+ bộ đề thi thử, file tóm tắt công thức và sơ đồ tư duy được cập nhật liên tục hàng tuần.",
                 },
-              ].map((feature, i) => (
-                <Card key={i} className="border-border/50 bg-card hover:border-primary/50 transition-colors shadow-sm">
-                  <CardHeader>
-                    <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <feature.icon className="h-6 w-6" />
+                {
+                  number: "04",
+                  title: "Chương trình bám sát thực tế",
+                  description:
+                    "Nội dung bài giảng luôn cập nhật theo cấu trúc để thi mỗi năm của Bộ Giáo dục, tập trung các dạng tầm.",
+                },
+                {
+                  number: "05",
+                  title: "Luyện tập & Kiểm tra",
+                  description:
+                    "Hệ thống bài tập tu luyện có chấm điểm tự động và lời giải chi tiết, giúp ban nhận ra lỗi sai ngay tức.",
+                },
+                {
+                  number: "06",
+                  title: "Cộng đồng học tập nâng cao",
+                  description:
+                    "Tham gia nhóm học tập của cùng trao đối bài, chia sẻ kinh nghiệm ôn thi với những bạn cùng được lựa.",
+                },
+              ].map((item, idx) => (
+                <div key={idx} className="relative group">
+                  <div className="relative space-y-4 rounded-lg border border-border/50 bg-card/30 p-8 backdrop-blur-sm transition-all duration-300 hover:border-border/50 hover:bg-card/50">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="mb-3 text-5xl font-bold text-blue-700 transition-colors duration-300 group-hover:text-yellow-400">{item.number}</div>
+                        <h3 className="text-xl font-semibold text-foreground">{item.title}</h3>
+                      </div>
+                      <ArrowUpRight className="h-6 w-6 text-blue-700/70 transition-all duration-300 group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:text-yellow-400" />
                     </div>
-                    <CardTitle>{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground leading-relaxed">{feature.desc}</p>
-                  </CardContent>
-                </Card>
+                    <p className="text-muted-foreground leading-relaxed">{item.description}</p>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Consultation Registration Section */}
-        <section className="relative z-10 py-24 px-6 border-t border-border/50 bg-background overflow-hidden">
-          {/* Decorative blur */}
-          <div className="absolute right-0 bottom-0 -z-10 h-[400px] w-[400px] translate-x-1/3 translate-y-1/3 rounded-full bg-blue-500/10 blur-[100px]"></div>
-
+        {/* Courses Section */}
+        <section className="relative z-10 py-24 px-6 bg-background overflow-hidden">
           <div className="mx-auto w-full max-w-6xl">
-            <div className="grid gap-12 lg:grid-cols-2 items-center">
-              <div className="space-y-8">
-                <div className="space-y-4">
-                  <h2 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
-                    Sẵn sàng bứt phá <span className="text-primary">điểm số?</span>
-                  </h2>
-                  <p className="text-muted-foreground text-lg md:text-xl leading-relaxed">
-                    Đăng ký nhận tư vấn lộ trình học tập miễn phí. Đội ngũ học thuật của chúng tôi sẽ liên hệ để giúp
-                    bạn xây dựng kế hoạch ôn thi hiệu quả nhất.
-                  </p>
-                </div>
+            <div className="mb-12 flex items-center justify-between">
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+                Khóa học
+              </h2>
+              <button className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted">
+                Xem tất cả
+              </button>
+            </div>
 
-                <ul className="space-y-5">
-                  {[
-                    "Tư vấn 1-1 định hướng khối thi",
-                    "Kiểm tra năng lực đầu vào miễn phí",
-                    "Học thử trải nghiệm nền tảng 7 ngày",
-                  ].map((feature, idx) => (
-                    <li key={idx} className="flex items-center text-foreground font-medium text-lg">
-                      <div className="mr-4 flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary">
-                        <CheckCircle2 className="h-4 w-4" />
-                      </div>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-2">
+              {[
+                {
+                  image: "https://images.unsplash.com/photo-1552820728-8ac41f1ce891?w=500&h=300&fit=crop",
+                  duration: "4 Weeks",
+                  level: "Beginner",
+                  instructor: "Thầy Nguyễn Văn An",
+                  title: "Toán Học Lập 12: Chính Phục Kỳ Thi TN THPT",
+                  description:
+                    "Hệ thống lý toán bộ kiến thức gốc tích và hiểu hòa lập 12. Tập trung vào các dạng bài tập thực tế và kỹ thuật giải nhanh bằng máy tính cầm tay (Casio).",
+                },
+                {
+                  image: "https://images.unsplash.com/photo-1552820728-8ac41f1ce891?w=500&h=300&fit=crop",
+                  duration: "4 Weeks",
+                  level: "Beginner",
+                  instructor: "Thầy Nguyễn Văn An",
+                  title: "Toán Học Lập 12: Chính Phục Kỳ Thi TN THPT",
+                  description:
+                    "Hệ thống lý toán bộ kiến thức gốc tích và hiểu hòa lập 12. Tập trung vào các dạng bài tập thực tế và kỹ thuật giải nhanh bằng máy tính cầm tay (Casio).",
+                },
+                {
+                  image: "https://images.unsplash.com/photo-1552820728-8ac41f1ce891?w=500&h=300&fit=crop",
+                  duration: "4 Weeks",
+                  level: "Beginner",
+                  instructor: "Thầy Nguyễn Văn An",
+                  title: "Toán Học Lập 12: Chính Phục Kỳ Thi TN THPT",
+                  description:
+                    "Hệ thống lý toán bộ kiến thức gốc tích và hiểu hòa lập 12. Tập trung vào các dạng bài tập thực tế và kỹ thuật giải nhanh bằng máy tính cầm tay (Casio).",
+                },
+                {
+                  image: "https://images.unsplash.com/photo-1552820728-8ac41f1ce891?w=500&h=300&fit=crop",
+                  duration: "4 Weeks",
+                  level: "Beginner",
+                  instructor: "Thầy Nguyễn Văn An",
+                  title: "Toán Học Lập 12: Chính Phục Kỳ Thi TN THPT",
+                  description:
+                    "Hệ thống lý toán bộ kiến thức gốc tích và hiểu hòa lập 12. Tập trung vào các dạng bài tập thực tế và kỹ thuật giải nhanh bằng máy tính cầm tay (Casio).",
+                },
+                {
+                  image: "https://images.unsplash.com/photo-1552820728-8ac41f1ce891?w=500&h=300&fit=crop",
+                  duration: "4 Weeks",
+                  level: "Beginner",
+                  instructor: "Thầy Nguyễn Văn An",
+                  title: "Toán Học Lập 12: Chính Phục Kỳ Thi TN THPT",
+                  description:
+                    "Hệ thống lý toán bộ kiến thức gốc tích và hiểu hòa lập 12. Tập trung vào các dạng bài tập thực tế và kỹ thuật giải nhanh bằng máy tính cầm tay (Casio).",
+                },
+                {
+                  image: "https://images.unsplash.com/photo-1552820728-8ac41f1ce891?w=500&h=300&fit=crop",
+                  duration: "4 Weeks",
+                  level: "Beginner",
+                  instructor: "Thầy Nguyễn Văn An",
+                  title: "Toán Học Lập 12: Chính Phục Kỳ Thi TN THPT",
+                  description:
+                    "Hệ thống lý toán bộ kiến thức gốc tích và hiểu hòa lập 12. Tập trung vào các dạng bài tập thực tế và kỹ thuật giải nhanh bằng máy tính cầm tay (Casio).",
+                },
+              ].map((course, idx) => (
+                <div key={idx} className="overflow-hidden rounded-lg border border-border/50 bg-card transition-all duration-300 hover:border-border/50 hover:shadow-lg">
+                  <div className="relative h-48 overflow-hidden bg-muted">
+                    <img
+                      src={course.image}
+                      alt={course.title}
+                      className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                    />
+                  </div>
+                  <div className="space-y-4 p-5">
+                    <div className="flex gap-2">
+                      <span className="inline-block rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                        {course.duration}
+                      </span>
+                      <span className="inline-block rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                        {course.level}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">{course.instructor}</p>
+                      <h3 className="text-base font-semibold text-foreground">{course.title}</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{course.description}</p>
+                    <button className="w-full rounded-md bg-blue-700 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-yellow-400 hover:text-black">
+                      Đăng ký ngay
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Testimonials Section */}
+        <section className="relative z-10 py-24 px-6 bg-background overflow-hidden">
+          <div className="mx-auto w-full max-w-6xl">
+            <div className="mb-12 flex items-start justify-between gap-6">
+              <div className="space-y-3">
+                <h2 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+                  Học Viên Nói Gì Về Chúng Tôi?
+                </h2>
+                <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+                  Hàng ngàn học sinh THPT trên khắp cả nước đã bứt phá điểm số và đỗ vào ngôi trường đại học mơ ước nhờ lộ trình học tập tối ưu. Hãy lắng nghe những chia sẻ thật nhất từ chính các bạn ấy.
+                </p>
               </div>
 
-              <Card className="shadow-2xl border-border/60 bg-card/50 backdrop-blur-sm lg:ml-auto w-full max-w-lg">
-                <CardHeader>
-                  <CardTitle className="text-2xl">Đăng ký tư vấn ngay</CardTitle>
-                  <CardDescription className="text-base">
-                    Vui lòng để lại thông tin, chúng tôi sẽ gọi lại cho bạn.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-                      <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Họ và Tên</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Nguyễn Văn A" className="h-11 bg-background" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+              <button className="shrink-0 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted">
+                Xem tất cả cảm nhận
+              </button>
+            </div>
 
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Địa chỉ Email</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="email"
-                                placeholder="example@gmail.com"
-                                className="h-11 bg-background"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+            <div className="grid gap-6 md:grid-cols-2">
+              {[
+                {
+                  content:
+                    "Khóa học Toán 12 thực sự là cứu cánh cho mình. Trước đây mình rất sợ hình học không gian, nhưng nhờ cách giảng dạy bằng hình ảnh 3D của thầy, mình đã nắm chắc kiến thức và tự tin đạt điểm 9 trong kỳ thi học kỳ vừa rồi. Rất đề xuất cho các bạn đang mất gốc!",
+                  name: "Minh Anh (Lớp 12 - Hà Nội)",
+                  avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces",
+                },
+                {
+                  content:
+                    "Mình thích nhất là khóa luyện thi IELTS 6.5+. Các thầy cô không chỉ dạy kiến thức mà còn chia sẻ những mẹo làm bài rất thực tế. Chỉ sau 3 tháng, kỹ năng Speaking của mình đã cải thiện rõ rệt, mình không còn cảm thấy run khi giao tiếp nữa. Cảm ơn trung tâm rất nhiều!",
+                  name: "Đức Huy (Lớp 11 - TP. HCM)",
+                  avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=faces",
+                },
+                {
+                  content:
+                    "Lần đầu tiên mình thấy học Văn lại thú vị đến thế. Phương pháp sơ đồ tư duy giúp mình nhớ các tác phẩm rất nhanh mà không cần học vẹt. Bài viết của mình cũng được cô nhận xét là sâu sắc hơn và có cảm xúc hơn trước. Đây là khóa học xứng đáng nhất mình từng tham gia.",
+                  name: "Khánh Linh (Lớp 12 - Đà Nẵng)",
+                  avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=faces",
+                },
+                {
+                  content:
+                    "Dù bắt đầu học Lý khá muộn nhưng nhờ lộ trình cấp tốc 10 tuần, mình đã kịp lấy lại căn bản để ôn thi đại học. Các bài tập thực hành sát với đề thi thật giúp mình làm quen với áp lực phòng thi. Một khởi đầu hoàn hảo cho những ai muốn bứt phá giai đoạn cuối.",
+                  name: "Nam Khánh (Lớp 12 - Cần Thơ)",
+                  avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop&crop=faces",
+                },
+              ].map((testimonial, idx) => (
+                <div key={idx} className="overflow-hidden rounded-xl border border-border/50 bg-card transition-all duration-300 hover:shadow-lg">
+                  <div className="min-h-[180px] border-b border-border/50 p-8 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                    {testimonial.content}
+                  </div>
 
-                      <FormField
-                        control={form.control}
-                        name="topic"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Bạn đang quan tâm môn học nào?</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Toán, Lý, Luyện thi THPTQG, v.v."
-                                className="h-11 bg-background"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                  <div className="flex items-center justify-between gap-4 p-6">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={testimonial.avatar}
+                        alt={testimonial.name}
+                        className="h-10 w-10 rounded-full object-cover"
                       />
+                      <span className="font-semibold text-foreground">{testimonial.name}</span>
+                    </div>
 
-                      <Button type="submit" className="w-full h-11 text-base font-medium mt-2">
-                        Gửi yêu cầu tư vấn
-                      </Button>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
+                    <button className="rounded-lg bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-yellow-400 hover:text-black">
+                      Đọc toàn bộ câu chuyện
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-border/40 py-8 bg-muted/20">
-        <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <GraduationCap className="h-5 w-5" />
-            <span className="font-bold text-foreground">Smart Center</span>
-          </div>
-          <p>© 2026 Nền tảng Smart Center. Bảo lưu mọi quyền.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
