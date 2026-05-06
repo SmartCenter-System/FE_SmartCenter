@@ -1,3 +1,4 @@
+import { createBrowserRouter } from "react-router-dom";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { PrivateRoute, RoleGuard } from "@/shared/components/guards";
 
@@ -9,6 +10,7 @@ import UnauthorizedPage from "@/pages/error/UnauthorizedPage";
 
 // ─── Landing / Public Pages ───────────────────────────────────────────────────
 import HomePage from "@/features/landing/HomePage";
+import ExploreCoursePage from "@/features/courses/pages/ExploreCoursePage";
 import LandingLayout from "@/features/landing/LandingLayout";
 import CoursesPage from "@/pages/courses/CoursesPage";
 import CourseDetailPage from "@/pages/courses/CourseDetailPage";
@@ -80,6 +82,16 @@ const router = createBrowserRouter([
 
   // ─── Protected: chỉ STAFF (và ADMIN) ─────────────────────────────
   {
+    path: "/courses",
+    element: <ExploreCoursePage />,
+  },
+  {
+    path: "/explore-course",
+    element: <ExploreCoursePage />,
+  },
+  {
+    path: "/unauthorized",
+    element: <UnauthorizedPage />,
     element: <RoleGuard allowedRoles={["STAFF", "ADMIN"]} />,
     children: [
       {
