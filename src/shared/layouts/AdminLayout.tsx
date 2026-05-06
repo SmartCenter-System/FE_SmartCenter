@@ -1,21 +1,28 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, Link } from "react-router-dom";
 
 export default function AdminLayout() {
   return (
     <div className="min-h-screen bg-muted/30">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1600px]">
+      <div className="mx-auto flex min-h-screen w-full max-w-400">
         <aside className="w-64 border-r border-border bg-background p-4">
           <p className="text-sm font-semibold">Admin Menu</p>
           <nav className="mt-4 space-y-2">
-            <button className="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-muted" type="button">
+            <Link to="/admin/dashboard" className="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-muted">
               Dashboard
-            </button>
-            <button className="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-muted" type="button">
+            </Link>
+            <Link
+              to="/admin/courses"
+              className="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-muted bg-muted/50 font-medium"
+            >
+              Courses
+            </Link>
+            <Link to="/admin/users" className="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-muted">
               Users
-            </button>
-            <button className="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-muted" type="button">
+            </Link>
+
+            <Link to="/admin/settings" className="block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-muted">
               Settings
-            </button>
+            </Link>
           </nav>
         </aside>
 

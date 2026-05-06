@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
 import { GraduationCap } from "lucide-react";
-import { ThemeToggle } from "@/shared/components/ui/theme-toggle";
-
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background text-foreground">
@@ -33,10 +31,6 @@ export function AuthLayout({ children }: { children: ReactNode }) {
 
       {/* Right panel - Form */}
       <div className="flex w-full lg:w-1/2 flex-col relative items-center justify-center p-8 sm:p-12">
-        {/* Theme Toggle Top Right */}
-        <div className="absolute top-4 right-4 md:top-8 md:right-8">
-          <ThemeToggle />
-        </div>
         
         {/* Mobile Header */}
         <div className="flex lg:hidden items-center gap-2 font-bold text-2xl text-primary mb-8">

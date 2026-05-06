@@ -34,7 +34,7 @@ export function LoginForm() {
   };
 
   return (
-    <Card className="w-full max-w-md shadow-lg border-muted">
+    <Card className="w-full max-w-md border-none shadow-none bg-transparent">
       <CardHeader className="text-center space-y-2">
         <CardTitle className="text-3xl font-bold tracking-tight">Đăng nhập</CardTitle>
         <CardDescription className="text-muted-foreground text-sm">

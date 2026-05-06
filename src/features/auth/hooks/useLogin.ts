@@ -33,8 +33,12 @@ export function useLogin() {
       toast.success("Đăng nhập thành công!");
       if (decoded.role === "ADMIN") {
         navigate("/admin", { replace: true });
+      } else if (decoded.role === "STAFF") {
+        navigate("/staff/enrollments", { replace: true });
       } else {
-        navigate(from, { replace: true });
+        // STUDENT / LECTURER / GUEST: về dashboard hoặc trang đã lưu (e.g. sau redirect từ PrivateRoute)
+        const destination = from && from !== "/" ? from : "/dashboard";
+        navigate(destination, { replace: true });
       }
     },
   });
