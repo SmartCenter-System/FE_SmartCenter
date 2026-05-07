@@ -64,10 +64,14 @@ export function FeaturedCoursesSection() {
     <section className="py-24 bg-background">
       <div className="container mx-auto px-4 md:px-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-12">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl text-foreground mb-4 sm:mb-0">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl text-foreground mb-4 sm:mb-0">
             Khoá học
           </h2>
-          <Button variant="outline" className="rounded-md" asChild>
+          <Button
+            variant="outline"
+            className="h-11 rounded-md border-border bg-white px-5 text-sm font-medium text-blue-700 transition-colors hover:bg-yellow-400 hover:text-black"
+            asChild
+          >
             <Link to="/courses">Xem tất cả</Link>
           </Button>
         </div>
@@ -95,15 +99,15 @@ export function FeaturedCoursesSection() {
                 <span className="text-sm font-medium text-foreground">{course.instructor}</span>
               </div>
 
-              <h3 className="text-xl font-bold text-foreground mb-3 line-clamp-2">
+              <h3 className="text-lg font-bold text-foreground mb-3 line-clamp-2">
                 {course.title}
               </h3>
 
-              <p className="text-muted-foreground text-sm mb-6 line-clamp-3 flex-1">
+              <p className="text-muted-foreground text-xs sm:text-sm mb-6 line-clamp-3 flex-1">
                 {course.description}
               </p>
 
-              <div className="w-full rounded-md bg-primary text-primary-foreground py-3 text-base font-medium text-center group-hover:bg-primary/90 transition-colors">
+              <div className="w-full rounded-md bg-blue-700 text-white py-3 text-sm sm:text-base font-medium text-center transition-colors hover:bg-yellow-400 hover:text-black">
                 Xem chi tiết & Đăng kí
               </div>
             </Link>

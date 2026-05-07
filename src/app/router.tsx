@@ -1,4 +1,3 @@
-import { createBrowserRouter } from "react-router-dom";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { PrivateRoute, RoleGuard } from "@/shared/components/guards";
 
@@ -89,9 +88,8 @@ const router = createBrowserRouter([
     path: "/explore-course",
     element: <ExploreCoursePage />,
   },
+  // ─── Protected: chỉ STAFF (và ADMIN) ─────────────────────────────
   {
-    path: "/unauthorized",
-    element: <UnauthorizedPage />,
     element: <RoleGuard allowedRoles={["STAFF", "ADMIN"]} />,
     children: [
       {

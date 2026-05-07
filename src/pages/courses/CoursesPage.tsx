@@ -65,9 +65,7 @@ export default function CoursesPage() {
         {/* Header Section */}
         <div className="mb-12 text-center md:text-left">
           <h1 className="text-4xl font-bold tracking-tight mb-4">Khám phá Khóa học</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl">
-            Nâng cấp kỹ năng của bạn với các khóa học chất lượng cao từ các chuyên gia hàng đầu. Lựa chọn lộ trình phù hợp với mục tiêu của bạn.
-          </p>
+          
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
