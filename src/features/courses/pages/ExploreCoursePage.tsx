@@ -77,10 +77,12 @@ const courses = [
 
 export default function ExploreCoursePage() {
 	return (
-		<div className="flex min-h-screen flex-col bg-background text-foreground">
+		<div className="flex min-h-screen flex-col bg-white text-foreground">
 			<Header tone="solid" />
 
-			<main className="flex-1 bg-[#f5f7fb] pt-[72px]">
+		
+
+			<main className="flex-1 bg-white">
 				<section className="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
 					<div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
 						<aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)] lg:overflow-y-auto">

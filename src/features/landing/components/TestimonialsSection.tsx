@@ -37,14 +37,14 @@ export function TestimonialsSection() {
       <div className="container mx-auto px-4 md:px-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
           <div className="max-w-3xl">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl text-foreground mb-4">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl text-foreground mb-4">
               Học Viên Nói Gì Về Chúng Tôi?
             </h2>
-            <p className="text-muted-foreground text-lg">
+            <p className="text-muted-foreground text-base">
               Hàng ngàn học sinh THPT trên khắp cả nước đã bứt phá điểm số và đỗ vào ngôi trường đại học mơ ước nhờ lộ trình học tập tối ưu. Hãy lắng nghe những chia sẻ chân thật nhất từ chính các bạn ấy.
             </p>
           </div>
-          <Button variant="outline" className="rounded-md shrink-0">
+          <Button variant="outline" className="h-11 rounded-md shrink-0 border-border bg-white px-5 text-sm font-medium text-blue-700 transition-colors hover:bg-yellow-400 hover:text-black">
             Xem tất cả cảm nhận
           </Button>
         </div>
@@ -52,7 +52,7 @@ export function TestimonialsSection() {
         <div className="grid md:grid-cols-2 gap-8">
           {testimonials.map((testimonial) => (
             <div key={testimonial.id} className="bg-background border border-border/50 rounded-2xl p-8 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
-              <p className="text-foreground leading-relaxed text-base mb-10">
+              <p className="text-foreground leading-relaxed text-sm sm:text-base mb-10">
                 {testimonial.content}
               </p>
               
@@ -65,14 +65,14 @@ export function TestimonialsSection() {
                       className="h-full w-full object-cover"
                     />
                   </div>
-                  <span className="font-semibold text-foreground text-sm">
+                  <span className="font-semibold text-foreground text-xs sm:text-sm">
                     {testimonial.author}
                   </span>
                 </div>
                 
                 <Button 
                   variant={testimonial.isPrimaryButton ? "default" : "outline"}
-                  className={`rounded-md font-medium shrink-0 ${testimonial.isPrimaryButton ? 'bg-secondary text-secondary-foreground hover:bg-secondary/90' : ''}`}
+                  className={`rounded-md h-12 px-6 text-base font-medium shrink-0 border-border bg-white text-blue-700 transition-colors hover:bg-yellow-400 hover:text-black ${testimonial.isPrimaryButton ? 'border-border bg-white text-blue-700 hover:bg-yellow-400 hover:text-black' : ''}`}
                 >
                   Đọc toàn bộ câu chuyện
                 </Button>

@@ -38,12 +38,10 @@ export function CoreValuesSection() {
     <section className="py-24 bg-background">
       <div className="container mx-auto px-4 md:px-8">
         <div className="text-center mb-16 space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl text-foreground">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl text-foreground">
             Những Giá Trị Bạn Sẽ Nhận Được
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto mt-4">
-            Smart Center cam kết mang lại môi trường học tập toàn diện, phát triển kỹ năng và tư duy.
-          </p>
+          
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">

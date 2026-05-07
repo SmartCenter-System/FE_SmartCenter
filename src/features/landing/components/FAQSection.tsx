@@ -41,13 +41,16 @@ export function FAQSection() {
           
           {/* Left Column */}
           <div className="space-y-6">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl text-foreground">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl text-foreground">
               Những câu hỏi thường gặp
             </h2>
-            <p className="text-muted-foreground text-lg leading-relaxed">
+            <p className="text-muted-foreground text-base leading-relaxed">
               Bạn vẫn còn băn khoăn? Đừng ngần ngại liên hệ với đội ngũ tư vấn qua email hoặc hotline để được hỗ trợ nhanh nhất.
             </p>
-            <Button variant="outline" className="rounded-md font-medium px-6 py-6 h-auto mt-4">
+            <Button
+              variant="outline"
+              className="mt-4 h-11 rounded-md border-border bg-white px-5 text-xs font-medium text-blue-700 transition-colors hover:bg-yellow-400 hover:text-black sm:text-sm"
+            >
               Xem tất cả câu hỏi
             </Button>
           </div>
@@ -69,7 +72,7 @@ export function FAQSection() {
                     onClick={() => setOpenId(isOpen ? null : faq.id)}
                     className="w-full flex items-center justify-between p-6 text-left focus:outline-none"
                   >
-                    <span className="font-semibold text-foreground text-lg pr-8">
+                    <span className="font-semibold text-foreground text-base pr-8">
                       {faq.question}
                     </span>
                     <div 
