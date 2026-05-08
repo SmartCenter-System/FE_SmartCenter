@@ -3,18 +3,7 @@ import { useAuthStore } from "@/features/auth/store";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
 import type { Course } from "@/features/courses/type";
-import {
-  BookOpen,
-  Clock,
-  TrendingUp,
-  Award,
-  ChevronRight,
-  PlayCircle,
-  Search,
-  Sparkles,
-  LayoutDashboard,
-  Star,
-} from "lucide-react";
+import { BookOpen, Clock, TrendingUp, Award, ChevronRight, PlayCircle, Sparkles, Star } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
@@ -89,10 +78,7 @@ function EnrolledCourseCard({
             </Button>
           </Link>
         </div>
-        <Badge
-          variant="secondary"
-          className="absolute top-2 right-2 text-[10px] uppercase tracking-wide"
-        >
+        <Badge variant="secondary" className="absolute top-2 right-2 text-[10px] uppercase tracking-wide">
           {course.format === "ONLINE" ? "Online" : "Offline"}
         </Badge>
       </div>
@@ -135,9 +121,30 @@ export default function StudentDashboardPage() {
 
   // Mock data cho enrolled courses — sẽ replace bằng API /me/enrollments
   const mockEnrolled = [
-    { id: "1", title: "Toán 12 — Chinh phục kỳ thi THPT Quốc Gia", progress: 65, level: "INTERMEDIATE", format: "ONLINE", thumbnail: null },
-    { id: "2", title: "Vật Lý THPT: Từ cơ bản đến nâng cao", progress: 30, level: "BEGINNER", format: "ONLINE", thumbnail: null },
-    { id: "3", title: "Ngữ Văn — Phân tích tác phẩm toàn diện", progress: 90, level: "ALL_LEVELS", format: "OFFLINE", thumbnail: null },
+    {
+      id: "1",
+      title: "Toán 12 — Chinh phục kỳ thi THPT Quốc Gia",
+      progress: 65,
+      level: "INTERMEDIATE",
+      format: "ONLINE",
+      thumbnail: null,
+    },
+    {
+      id: "2",
+      title: "Vật Lý THPT: Từ cơ bản đến nâng cao",
+      progress: 30,
+      level: "BEGINNER",
+      format: "ONLINE",
+      thumbnail: null,
+    },
+    {
+      id: "3",
+      title: "Ngữ Văn — Phân tích tác phẩm toàn diện",
+      progress: 90,
+      level: "ALL_LEVELS",
+      format: "OFFLINE",
+      thumbnail: null,
+    },
   ];
 
   // Thống kê (mock — sẽ đến từ API)
@@ -174,29 +181,7 @@ export default function StudentDashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ─── Top Nav ─────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur-md">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-8">
-          <div className="flex items-center gap-2">
-            <LayoutDashboard className="h-5 w-5 text-primary" />
-            <span className="font-semibold">Dashboard học sinh</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link to="/courses">
-              <Button variant="ghost" size="sm" className="gap-1.5">
-                <Search className="h-4 w-4" />
-                Khám phá khóa học
-              </Button>
-            </Link>
-            <Badge variant="outline" className="capitalize">
-              {role?.toLowerCase() ?? "student"}
-            </Badge>
-          </div>
-        </div>
-      </header>
-
       <main className="container mx-auto space-y-10 px-4 py-8 md:px-8 max-w-6xl">
-
         {/* ─── Welcome Banner ──────────────────────────────────────── */}
         <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/70 p-8 text-white shadow-lg">
           <div className="relative z-10">
@@ -206,11 +191,12 @@ export default function StudentDashboardPage() {
             </div>
             <h1 className="text-3xl font-bold mb-1">Tiếp tục hành trình học tập 🚀</h1>
             <p className="text-white/70 max-w-lg text-sm mt-2">
-              Bạn đang học <strong className="text-white">{mockEnrolled.length} khóa học</strong>. Khóa học Ngữ Văn của bạn sắp hoàn thành — chỉ còn 10% nữa thôi!
+              Bạn đang học <strong className="text-white">{mockEnrolled.length} khóa học</strong>. Khóa học Ngữ Văn của
+              bạn sắp hoàn thành — chỉ còn 10% nữa thôi!
             </p>
             <div className="mt-5 flex gap-3 flex-wrap">
               <Link to={`/courses/${mockEnrolled[2].id}`}>
-                <Button size="sm" className="bg-white text-primary hover:bg-white/90 font-semibold shadow">
+                <Button size="sm" className="bg-white text-primary hover:bg-slate-100 font-semibold shadow">
                   <PlayCircle className="mr-1.5 h-4 w-4" />
                   Tiếp tục học Ngữ Văn
                 </Button>
@@ -223,8 +209,8 @@ export default function StudentDashboardPage() {
             </div>
           </div>
           {/* Decorative background blob */}
-          <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/5" />
-          <div className="absolute -bottom-12 right-24 h-48 w-48 rounded-full bg-white/5" />
+          <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10" />
+          <div className="absolute -bottom-12 right-24 h-48 w-48 rounded-full bg-white/10" />
         </section>
 
         {/* ─── Stats ───────────────────────────────────────────────── */}
@@ -259,9 +245,7 @@ export default function StudentDashboardPage() {
                 <Star className="h-5 w-5 text-amber-500" />
                 Gợi ý dành cho bạn
               </h2>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Các khóa học phổ biến bạn chưa đăng ký
-              </p>
+              <p className="text-sm text-muted-foreground mt-0.5">Các khóa học phổ biến bạn chưa đăng ký</p>
             </div>
             <Link to="/courses" className="text-sm text-primary hover:underline flex items-center gap-1">
               Khám phá thêm <ChevronRight className="h-4 w-4" />
@@ -307,7 +291,9 @@ export default function StudentDashboardPage() {
                     </h3>
                     <div className="flex items-center justify-between">
                       <span className="text-lg font-bold text-primary">
-                        {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(course.basePrice)}
+                        {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+                          course.basePrice,
+                        )}
                       </span>
                     </div>
                     <Link to={`/courses/${course.courseId}`} className="block">
@@ -321,7 +307,6 @@ export default function StudentDashboardPage() {
             </div>
           )}
         </section>
-
       </main>
     </div>
   );

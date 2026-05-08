@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-white text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       {}
       <div className="grid min-h-screen w-full items-center lg:grid-cols-[3fr_2fr]">
         
@@ -14,7 +14,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
             flex-col
             items-end
             justify-center
-            bg-white
+            bg-background
             px-4
             py-8
             sm:px-6
@@ -38,12 +38,12 @@ export function AuthLayout({ children }: { children: ReactNode }) {
             min-h-screen
             items-center
             justify-center
-            bg-[#F7F8FC]
+            bg-muted/30
             lg:flex
           "
         >
           {/* Background blur effect */}
-          <div className="absolute inset-12 rounded-full bg-white/40 blur-2xl" />
+          <div className="absolute inset-12 rounded-full bg-primary/5 blur-3xl" />
 
           {/* 
           

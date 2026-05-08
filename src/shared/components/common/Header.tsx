@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useAuthStore } from "@/features/auth/store";
 import { useLogout } from "@/features/auth/hooks/useLogout";
 import { LogOut, LayoutDashboard } from "lucide-react";
+import { ThemeToggle } from "@/shared/components/ui/theme-toggle";
 
 const navigationItems = [
   { icon: Home, label: "Trang chủ", path: "/" },
@@ -42,11 +43,11 @@ export default function Header({ variant = "fixed", tone = "solid" }: HeaderProp
 
   const headerClassName =
     tone === "solid"
-      ? "fixed left-0 top-0 z-50 w-full border-b border-border/50 bg-white/95 backdrop-blur-sm"
+      ? "fixed left-0 top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur-sm"
       : variant === "inline"
       ? "relative z-20 w-full border-b border-border/50 bg-background/90 backdrop-blur"
       : isScrolledPastHero
-        ? "fixed left-0 top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-border/50"
+        ? "fixed left-0 top-0 z-50 w-full bg-background/95 backdrop-blur-sm border-b border-border/50"
         : "fixed left-0 top-0 z-50 w-full bg-transparent";
 
   const { accessToken, role } = useAuthStore();
@@ -63,7 +64,7 @@ export default function Header({ variant = "fixed", tone = "solid" }: HeaderProp
           <div
             className={`ml-4 flex items-center gap-3 rounded-full px-4 py-1.5 md:ml-8 ${
               isScrolledPastHero
-                ? 'bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)]'
+                ? 'bg-card shadow-[0_8px_24px_rgba(0,0,0,0.12)] border border-border/50'
                 : ''
             }`}
           >
@@ -114,6 +115,7 @@ export default function Header({ variant = "fixed", tone = "solid" }: HeaderProp
           </div>
 
           <div className="ml-auto flex items-center gap-3">
+            <ThemeToggle className={isScrolledPastHero ? "text-blue-700" : "text-white"} />
             {accessToken ? (
               <>
                 <Link
@@ -137,7 +139,7 @@ export default function Header({ variant = "fixed", tone = "solid" }: HeaderProp
               <>
                 <Link
                   to="/register"
-                  className="inline-flex h-11 items-center rounded-full bg-white px-5 text-sm font-semibold text-blue-700 shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition-colors hover:bg-gray-50"
+                  className="inline-flex h-11 items-center rounded-full bg-card px-5 text-sm font-semibold text-primary shadow-[0_8px_24px_rgba(0,0,0,0.12)] border border-border/50 transition-colors hover:bg-muted"
                 >
                   Đăng ký
                 </Link>

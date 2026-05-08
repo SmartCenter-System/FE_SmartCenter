@@ -2,33 +2,33 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { PrivateRoute, RoleGuard } from "@/shared/components/guards";
 
 // ─── Auth & Error Pages ───────────────────────────────────────────────────────
-import LoginPage from "@/pages/auth/LoginPage";
-import RegisterPage from "@/pages/auth/RegisterPage";
-import NotFoundPage from "@/pages/error/NotFoundPage";
-import UnauthorizedPage from "@/pages/error/UnauthorizedPage";
+import LoginPage from "@/features/auth/pages/LoginPage";
+import RegisterPage from "@/features/auth/pages/RegisterPage";
+import NotFoundPage from "@/shared/pages/error/NotFoundPage";
+import UnauthorizedPage from "@/shared/pages/error/UnauthorizedPage";
 
 // ─── Landing / Public Pages ───────────────────────────────────────────────────
-import HomePage from "@/features/landing/HomePage";
+import HomePage from "@/features/landing/pages/HomePage";
 import ExploreCoursePage from "@/features/courses/pages/ExploreCoursePage";
-import LandingLayout from "@/features/landing/LandingLayout";
-import CoursesPage from "@/pages/courses/CoursesPage";
-import CourseDetailPage from "@/pages/courses/CourseDetailPage";
-import CourseStudyingPage from "@/pages/courses/CourseStudyingPage";
-import CheckoutPage from "@/pages/checkout/CheckoutPage";
+import LandingLayout from "@/features/landing/pages/LandingLayout";
+import CoursesPage from "@/features/courses/pages/CoursesPage";
+import CourseDetailPage from "@/features/courses/pages/CourseDetailPage";
+import CourseStudyingPage from "@/features/courses/pages/CourseStudyingPage";
+import CheckoutPage from "@/features/orders/pages/CheckoutPage";
 
 // ─── Student Dashboard (yêu cầu đăng nhập) ───────────────────────────────────
-import StudentDashboardPage from "@/pages/dashboard/StudentDashboardPage";
+import StudentDashboardPage from "@/features/users/pages/StudentDashboardPage";
 
 // ─── Admin Panel ──────────────────────────────────────────────────────────────
 import AdminLayout from "@/shared/layouts/AdminLayout";
-import CourseManagementPage from "@/pages/admin/courses/CourseManagementPage";
-import CourseEditorPage from "@/pages/admin/courses/CourseEditorPage";
-import CourseContentEditor from "@/pages/admin/courses/CourseContentEditor";
-import UserManagementPage from "@/pages/admin/users/UserManagementPage";
+import CourseManagementPage from "@/features/courses/pages/admin/CourseManagementPage";
+import CourseEditorPage from "@/features/courses/pages/admin/CourseEditorPage";
+import CourseContentEditor from "@/features/courses/pages/admin/CourseContentEditor";
+import UserManagementPage from "@/features/users/pages/admin/UserManagementPage";
 
 // ─── Staff Panel ──────────────────────────────────────────────────────────────
 import StaffLayout from "@/shared/layouts/StaffLayout";
-import EnrollmentManagementPage from "@/pages/staff/enrollments/EnrollmentManagementPage";
+import EnrollmentManagementPage from "@/features/courses/pages/staff/EnrollmentManagementPage";
 
 const router = createBrowserRouter([
   // ─── Public routes (không cần đăng nhập) ─────────────────────────
@@ -49,15 +49,20 @@ const router = createBrowserRouter([
   {
     element: <PrivateRoute />,
     children: [
-      // Student checkout — đăng nhập là được, không cần role cụ thể
       {
-        path: "/checkout/:id",
-        element: <CheckoutPage />,
-      },
-      // Student Dashboard
-      {
-        path: "/dashboard",
-        element: <StudentDashboardPage />,
+        element: <LandingLayout />,
+        children: [
+          // Student checkout — đăng nhập là được, không cần role cụ thể
+          {
+            path: "/checkout/:id",
+            element: <CheckoutPage />,
+          },
+          // Student Dashboard
+          {
+            path: "/dashboard",
+            element: <StudentDashboardPage />,
+          },
+        ],
       },
     ],
   },
@@ -82,8 +87,13 @@ const router = createBrowserRouter([
   },
 
   {
-    path: "/explore-course",
-    element: <ExploreCoursePage />,
+    element: <LandingLayout />,
+    children: [
+      {
+        path: "/explore-course",
+        element: <ExploreCoursePage />,
+      },
+    ],
   },
   // ─── Protected: chỉ STAFF (và ADMIN) ─────────────────────────────
   {

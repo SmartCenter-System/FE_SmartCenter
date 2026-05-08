@@ -283,11 +283,11 @@ export default function CourseDetailPage() {
                 <img
                   src={course.instructor.avatar}
                   alt="Instructor"
-                  className="w-10 h-10 rounded-full border-2 border-slate-700"
+                  className="w-10 h-10 rounded-full border-2 border-border/50"
                 />
                 <span className="text-slate-300">
                   Được tạo bởi{" "}
-                  <span className="text-white font-medium hover:underline cursor-pointer">
+                  <span className="text-slate-50 font-medium hover:underline cursor-pointer">
                     {course.instructor.name}
                   </span>
                 </span>
@@ -316,7 +316,7 @@ export default function CourseDetailPage() {
                     className="w-full h-full object-cover opacity-80"
                   />
                 )}
-                <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-slate-950/90 to-transparent text-white">
+                <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white">
                   <div className="text-sm font-semibold">{previewTitle}</div>
                   <div className="text-xs text-slate-200">{previewLabel}</div>
                 </div>
@@ -384,11 +384,11 @@ export default function CourseDetailPage() {
                                   </span>
                                 </div>
                                 {lesson.isPreview ? (
-                                  <span className="rounded-full bg-emerald-100 text-emerald-700 px-2 py-1 text-[11px] font-semibold">
+                                  <span className="rounded-full bg-emerald-500/10 text-emerald-500 px-2 py-1 text-[11px] font-semibold">
                                     Xem trước
                                   </span>
                                 ) : isAccessible ? (
-                                  <span className="rounded-full bg-slate-100 text-slate-700 px-2 py-1 text-[11px] font-semibold">
+                                  <span className="rounded-full bg-primary/10 text-primary px-2 py-1 text-[11px] font-semibold">
                                     Mở khóa
                                   </span>
                                 ) : (
@@ -471,7 +471,7 @@ export default function CourseDetailPage() {
                       className="w-full h-full object-cover opacity-70 group-hover:opacity-50 transition-opacity"
                     />
                   )}
-                  <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-slate-950/90 to-transparent text-white">
+                  <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white">
                     <div className="text-sm font-semibold">{previewTitle}</div>
                     <div className="text-xs text-slate-200">{previewLabel}</div>
                   </div>

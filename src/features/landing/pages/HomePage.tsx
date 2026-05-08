@@ -1,8 +1,8 @@
-import FullscreenHero from "./components/FullscreenHero";
-import { CoreValuesSection } from "./components/CoreValuesSection";
-import { FeaturedCoursesSection } from "./components/FeaturedCoursesSection";
-import { TestimonialsSection } from "./components/TestimonialsSection";
-import { FAQSection } from "./components/FAQSection";
+import FullscreenHero from "../components/FullscreenHero";
+import { CoreValuesSection } from "../components/CoreValuesSection";
+import { FeaturedCoursesSection } from "../components/FeaturedCoursesSection";
+import { TestimonialsSection } from "../components/TestimonialsSection";
+import { FAQSection } from "../components/FAQSection";
 
 export default function HomePage() {
   return (

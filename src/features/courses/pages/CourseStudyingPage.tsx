@@ -166,7 +166,7 @@ export default function CourseStudyingPage() {
                     : "Bạn đã mở khoá bài học này."}
                 </p>
                 {courseData.description ? (
-                  <p className="mt-4 text-sm text-slate-700">{courseData.description}</p>
+                  <p className="mt-4 text-sm text-foreground/80">{courseData.description}</p>
                 ) : null}
               </CardContent>
             </Card>
@@ -187,9 +187,9 @@ export default function CourseStudyingPage() {
                           return (
                             <li
                               key={item.id}
-                              className={`rounded-xl px-3 py-2 text-sm flex items-center justify-between ${
-                                isActive ? "bg-primary/10 text-primary" : "bg-slate-50"
-                              } ${allowed ? "cursor-pointer hover:bg-primary/5" : "opacity-80"}`}
+                              className={`rounded-xl px-3 py-2 text-sm flex items-center justify-between transition-colors ${
+                                isActive ? "bg-primary/20 text-primary font-medium" : "bg-muted/50 text-foreground"
+                              } ${allowed ? "cursor-pointer hover:bg-primary/10" : "opacity-60 cursor-not-allowed"}`}
                               onClick={() => {
                                 if (allowed) {
                                   navigate(`/courses/${id}/study/${item.id}`);
@@ -197,7 +197,7 @@ export default function CourseStudyingPage() {
                               }}
                             >
                               <span>{item.title}</span>
-                              <span className="text-[11px] rounded-full px-2 py-1 font-semibold text-slate-600 bg-slate-100">
+                              <span className="text-[11px] rounded-full px-2 py-1 font-semibold text-muted-foreground bg-muted border border-border/50">
                                 {item.isPreview ? "Xem trước" : allowed ? "Mở khóa" : "Khoá"}
                               </span>
                             </li>
