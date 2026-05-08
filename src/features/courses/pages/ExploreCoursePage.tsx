@@ -25,8 +25,8 @@ export default function ExploreCoursePage() {
   };
 
   const { data, isLoading } = useCourses(params);
-  const courses = data ?? [];
-  const total = data?.length ?? 0;
+  const courses = data?.items ?? [];
+  const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   function handleSearch() {

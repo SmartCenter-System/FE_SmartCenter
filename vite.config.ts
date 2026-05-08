@@ -49,6 +49,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
       },
+      "/WeatherForecast": {
+        target: API_TARGET,
+        changeOrigin: true,
+        secure: true,
+      },
     },
   },
 });

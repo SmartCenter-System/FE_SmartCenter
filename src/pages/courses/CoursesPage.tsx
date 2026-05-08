@@ -39,8 +39,8 @@ export default function CoursesPage() {
     }),
   });
 
-  const filteredCourses = data || [];
-  const totalCourses = filteredCourses.length;
+  const filteredCourses = data?.items || [];
+  const totalCourses = data?.total || 0;
 
   const paginatedCourses = useMemo(() => {
     const startIndex = (page - 1) * ITEMS_PER_PAGE;

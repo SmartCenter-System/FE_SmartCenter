@@ -282,7 +282,7 @@ export default function StudentDashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {suggestedCourses?.map((course) => (
+              {suggestedCourses?.items.map((course) => (
                 <Card
                   key={course.courseId}
                   className="border-none shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 group overflow-hidden"
