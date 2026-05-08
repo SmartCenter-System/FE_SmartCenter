@@ -32,16 +32,15 @@ export default function CoursesPage() {
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["courses", { search, level, format }],
-    queryFn: () => courseService.getCourses({ 
-      search, 
-      level: level === "ALL" ? undefined : level as any, 
-      format: format === "ALL" ? undefined : format as any 
+    queryKey: ["courses", { Keyword: search, Mode: format }],
+    queryFn: () => courseService.getAll({ 
+      Keyword: search, 
+      Mode: format === "ALL" ? undefined : format === "ONLINE" ? 1 : 2 
     }),
   });
 
-  const filteredCourses = data?.data || [];
-  const totalCourses = data?.total || 0;
+  const filteredCourses = data || [];
+  const totalCourses = filteredCourses.length;
 
   const paginatedCourses = useMemo(() => {
     const startIndex = (page - 1) * ITEMS_PER_PAGE;
@@ -164,17 +163,17 @@ export default function CoursesPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
                 {paginatedCourses.map((course) => (
-                  <Link to={`/courses/${course.id}`} key={course.id} className="group h-full">
+                  <Link to={`/courses/${course.courseId}`} key={course.courseId} className="group h-full">
                     <Card className="h-full flex flex-col overflow-hidden hover:shadow-xl transition-all duration-300 border-none bg-background/60 backdrop-blur-sm group-hover:-translate-y-1">
                       <div className="relative aspect-video overflow-hidden">
                         <img 
-                          src={course.thumbnail || undefined} 
-                          alt={course.title}
+                          src={course.imgUrl || undefined} 
+                          alt={course.courseName}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                         <div className="absolute top-3 left-3 flex flex-col gap-2">
-                          <Badge variant={course.format === "ONLINE" ? "default" : "secondary"} className="shadow-sm">
-                            {course.format === "ONLINE" ? "Online" : "Offline"}
+                          <Badge variant={course.courseType === 1 ? "default" : "secondary"} className="shadow-sm">
+                            {course.courseType === 1 ? "Online" : "Offline"}
                           </Badge>
                         </div>
                       </div>
@@ -186,7 +185,7 @@ export default function CoursesPage() {
                           <span className="text-muted-foreground ml-1">(120)</span>
                         </div>
                         <h3 className="font-bold text-lg leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                          {course.title}
+                          {course.courseName}
                         </h3>
                         <p className="text-sm text-muted-foreground mt-2 line-clamp-1">
                           Bởi Giảng viên
@@ -208,13 +207,8 @@ export default function CoursesPage() {
 
                       <CardFooter className="p-5 pt-0 flex items-end justify-between">
                         <div>
-                          {course.originalPrice && (
-                            <div className="text-sm text-muted-foreground line-through mb-0.5">
-                              {formatPrice(course.originalPrice)}
-                            </div>
-                          )}
                           <div className="text-lg font-bold text-primary">
-                            {formatPrice(course.price)}
+                            {formatPrice(course.basePrice)}
                           </div>
                         </div>
                         <Button variant="ghost" className="rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors">

@@ -1,33 +1,40 @@
 import * as z from "zod";
 
-export const courseStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
-export const courseLevelSchema = z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED", "ALL_LEVELS"]);
-export const courseFormatSchema = z.enum(["ONLINE", "OFFLINE"]);
+export const courseTypeSchema = z.union([z.literal(1), z.literal(2)]); // 1=Online, 2=Offline
 
 export const courseSchema = z.object({
-  id: z.string().uuid(),
-  title: z.string().min(1, "Tiêu đề không được để trống").max(255, "Tiêu đề không được vượt quá 255 ký tự"),
+  courseId: z.string().uuid(),
+  courseName: z.string().min(1, "Tiêu đề không được để trống").max(255, "Tiêu đề không được vượt quá 255 ký tự"),
   description: z.string().optional(),
-  thumbnail: z.string().url("URL ảnh không hợp lệ").optional().nullable(),
-  price: z.number().min(0, "Giá không được âm"),
-  originalPrice: z.number().min(0, "Giá gốc không được âm").optional().nullable(),
-  level: courseLevelSchema,
-  status: courseStatusSchema,
-  format: courseFormatSchema,
-  authorId: z.string().uuid(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  imgUrl: z.string().url("URL ảnh không hợp lệ").optional().nullable(),
+  basePrice: z.number().min(0, "Giá không được âm"),
+  courseType: courseTypeSchema,
+  startAt: z.string().optional().nullable(),
+  endAt: z.string().optional().nullable(),
+  maxStudents: z.number().optional().nullable(),
+  academicYear: z.number().optional().nullable(),
+  isActive: z.boolean().optional(),
 });
 
-export const createCourseSchema = courseSchema.pick({
-  title: true,
-  description: true,
-  thumbnail: true,
-  price: true,
-  originalPrice: true,
-  level: true,
-  status: true,
-  format: true,
+export const createCourseSchema = z.object({
+  courseName: z.string().min(1),
+  description: z.string(),
+  basePrice: z.number(),
+  imgUrl: z.string().url(),
+  courseType: courseTypeSchema.optional(),
+  startAt: z.string().optional(),
+  endAt: z.string().optional(),
+  maxStudents: z.number().optional(),
+  academicYear: z.number().optional(),
 });
 
-export const updateCourseSchema = createCourseSchema.partial();
+export const updateCourseSchema = z.object({
+  courseName: z.string().optional(),
+  description: z.string().optional(),
+  basePrice: z.number().optional(),
+  imgUrl: z.string().url().optional(),
+  startAt: z.string().optional(),
+  endAt: z.string().optional(),
+  maxStudents: z.number().optional(),
+  isActive: z.boolean().optional(),
+});

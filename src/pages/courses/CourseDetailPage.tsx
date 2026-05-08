@@ -12,12 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/shared/components/ui/accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/shared/components/ui/accordion";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
 
@@ -27,7 +22,7 @@ export default function CourseDetailPage() {
 
   const { data: courseData, isLoading } = useQuery({
     queryKey: ["course", id],
-    queryFn: () => courseService.getCourseById(id as string),
+    queryFn: () => courseService.getById(id as string),
     enabled: !!id,
   });
 
@@ -64,7 +59,7 @@ export default function CourseDetailPage() {
     reviews: 1240,
     students: 5430,
     duration: "48 giờ video",
-    lastUpdated: new Date(courseData.updatedAt).toLocaleDateString("vi-VN"),
+    lastUpdated: courseData.startAt ? new Date(courseData.startAt).toLocaleDateString("vi-VN") : "01/01/2026",
     benefits: [
       "Hệ thống hóa toàn bộ kiến thức Toán 12 theo chuyên đề",
       "Kỹ năng bấm máy tính Casio giải nhanh trắc nghiệm",
@@ -76,13 +71,23 @@ export default function CourseDetailPage() {
         title: "Chuyên đề 1: Ứng dụng đạo hàm để khảo sát hàm số",
         lectures: 12,
         duration: "4 giờ 15 phút",
-        items: ["Tính đơn điệu của hàm số", "Cực trị của hàm số", "Giá trị lớn nhất, nhỏ nhất", "Tiệm cận đồ thị hàm số"],
+        items: [
+          "Tính đơn điệu của hàm số",
+          "Cực trị của hàm số",
+          "Giá trị lớn nhất, nhỏ nhất",
+          "Tiệm cận đồ thị hàm số",
+        ],
       },
       {
         title: "Chuyên đề 2: Hàm số Lũy thừa, Mũ và Logarit",
         lectures: 15,
         duration: "5 giờ 30 phút",
-        items: ["Lũy thừa và Logarit", "Hàm số mũ và logarit", "Phương trình mũ và logarit", "Bất phương trình mũ và logarit"],
+        items: [
+          "Lũy thừa và Logarit",
+          "Hàm số mũ và logarit",
+          "Phương trình mũ và logarit",
+          "Bất phương trình mũ và logarit",
+        ],
       },
       {
         title: "Chuyên đề 3: Nguyên hàm, Tích phân và Ứng dụng",
@@ -118,12 +123,12 @@ export default function CourseDetailPage() {
               Khóa học
             </Link>
             <ChevronRight className="h-4 w-4 mx-2" />
-            <span className="text-slate-200 truncate">{course.title}</span>
+            <span className="text-slate-200 truncate">{course.courseName}</span>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
             <div className="lg:col-span-2 space-y-6">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">{course.title}</h1>
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">{course.courseName}</h1>
               <p className="text-lg md:text-xl text-slate-300">{course.description}</p>
 
               <div className="flex flex-wrap items-center gap-4 md:gap-6 text-sm">
@@ -160,7 +165,11 @@ export default function CourseDetailPage() {
             {/* Mobile Video Preview (Hidden on Desktop) */}
             <div className="lg:hidden w-full mt-4">
               <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
-                <img src={course.thumbnail || undefined} alt="Course Preview" className="w-full h-full object-cover opacity-80" />
+                <img
+                  src={course.imgUrl || undefined}
+                  alt="Course Preview"
+                  className="w-full h-full object-cover opacity-80"
+                />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Button
                     size="icon"
@@ -278,7 +287,7 @@ export default function CourseDetailPage() {
                 {/* Desktop Video Preview */}
                 <div className="relative aspect-video bg-slate-900 group cursor-pointer">
                   <img
-                    src={course.thumbnail || undefined}
+                    src={course.imgUrl || undefined}
                     alt="Course Preview"
                     className="w-full h-full object-cover opacity-70 group-hover:opacity-50 transition-opacity"
                   />
@@ -292,18 +301,13 @@ export default function CourseDetailPage() {
 
                 <CardContent className="p-6">
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-6">
-                    <div className="text-4xl font-extrabold text-foreground">{formatPrice(course.price)}</div>
-                    {course.originalPrice && (
-                      <div className="text-lg text-muted-foreground line-through">
-                        {formatPrice(course.originalPrice)}
-                      </div>
-                    )}
+                    <div className="text-4xl font-extrabold text-foreground">{formatPrice(course.basePrice)}</div>
                   </div>
 
                   <div className="space-y-3 mb-6">
-                    <Button 
+                    <Button
                       className="w-full text-lg h-12 shadow-md"
-                      onClick={() => navigate(`/checkout/${course.id}`)}
+                      onClick={() => navigate(`/checkout/${course.courseId}`)}
                     >
                       Đăng ký học ngay
                     </Button>
@@ -355,11 +359,11 @@ export default function CourseDetailPage() {
       {/* Mobile Sticky Buy Button */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] z-50 flex items-center justify-between gap-4">
         <div>
-          <div className="text-2xl font-bold">{formatPrice(course.price)}</div>
+          <div className="text-2xl font-bold">{formatPrice(course.basePrice)}</div>
         </div>
-        <Button 
+        <Button
           className="flex-1 max-w-xs h-12 text-lg shadow-md"
-          onClick={() => navigate(`/checkout/${course.id}`)}
+          onClick={() => navigate(`/checkout/${course.courseId}`)}
         >
           Đăng ký ngay
         </Button>

@@ -144,4 +144,14 @@ export const API_ENDPOINTS = {
   CONSULTATION: {
     CREATE: "/ConsultationRequest/CreateConsultationRequest",
   },
+
+  /**
+   * Combo endpoints
+   * - BASE: GET/POST /api/Combos
+   * - BY_ID: GET/PUT/DELETE /api/Combos/:comboId
+   */
+  COMBO: {
+    BASE: "/api/Combos",
+    BY_ID: (comboId: string) => `/api/Combos/${comboId}`,
+  },
 };

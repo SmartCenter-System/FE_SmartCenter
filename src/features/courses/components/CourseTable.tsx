@@ -19,21 +19,20 @@ export function CourseTable({ courses, isLoading }: CourseTableProps) {
     return <div className="p-8 text-center text-muted-foreground">Không tìm thấy khóa học nào.</div>;
   }
 
-  const getFormatBadgeColor = (format: string) => {
-    return format === "ONLINE" ? "default" : "secondary";
+  const getFormatBadgeColor = (type: 1 | 2) => {
+    return type === 1 ? "default" : "secondary";
+  };
+  
+  const getFormatText = (type: 1 | 2) => {
+    return type === 1 ? "ONLINE" : "OFFLINE";
   };
 
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case "PUBLISHED":
-        return "default";
-      case "DRAFT":
-        return "secondary";
-      case "ARCHIVED":
-        return "destructive";
-      default:
-        return "outline";
-    }
+  const getStatusBadgeColor = (isActive?: boolean) => {
+    return isActive ? "default" : "destructive";
+  };
+  
+  const getStatusText = (isActive?: boolean) => {
+    return isActive ? "PUBLISHED" : "ARCHIVED";
   };
 
   return (
@@ -43,7 +42,6 @@ export function CourseTable({ courses, isLoading }: CourseTableProps) {
           <TableRow>
             <TableHead>Tên khóa học</TableHead>
             <TableHead>Hình thức</TableHead>
-            <TableHead>Cấp độ</TableHead>
             <TableHead>Trạng thái</TableHead>
             <TableHead className="text-right">Giá (VNĐ)</TableHead>
             <TableHead className="text-right">Thao tác</TableHead>
@@ -51,23 +49,22 @@ export function CourseTable({ courses, isLoading }: CourseTableProps) {
         </TableHeader>
         <TableBody>
           {courses.map((course) => (
-            <TableRow key={course.id}>
-              <TableCell className="font-medium">{course.title}</TableCell>
+            <TableRow key={course.courseId}>
+              <TableCell className="font-medium">{course.courseName}</TableCell>
               <TableCell>
-                <Badge variant={getFormatBadgeColor(course.format)}>{course.format}</Badge>
+                <Badge variant={getFormatBadgeColor(course.courseType as 1 | 2)}>{getFormatText(course.courseType as 1 | 2)}</Badge>
               </TableCell>
-              <TableCell>{course.level}</TableCell>
               <TableCell>
-                <Badge variant={getStatusBadgeColor(course.status)}>{course.status}</Badge>
+                <Badge variant={getStatusBadgeColor(course.isActive)}>{getStatusText(course.isActive)}</Badge>
               </TableCell>
-              <TableCell className="text-right">{new Intl.NumberFormat("vi-VN").format(course.price)} đ</TableCell>
+              <TableCell className="text-right">{new Intl.NumberFormat("vi-VN").format(course.basePrice)} đ</TableCell>
               <TableCell className="text-right space-x-2">
-                <Link to={`/admin/courses/${course.id}/edit`}>
+                <Link to={`/admin/courses/${course.courseId}/edit`}>
                   <Button variant="outline" size="icon" className="h-8 w-8" title="Chỉnh sửa chung">
                     <Edit className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Link to={`/admin/courses/${course.id}/content`}>
+                <Link to={`/admin/courses/${course.courseId}/content`}>
                   <Button variant="default" size="icon" className="h-8 w-8 bg-blue-600 hover:bg-blue-700" title="Quản lý nội dung">
                     <ListVideo className="h-4 w-4" />
                   </Button>
