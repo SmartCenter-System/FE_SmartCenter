@@ -1,13 +1,14 @@
 import { GraduationCap, Mail, MapPin, Phone } from "lucide-react";
+import { FaFacebook, FaTwitter, FaLinkedin } from "react-icons/fa";
 import { Link as RouterLink } from "react-router-dom";
 
 const quickLinks = ["Lợi ích", "Khóa học", "Cảm nhận", "Câu hỏi thường gặp"];
 const aboutLinks = ["Công ty", "Thành tựu", "Mục tiêu"];
 
 const socialLinks = [
-  { label: "Facebook", href: "#", text: "Fb" },
-  { label: "Twitter", href: "#", text: "Tw" },
-  { label: "LinkedIn", href: "#", text: "In" },
+  { label: "Facebook", href: "#", icon: FaFacebook },
+  { label: "Twitter", href: "#", icon: FaTwitter },
+  { label: "LinkedIn", href: "#", icon: FaLinkedin },
 ];
 
 export default function Footer() {
@@ -71,16 +72,19 @@ export default function Footer() {
             <div className="space-y-6">
               <h3 className="font-bold text-foreground text-lg">Mạng xã hội</h3>
               <div className="flex gap-4">
-                {socialLinks.map((item) => (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    aria-label={item.label}
-                    className="flex h-10 w-10 items-center justify-center rounded-md bg-muted text-foreground hover:bg-primary hover:text-primary-foreground transition-colors text-sm font-semibold"
-                  >
-                    {item.text}
-                  </a>
-                ))}
+                {socialLinks.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <a
+                      key={item.label}
+                      href={item.href}
+                      aria-label={item.label}
+                      className="flex h-10 w-10 items-center justify-center rounded-md bg-muted text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+                    >
+                      <Icon className="h-5 w-5" />
+                    </a>
+                  );
+                })}
               </div>
             </div>
           </div>

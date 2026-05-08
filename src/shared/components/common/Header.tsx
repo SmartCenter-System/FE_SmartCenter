@@ -2,6 +2,10 @@ import { Link, useLocation } from "react-router-dom";
 import { Home, BookOpen, CircleHelp, Phone, User } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { useEffect, useState } from "react";
+import { useAuthStore } from "@/features/auth/store";
+import { useLogout } from "@/features/auth/hooks/useLogout";
+import { LogOut, LayoutDashboard } from "lucide-react";
+import { toast } from "sonner";
 
 const navigationItems = [
   { icon: Home, label: "Trang chủ", path: "/" },
@@ -18,13 +22,10 @@ interface HeaderProps {
 
 export default function Header({ variant = "fixed", tone = "solid" }: HeaderProps) {
   const location = useLocation();
-  const [isScrolledPastHero, setIsScrolledPastHero] = useState(false);
+  const [isScrolledPastHero, setIsScrolledPastHero] = useState(tone === "solid");
 
   useEffect(() => {
-    if (tone === "solid") {
-      setIsScrolledPastHero(true);
-      return;
-    }
+    if (tone === "solid") return;
 
     if (variant !== "fixed") return;
 
@@ -48,6 +49,13 @@ export default function Header({ variant = "fixed", tone = "solid" }: HeaderProp
       : isScrolledPastHero
         ? "fixed left-0 top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-border/50"
         : "fixed left-0 top-0 z-50 w-full bg-transparent";
+
+  const { accessToken, role } = useAuthStore();
+  const { mutate: logout } = useLogout();
+
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <header className={headerClassName}>
@@ -107,18 +115,41 @@ export default function Header({ variant = "fixed", tone = "solid" }: HeaderProp
           </div>
 
           <div className="ml-auto flex items-center gap-3">
-            <Link
-              to="/register"
-              className="inline-flex h-11 items-center rounded-full bg-white px-5 text-sm font-semibold text-blue-700 shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition-colors hover:bg-gray-50"
-            >
-              Đăng ký
-            </Link>
-            <Button
-              asChild
-              className="h-11 rounded-full bg-yellow-400 px-5 text-blue-900 hover:bg-yellow-500 hover:text-white"
-            >
-              <Link to="/login">Đăng nhập</Link>
-            </Button>
+            {accessToken ? (
+              <>
+                <Link
+                  to={role === "ADMIN" ? "/admin" : role === "STAFF" ? "/staff/enrollments" : "/dashboard"}
+                  className="flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Dashboard
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full text-red-500 hover:text-red-700 hover:bg-red-50"
+                  onClick={() => handleLogout()}
+                  title="Đăng xuất"
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/register"
+                  className="inline-flex h-11 items-center rounded-full bg-white px-5 text-sm font-semibold text-blue-700 shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition-colors hover:bg-gray-50"
+                >
+                  Đăng ký
+                </Link>
+                <Button
+                  asChild
+                  className="h-11 rounded-full bg-yellow-400 px-5 text-blue-900 hover:bg-yellow-500 hover:text-white"
+                >
+                  <Link to="/login">Đăng nhập</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

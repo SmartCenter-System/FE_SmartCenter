@@ -4,22 +4,20 @@ import {
   courseSchema, 
   createCourseSchema, 
   updateCourseSchema, 
-  courseStatusSchema, 
-  courseLevelSchema,
-  courseFormatSchema
+  courseTypeSchema
 } from "./schema";
 
-export type CourseStatus = z.infer<typeof courseStatusSchema>;
-export type CourseLevel = z.infer<typeof courseLevelSchema>;
-export type CourseFormat = z.infer<typeof courseFormatSchema>;
+export type CourseType = z.infer<typeof courseTypeSchema>;
 
 export type Course = z.infer<typeof courseSchema>;
 export type CreateCoursePayload = z.infer<typeof createCourseSchema>;
 export type UpdateCoursePayload = z.infer<typeof updateCourseSchema>;
 
 export interface CourseFilterParams extends BaseFilterParams {
-  status?: CourseStatus;
-  level?: CourseLevel;
-  format?: CourseFormat;
-  authorId?: string;
+  CategoryId?: string;
+  CourseId?: string;
+  MinPrice?: number;
+  MaxPrice?: number;
+  Mode?: CourseType;
+  Keyword?: string;
 }

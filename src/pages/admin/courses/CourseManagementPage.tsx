@@ -13,29 +13,27 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/shared/components/ui/pagination";
-import type { CourseFormat } from "@/features/courses";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
 
-const ITEMS_PER_PAGE = 3;
+const ITEMS_PER_PAGE = 5; // Tăng lên 5 cho đẹp
 
 export default function CourseManagementPage() {
   const [search, setSearch] = useState("");
-  const [format, setFormat] = useState<CourseFormat | "ALL">("ALL");
+  const [format, setFormat] = useState<"ONLINE" | "OFFLINE" | "ALL">("ALL");
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-courses", { search, format }],
-    queryFn: () => courseService.getCourses({ 
-      search, 
-      format: format === "ALL" ? undefined : format 
+    queryFn: () => courseService.getAll({ 
+      Keyword: search, 
+      Mode: format === "ALL" ? undefined : format === "ONLINE" ? 1 : 2 
     }),
   });
 
-  const filteredCourses = data?.data || [];
+  const filteredCourses = data?.items || [];
   const totalCourses = data?.total || 0;
 
-  // Phân trang dữ liệu giả lập (thường thì API sẽ handle cái này nhưng ở đây ta slice ở client tạm thời)
   const paginatedCourses = useMemo(() => {
     const startIndex = (page - 1) * ITEMS_PER_PAGE;
     return filteredCourses.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -43,13 +41,12 @@ export default function CourseManagementPage() {
 
   const totalPages = Math.ceil(totalCourses / ITEMS_PER_PAGE) || 1;
 
-  // Xử lý khi đổi filter thì reset về page 1
   const handleSearchChange = (val: string) => {
     setSearch(val);
     setPage(1);
   };
 
-  const handleFormatChange = (val: CourseFormat | "ALL") => {
+  const handleFormatChange = (val: "ONLINE" | "OFFLINE" | "ALL") => {
     setFormat(val);
     setPage(1);
   };
