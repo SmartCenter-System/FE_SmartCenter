@@ -59,6 +59,7 @@ apiClient.interceptors.response.use(
               accessToken: newAuth.accessToken,
               refreshToken: newAuth.refreshToken,
               role: useAuthStore.getState().role,
+              userId: useAuthStore.getState().userId,
             });
 
             processQueue(null, newAuth.accessToken);
@@ -74,8 +75,9 @@ apiClient.interceptors.response.use(
             isRefreshing = false;
           }
         } else {
-          useAuthStore.getState().clearAuth();
-          window.location.href = "/login";
+          // Không có refreshToken — chỉ reject lỗi, KHÔNG clearAuth
+          // Tránh logout oan khi public endpoint trả 401
+          isRefreshing = false;
           return Promise.reject(error);
         }
       }

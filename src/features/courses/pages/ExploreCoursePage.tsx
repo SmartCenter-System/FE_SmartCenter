@@ -17,6 +17,8 @@ import {
 	type PublicCourseFilterState,
 } from "../hooks/usePublicCourses";
 import PaginationBar from "@/shared/components/common/PaginationBar";
+import { useCourses } from "../hooks/useCourses";
+import type { CourseFilterParams } from "../type";
 
 const DEFAULT_PAGE_SIZE = 9;
 

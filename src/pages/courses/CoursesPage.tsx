@@ -200,7 +200,7 @@ export default function CoursesPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
                 {paginatedCourses.map((course) => (
-                  <Link to={`/courses/${course.id}`} key={course.id} className="group h-full">
+                  <Link to={`/courses/${course.courseId}`} key={course.courseId} className="group h-full">
                     <Card className="h-full flex flex-col overflow-hidden hover:shadow-xl transition-all duration-300 border-none bg-background/60 backdrop-blur-sm group-hover:-translate-y-1">
                       <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-sky-100 via-indigo-100 to-cyan-100">
                         <div className="absolute inset-0 flex items-center justify-center">
@@ -224,7 +224,7 @@ export default function CoursesPage() {
                           <span className="text-muted-foreground ml-1">(120)</span>
                         </div>
                         <h3 className="font-bold text-lg leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                          {course.title}
+                          {course.courseName}
                         </h3>
                         <p className="text-sm text-muted-foreground mt-2 line-clamp-1">
                           Khóa học tại SmartCenter
@@ -247,7 +247,7 @@ export default function CoursesPage() {
                       <CardFooter className="p-5 pt-0 flex items-end justify-between">
                         <div>
                           <div className="text-lg font-bold text-primary">
-                            {formatPrice(course.price)}
+                            {formatPrice(course.basePrice)}
                           </div>
                         </div>
                         <Button variant="ghost" className="rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors">

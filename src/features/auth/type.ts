@@ -31,10 +31,11 @@ export interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   role: RoleType | null;
+  userId: string | null;
 }
 
 export interface AuthActions {
-  setAuth: (payload: { accessToken: string; refreshToken: string; role: RoleType | null }) => void;
+  setAuth: (payload: { accessToken: string; refreshToken: string; role: RoleType | null; userId: string | null }) => void;
 
   clearAuth: () => void;
 }

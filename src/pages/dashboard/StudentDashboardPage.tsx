@@ -127,8 +127,9 @@ export default function StudentDashboardPage() {
 
   // Fetch danh sách khóa học công khai để demo "đề xuất" (sẽ thay bằng API enrollments)
   const { data: suggestedCourses, isLoading } = useQuery({
-    queryKey: ["courses", { status: "PUBLISHED", limit: 4 }],
-    queryFn: () => courseService.getCourses({ status: "PUBLISHED", limit: 4 }),
+    queryKey: ["courses", { limit: 4 }],
+    queryFn: () => courseService.getAll({ limit: 4 }),
+    staleTime: 0, // Ghi đè cấu hình global để Dashboard luôn lấy data mới nhất
   });
 
   // Mock data cho enrolled courses — sẽ replace bằng API /me/enrollments
@@ -281,16 +282,16 @@ export default function StudentDashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {suggestedCourses?.data.map((course) => (
+              {suggestedCourses?.items.map((course) => (
                 <Card
-                  key={course.id}
+                  key={course.courseId}
                   className="border-none shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 group overflow-hidden"
                 >
                   <div className="relative h-36 bg-muted overflow-hidden">
-                    {course.thumbnail ? (
+                    {course.imgUrl ? (
                       <img
-                        src={course.thumbnail}
-                        alt={course.title}
+                        src={course.imgUrl}
+                        alt={course.courseName}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
@@ -301,14 +302,14 @@ export default function StudentDashboardPage() {
                   </div>
                   <CardContent className="p-4 space-y-3">
                     <h3 className="font-semibold text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-                      {course.title}
+                      {course.courseName}
                     </h3>
                     <div className="flex items-center justify-between">
                       <span className="text-lg font-bold text-primary">
-                        {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(course.price)}
+                        {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(course.basePrice)}
                       </span>
                     </div>
-                    <Link to={`/courses/${course.id}`} className="block">
+                    <Link to={`/courses/${course.courseId}`} className="block">
                       <Button size="sm" variant="outline" className="w-full">
                         Xem chi tiết
                       </Button>

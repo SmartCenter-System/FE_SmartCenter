@@ -29,6 +29,7 @@ export function useLogin() {
         accessToken: res.accessToken,
         refreshToken: res.refreshToken,
         role: decoded.role,
+        userId: decoded.sub,
       });
       toast.success("Đăng nhập thành công!");
       if (decoded.role === "ADMIN") {
