@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Star,
@@ -9,22 +10,219 @@ import {
   ShieldCheck,
   Trophy,
   Smartphone,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/shared/components/ui/accordion";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
+import { lessonService } from "@/features/courses/lessonService";
+import { enrollmentService } from "@/features/courses/enrollmentService";
+import { useAuthStore } from "@/features/auth/store";
+import { getYouTubeEmbedUrl, isYouTubeUrl } from "@/lib/utils";
+import type { Course } from "@/features/courses/type";
+import type { Enrollment } from "@/features/courses/enrollmentService";
 
 export default function CourseDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { data: courseData, isLoading } = useQuery({
+  const accessToken = useAuthStore((state) => state.accessToken);
+
+  const { data: courseData, isLoading } = useQuery<Course>({
     queryKey: ["course", id],
     queryFn: () => courseService.getById(id as string),
     enabled: !!id,
   });
+
+  const { data: enrollmentData } = useQuery<{ items: Enrollment[]; total: number }>({
+    queryKey: ["myEnrollments"],
+    queryFn: () => enrollmentService.getMyEnrollments(),
+    enabled: !!accessToken,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+  });
+  const enrollments = enrollmentData?.items;
+
+  // TODO: Extend data from API with UI mock properties if missing.
+  // Khi Backend đã có đủ các trường này (như rating, reviews, syllabus), bạn có thể xóa cục MOCK DATA này đi và dùng thẳng `const course = courseData`.
+
+  const coursePlaceholderImage = "https://placehold.co/600x400/17218F/FFFFFF?text=Preview+Image";
+
+  type CourseLesson = {
+    id: string;
+    title: string;
+    isPreview: boolean;
+    videoUrl?: string;
+  };
+
+  type CourseSection = {
+    id: string;
+    title: string;
+    lessons: CourseLesson[];
+  };
+
+  const { data: sectionLessonsData } = useQuery<CourseSection[]>({
+    queryKey: ["courseSectionLessons", courseData?.courseId],
+    queryFn: async () => {
+      if (!courseData || !Array.isArray(courseData.sections)) {
+        return [];
+      }
+
+      const sectionResults = await Promise.all(
+        courseData.sections.map(async (section) => {
+          const rawLessons = await lessonService.getAll(courseData.courseId, section.id);
+          return {
+            ...section,
+            lessons: Array.isArray(rawLessons)
+              ? rawLessons.map((lesson) => ({
+                  id: String(lesson.id),
+                  title: lesson.title,
+                  isPreview: Boolean(lesson.isPreview),
+                  videoUrl: lesson.videoUrl,
+                }))
+              : [],
+          };
+        }),
+      );
+
+      return sectionResults;
+    },
+    enabled: !!courseData?.courseId && Array.isArray(courseData?.sections) && courseData.sections.length > 0,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+  });
+
+  const course = useMemo(() => {
+    if (!courseData) return null as unknown as Course;
+
+    return {
+      ...courseData,
+      instructor: {
+        name: "Thầy Nguyễn Đức Anh",
+        avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop",
+        title: "Chuyên gia luyện thi môn Toán THPT Quốc Gia",
+        rating: 4.9,
+        students: 15400,
+        courses: 12,
+        bio: "Với hơn 10 năm kinh nghiệm luyện thi, Thầy đã giúp hàng ngàn học sinh đạt điểm 9+ môn Toán trong kỳ thi THPT Quốc Gia. Phương pháp dạy dễ hiểu, bám sát cấu trúc đề thi mới nhất.",
+      },
+      rating: 4.8,
+      reviews: 1240,
+      students: 5430,
+      duration: "48 giờ video",
+      lastUpdated: courseData.startAt ? new Date(courseData.startAt).toLocaleDateString("vi-VN") : "01/01/2026",
+      benefits: [
+        "Hệ thống hóa toàn bộ kiến thức Toán 12 theo chuyên đề",
+        "Kỹ năng bấm máy tính Casio giải nhanh trắc nghiệm",
+        "Luyện các dạng bài vận dụng cao (câu 35-50)",
+        "Làm quen với áp lực phòng thi qua các đề thi thử",
+      ],
+      syllabus: [
+        {
+          title: "Chuyên đề 1: Ứng dụng đạo hàm để khảo sát hàm số",
+          lectures: 12,
+          duration: "4 giờ 15 phút",
+          items: [
+            "Tính đơn điệu của hàm số",
+            "Cực trị của hàm số",
+            "Giá trị lớn nhất, nhỏ nhất",
+            "Tiệm cận đồ thị hàm số",
+          ],
+        },
+        {
+          title: "Chuyên đề 2: Hàm số Lũy thừa, Mũ và Logarit",
+          lectures: 15,
+          duration: "5 giờ 30 phút",
+          items: [
+            "Lũy thừa và Logarit",
+            "Hàm số mũ và logarit",
+            "Phương trình mũ và logarit",
+            "Bất phương trình mũ và logarit",
+          ],
+        },
+        {
+          title: "Chuyên đề 3: Nguyên hàm, Tích phân và Ứng dụng",
+          lectures: 10,
+          duration: "3 giờ 45 phút",
+          items: ["Nguyên hàm cơ bản", "Phương pháp tính tích phân", "Ứng dụng tính diện tích và thể tích"],
+        },
+        {
+          title: "Chuyên đề 4: Khối đa diện và Thể tích",
+          lectures: 8,
+          duration: "2 giờ 30 phút",
+          items: ["Khái niệm khối đa diện", "Thể tích khối lăng trụ", "Thể tích khối chóp", "Khoảng cách và góc"],
+        },
+      ],
+    };
+  }, [courseData]) as Course & {
+    instructor: {
+      name: string;
+      avatar: string;
+      title: string;
+      rating: number;
+      students: number;
+      courses: number;
+      bio: string;
+    };
+    rating: number;
+    reviews: number;
+    students: number;
+    duration: string;
+    lastUpdated: string;
+    benefits: string[];
+    syllabus: Array<{ title: string; lectures: number; duration: string; items: string[] }>;
+  };
+
+  const sections: CourseSection[] = useMemo(() => {
+    if (!courseData) return [];
+    if (Array.isArray(sectionLessonsData) && sectionLessonsData.length > 0) {
+      return sectionLessonsData;
+    }
+
+    return (courseData as any).sections ?? course.syllabus.map((chapter: any, idx: number) => ({
+      id: chapter.id ?? `mock-${idx}`,
+      title: chapter.title,
+      lessons: (chapter.items ?? []).map((item: string, lessonIndex: number) => ({
+        id: `mock-${idx}-${lessonIndex}`,
+        title: item,
+        isPreview: false,
+      })),
+    }));
+  }, [courseData, sectionLessonsData]);
+
+  const isPurchased = useMemo(() => {
+    if (!enrollments || !courseData) return false;
+    return enrollments.some((item) => item.courseId === courseData.courseId);
+  }, [courseData, enrollments]);
+
+  const allLessons = useMemo(() => sections.flatMap((section) => section.lessons), [sections]);
+
+  const selectedLesson = useMemo(
+    () => allLessons.find((lesson) => lesson.isPreview || isPurchased),
+    [allLessons, isPurchased],
+  );
+
+  const handleLessonClick = (lesson: CourseLesson) => {
+    if (lesson.isPreview || isPurchased) {
+      navigate(`/courses/${course?.courseId ?? ""}/study/${lesson.id}`);
+      return;
+    }
+
+    navigate(`/checkout/${course?.courseId ?? ""}`);
+  };
+
+  const previewTitle = selectedLesson ? selectedLesson.title : "Chọn bài giảng để xem trước";
+  const previewLabel = selectedLesson
+    ? selectedLesson.isPreview
+      ? "Xem trước" 
+      : "Đã mở khóa"
+    : "Chọn bài giảng xem trước";
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
+  };
 
   if (isLoading) {
     return (
@@ -41,72 +239,6 @@ export default function CourseDetailPage() {
       </div>
     );
   }
-
-  // TODO: Extend data from API with UI mock properties if missing.
-  // Khi Backend đã có đủ các trường này (như rating, reviews, syllabus), bạn có thể xóa cục MOCK DATA này đi và dùng thẳng `const course = courseData`.
-  const course = {
-    ...courseData,
-    instructor: {
-      name: "Thầy Nguyễn Đức Anh",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop",
-      title: "Chuyên gia luyện thi môn Toán THPT Quốc Gia",
-      rating: 4.9,
-      students: 15400,
-      courses: 12,
-      bio: "Với hơn 10 năm kinh nghiệm luyện thi, Thầy đã giúp hàng ngàn học sinh đạt điểm 9+ môn Toán trong kỳ thi THPT Quốc Gia. Phương pháp dạy dễ hiểu, bám sát cấu trúc đề thi mới nhất.",
-    },
-    rating: 4.8,
-    reviews: 1240,
-    students: 5430,
-    duration: "48 giờ video",
-    lastUpdated: courseData.startAt ? new Date(courseData.startAt).toLocaleDateString("vi-VN") : "01/01/2026",
-    benefits: [
-      "Hệ thống hóa toàn bộ kiến thức Toán 12 theo chuyên đề",
-      "Kỹ năng bấm máy tính Casio giải nhanh trắc nghiệm",
-      "Luyện các dạng bài vận dụng cao (câu 35-50)",
-      "Làm quen với áp lực phòng thi qua các đề thi thử",
-    ],
-    syllabus: [
-      {
-        title: "Chuyên đề 1: Ứng dụng đạo hàm để khảo sát hàm số",
-        lectures: 12,
-        duration: "4 giờ 15 phút",
-        items: [
-          "Tính đơn điệu của hàm số",
-          "Cực trị của hàm số",
-          "Giá trị lớn nhất, nhỏ nhất",
-          "Tiệm cận đồ thị hàm số",
-        ],
-      },
-      {
-        title: "Chuyên đề 2: Hàm số Lũy thừa, Mũ và Logarit",
-        lectures: 15,
-        duration: "5 giờ 30 phút",
-        items: [
-          "Lũy thừa và Logarit",
-          "Hàm số mũ và logarit",
-          "Phương trình mũ và logarit",
-          "Bất phương trình mũ và logarit",
-        ],
-      },
-      {
-        title: "Chuyên đề 3: Nguyên hàm, Tích phân và Ứng dụng",
-        lectures: 10,
-        duration: "3 giờ 45 phút",
-        items: ["Nguyên hàm cơ bản", "Phương pháp tính tích phân", "Ứng dụng tính diện tích và thể tích"],
-      },
-      {
-        title: "Chuyên đề 4: Khối đa diện và Thể tích",
-        lectures: 8,
-        duration: "2 giờ 30 phút",
-        items: ["Khái niệm khối đa diện", "Thể tích khối lăng trụ", "Thể tích khối chóp", "Khoảng cách và góc"],
-      },
-    ],
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
-  };
 
   return (
     <div className="bg-background min-h-screen pb-20">
@@ -164,19 +296,29 @@ export default function CourseDetailPage() {
 
             {/* Mobile Video Preview (Hidden on Desktop) */}
             <div className="lg:hidden w-full mt-4">
-              <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
-                <img
-                  src={course.imgUrl || undefined}
-                  alt="Course Preview"
-                  className="w-full h-full object-cover opacity-80"
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Button
-                    size="icon"
-                    className="h-16 w-16 rounded-full bg-white/20 backdrop-blur-md border border-white/40 hover:bg-white/30 text-white"
-                  >
-                    <PlayCircle className="h-10 w-10" />
-                  </Button>
+              <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-900">
+                {selectedLesson?.videoUrl ? (
+                  isYouTubeUrl(selectedLesson.videoUrl) ? (
+                    <iframe
+                      src={getYouTubeEmbedUrl(selectedLesson.videoUrl)}
+                      title={selectedLesson.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                    />
+                  ) : (
+                    <video src={selectedLesson.videoUrl} controls className="w-full h-full object-cover" />
+                  )
+                ) : (
+                  <img
+                    src={course.imgUrl ?? coursePlaceholderImage}
+                    alt={previewTitle}
+                    className="w-full h-full object-cover opacity-80"
+                  />
+                )}
+                <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-slate-950/90 to-transparent text-white">
+                  <div className="text-sm font-semibold">{previewTitle}</div>
+                  <div className="text-xs text-slate-200">{previewLabel}</div>
                 </div>
               </div>
             </div>
@@ -206,34 +348,58 @@ export default function CourseDetailPage() {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold">Nội dung khóa học</h2>
                 <div className="text-sm text-muted-foreground">
-                  {course.syllabus.length} chương • {course.duration}
+                  {sections.length} chương • {course.duration}
                 </div>
               </div>
               <div className="bg-card border border-border rounded-xl overflow-hidden">
                 <Accordion type="multiple" defaultValue={["item-0"]} className="w-full">
-                  {course.syllabus.map((chapter, index) => (
-                    <AccordionItem key={index} value={`item-${index}`} className="px-6 border-b last:border-0">
+                  {sections.map((section, index) => (
+                    <AccordionItem key={section.id ?? index} value={`item-${index}`} className="px-6 border-b last:border-0">
                       <AccordionTrigger className="hover:no-underline py-5">
                         <div className="flex flex-col md:flex-row md:items-center justify-between w-full text-left pr-4 gap-2">
-                          <span className="font-semibold text-base">{chapter.title}</span>
+                          <span className="font-semibold text-base">{section.title}</span>
                           <span className="text-sm font-normal text-muted-foreground shrink-0 hidden md:block">
-                            {chapter.lectures} bài giảng • {chapter.duration}
+                            {section.lessons.length} bài giảng
                           </span>
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="pb-5 pt-0">
                         <ul className="space-y-3">
-                          {chapter.items.map((item, i) => (
-                            <li
-                              key={i}
-                              className="flex items-center justify-between text-muted-foreground pl-4 border-l-2 border-muted"
-                            >
-                              <div className="flex items-center gap-3">
-                                <PlayCircle className="h-4 w-4 shrink-0" />
-                                <span>{item}</span>
-                              </div>
-                            </li>
-                          ))}
+                          {section.lessons.map((lesson) => {
+                            const isAccessible = isPurchased || lesson.isPreview;
+                            const isSelected = selectedLesson?.id === lesson.id;
+
+                            return (
+                              <li
+                                key={lesson.id}
+                                onClick={() => handleLessonClick(lesson)}
+                                className={`flex items-center justify-between rounded-2xl border px-4 py-3 transition-colors ${
+                                  isAccessible ? "border-border/50 bg-background/80 hover:border-primary/60 hover:bg-background cursor-pointer" : "border-border/50 bg-muted/10 cursor-not-allowed opacity-80"
+                                } ${isSelected ? "ring-2 ring-primary/40" : ""}`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <PlayCircle className={`h-4 w-4 shrink-0 ${isAccessible ? "text-primary" : "text-muted-foreground"}`} />
+                                  <span className={isAccessible ? "text-foreground" : "text-muted-foreground opacity-70"}>
+                                    {lesson.title}
+                                  </span>
+                                </div>
+                                {lesson.isPreview ? (
+                                  <span className="rounded-full bg-emerald-100 text-emerald-700 px-2 py-1 text-[11px] font-semibold">
+                                    Xem trước
+                                  </span>
+                                ) : isAccessible ? (
+                                  <span className="rounded-full bg-slate-100 text-slate-700 px-2 py-1 text-[11px] font-semibold">
+                                    Mở khóa
+                                  </span>
+                                ) : (
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Lock className="h-4 w-4" />
+                                    <span>Khoá</span>
+                                  </div>
+                                )}
+                              </li>
+                            );
+                          })}
                         </ul>
                       </AccordionContent>
                     </AccordionItem>
@@ -285,17 +451,29 @@ export default function CourseDetailPage() {
             <div className="sticky top-24 z-10 transition-all duration-300">
               <Card className="overflow-hidden border-border shadow-2xl -mt-40 bg-background/80 backdrop-blur-xl">
                 {/* Desktop Video Preview */}
-                <div className="relative aspect-video bg-slate-900 group cursor-pointer">
-                  <img
-                    src={course.imgUrl || undefined}
-                    alt="Course Preview"
-                    className="w-full h-full object-cover opacity-70 group-hover:opacity-50 transition-opacity"
-                  />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <div className="h-16 w-16 rounded-full bg-white/20 backdrop-blur-md border border-white/40 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <PlayCircle className="h-10 w-10 text-white" />
-                    </div>
-                    <span className="text-white font-medium mt-3 drop-shadow-md">Xem trước khóa học</span>
+                <div className="relative aspect-video bg-slate-900 group cursor-pointer rounded-t-xl overflow-hidden">
+                  {selectedLesson?.videoUrl ? (
+                    isYouTubeUrl(selectedLesson.videoUrl) ? (
+                      <iframe
+                        src={getYouTubeEmbedUrl(selectedLesson.videoUrl)}
+                        title={selectedLesson.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full"
+                      />
+                    ) : (
+                      <video src={selectedLesson.videoUrl} controls className="w-full h-full object-cover" />
+                    )
+                  ) : (
+                    <img
+                      src={course.imgUrl ?? coursePlaceholderImage}
+                      alt={previewTitle}
+                      className="w-full h-full object-cover opacity-70 group-hover:opacity-50 transition-opacity"
+                    />
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-slate-950/90 to-transparent text-white">
+                    <div className="text-sm font-semibold">{previewTitle}</div>
+                    <div className="text-xs text-slate-200">{previewLabel}</div>
                   </div>
                 </div>
 

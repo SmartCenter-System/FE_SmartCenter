@@ -29,7 +29,7 @@ import {
 import { Card, CardContent } from "@/shared/components/ui/card";
 
 interface CourseFormProps {
-  initialData?: CreateCoursePayload & { id?: string };
+  initialData?: CreateCoursePayload;
 }
 
 export function CourseForm({ initialData }: CourseFormProps) {
@@ -39,15 +39,16 @@ export function CourseForm({ initialData }: CourseFormProps) {
 
   const form = useForm<CreateCoursePayload>({
     resolver: zodResolver(createCourseSchema),
-    defaultValues: initialData || {
-      title: "",
+    defaultValues: initialData ?? {
+      courseName: "",
       description: "",
-      thumbnail: "",
-      price: 0,
-      originalPrice: 0,
-      level: "BEGINNER",
-      status: "DRAFT",
-      format: "ONLINE",
+      imgUrl: "",
+      basePrice: 0,
+      courseType: 1,
+      startAt: "",
+      endAt: "",
+      maxStudents: 30,
+      academicYear: new Date().getFullYear(),
     },
   });
 
@@ -56,9 +57,8 @@ export function CourseForm({ initialData }: CourseFormProps) {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      // Replace with env variables
       formData.append("upload_preset", import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || "smart_center");
-      
+
       const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "demo";
       const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
         method: "POST",
@@ -69,12 +69,11 @@ export function CourseForm({ initialData }: CourseFormProps) {
         const errorData = await res.json();
         throw new Error(errorData.error?.message || "Upload failed");
       }
-      
+
       const data = await res.json();
-      form.setValue("thumbnail", data.secure_url);
+      form.setValue("imgUrl", data.secure_url);
       toast.success("Tải ảnh lên thành công!");
     } catch (error: any) {
-      console.error("Upload error details:", error);
       toast.error(`Lỗi: ${error.message}`);
     } finally {
       setIsUploading(false);
@@ -84,13 +83,12 @@ export function CourseForm({ initialData }: CourseFormProps) {
   const onSubmit = async (data: CreateCoursePayload) => {
     setIsSubmitting(true);
     try {
-      // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
       console.log("Submitting:", data);
-      
+
       toast.success(initialData ? "Cập nhật khóa học thành công!" : "Tạo khóa học thành công!");
       navigate("/admin/courses");
-    } catch (error) {
+    } catch {
       toast.error("Đã có lỗi xảy ra");
     } finally {
       setIsSubmitting(false);
@@ -106,7 +104,7 @@ export function CourseForm({ initialData }: CourseFormProps) {
               <CardContent className="pt-6 space-y-4">
                 <FormField
                   control={form.control}
-                  name="title"
+                  name="courseName"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tên khóa học</FormLabel>
@@ -117,6 +115,7 @@ export function CourseForm({ initialData }: CourseFormProps) {
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
                   name="description"
@@ -124,10 +123,10 @@ export function CourseForm({ initialData }: CourseFormProps) {
                     <FormItem>
                       <FormLabel>Mô tả chi tiết</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Mô tả nội dung khóa học..." 
+                        <Textarea
+                          placeholder="Mô tả nội dung khóa học..."
                           className="min-h-[120px]"
-                          {...field} 
+                          {...field}
                           value={field.value || ""}
                         />
                       </FormControl>
@@ -135,37 +134,37 @@ export function CourseForm({ initialData }: CourseFormProps) {
                     </FormItem>
                   )}
                 />
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="price"
+                    name="basePrice"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Giá bán (VNĐ)</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            {...field} 
-                            onChange={e => field.onChange(Number(e.target.value))}
+                          <Input
+                            type="number"
+                            value={field.value ?? 0}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
-                    name="originalPrice"
+                    name="maxStudents"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Giá gốc (VNĐ)</FormLabel>
+                        <FormLabel>Số học viên tối đa</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            {...field} 
-                            value={field.value || ""}
-                            onChange={e => field.onChange(Number(e.target.value))}
+                          <Input
+                            type="number"
+                            value={field.value ?? 0}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
@@ -182,7 +181,7 @@ export function CourseForm({ initialData }: CourseFormProps) {
               <CardContent className="pt-6 space-y-4">
                 <FormField
                   control={form.control}
-                  name="thumbnail"
+                  name="imgUrl"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Ảnh bìa khóa học</FormLabel>
@@ -194,12 +193,14 @@ export function CourseForm({ initialData }: CourseFormProps) {
                               <label className="cursor-pointer text-white flex items-center gap-2 text-sm font-medium">
                                 <UploadCloud className="h-4 w-4" />
                                 Thay đổi
-                                <input 
-                                  type="file" 
-                                  className="hidden" 
+                                <input
+                                  type="file"
+                                  className="hidden"
                                   accept="image/*"
                                   onChange={(e) => {
-                                    if (e.target.files?.[0]) uploadToCloudinary(e.target.files[0]);
+                                    if (e.target.files?.[0]) {
+                                      void uploadToCloudinary(e.target.files[0]);
+                                    }
                                   }}
                                 />
                               </label>
@@ -215,12 +216,14 @@ export function CourseForm({ initialData }: CourseFormProps) {
                                 <span className="text-sm">Click để tải ảnh lên</span>
                               </>
                             )}
-                            <input 
-                              type="file" 
-                              className="hidden" 
+                            <input
+                              type="file"
+                              className="hidden"
                               accept="image/*"
                               onChange={(e) => {
-                                if (e.target.files?.[0]) uploadToCloudinary(e.target.files[0]);
+                                if (e.target.files?.[0]) {
+                                  void uploadToCloudinary(e.target.files[0]);
+                                }
                               }}
                             />
                           </label>
@@ -233,43 +236,22 @@ export function CourseForm({ initialData }: CourseFormProps) {
 
                 <FormField
                   control={form.control}
-                  name="level"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Trình độ</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Chọn trình độ" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="BEGINNER">Người mới bắt đầu</SelectItem>
-                          <SelectItem value="INTERMEDIATE">Trung bình</SelectItem>
-                          <SelectItem value="ADVANCED">Nâng cao</SelectItem>
-                          <SelectItem value="ALL_LEVELS">Mọi trình độ</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="format"
+                  name="courseType"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Hình thức</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number(value) as 1 | 2)}
+                        defaultValue={String(field.value ?? 1)}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Chọn hình thức" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="ONLINE">Học Online</SelectItem>
-                          <SelectItem value="OFFLINE">Học Offline tại trung tâm</SelectItem>
+                          <SelectItem value="1">Học Online</SelectItem>
+                          <SelectItem value="2">Học Offline tại trung tâm</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -279,22 +261,17 @@ export function CourseForm({ initialData }: CourseFormProps) {
 
                 <FormField
                   control={form.control}
-                  name="status"
+                  name="academicYear"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Trạng thái</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Chọn trạng thái" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="DRAFT">Bản nháp</SelectItem>
-                          <SelectItem value="PUBLISHED">Xuất bản</SelectItem>
-                          <SelectItem value="ARCHIVED">Lưu trữ</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Năm học</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          value={field.value ?? new Date().getFullYear()}
+                          onChange={(e) => field.onChange(Number(e.target.value))}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

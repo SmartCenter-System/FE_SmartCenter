@@ -31,6 +31,7 @@ export const API_ENDPOINTS = {
     BASE: "/api/Courses",
     BY_ID: (courseId: string) => `/api/Courses/${courseId}`,
     PREVIEWS: (courseId: string) => `/api/Courses/${courseId}/previews`,
+    TOP_POPULAR: "/api/Courses/top-6-most-popular-courses",
   },
 
   /**

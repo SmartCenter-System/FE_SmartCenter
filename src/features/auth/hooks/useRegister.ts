@@ -26,6 +26,7 @@ export function useRegister() {
         accessToken: res.accessToken,
         refreshToken: res.refreshToken,
         role: decoded.role,
+        userId: res.user?.userId ?? decoded.sub ?? null,
       });
       toast.success("Đăng ký thành công!");
       if (decoded.role === "ADMIN") {

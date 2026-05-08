@@ -2,6 +2,18 @@ import * as z from "zod";
 
 export const courseTypeSchema = z.union([z.literal(1), z.literal(2)]); // 1=Online, 2=Offline
 
+const courseLessonSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  isPreview: z.boolean(),
+});
+
+const courseSectionSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  lessons: z.array(courseLessonSchema),
+});
+
 export const courseSchema = z.object({
   courseId: z.string().uuid(),
   courseName: z.string().min(1, "Tiêu đề không được để trống").max(255, "Tiêu đề không được vượt quá 255 ký tự"),
@@ -14,6 +26,7 @@ export const courseSchema = z.object({
   maxStudents: z.number().optional().nullable(),
   academicYear: z.number().optional().nullable(),
   isActive: z.boolean().optional(),
+  sections: z.array(courseSectionSchema).optional(),
 });
 
 export const createCourseSchema = z.object({

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
-import { ChevronLeft, ShieldCheck, CreditCard, QrCode, Tag, Loader2 } from "lucide-react";
+import { ChevronLeft, ShieldCheck, QrCode, Tag, Loader2 } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -28,7 +28,7 @@ export default function CheckoutPage() {
     enabled: !!id,
   });
 
-  const { data: cart, isLoading: isLoadingCart } = useCart(userId);
+  const { data: cart, isLoading: isLoadingCart } = useCart();
   const { mutate: createOrder, isPending: isCreatingOrder } = useCreateOrder();
 
   // ─── Handlers ──────────────────────────────────────────────────
@@ -70,14 +70,14 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!cart?.cartId) {
+    if (!(cart as any)?.cartId) {
       toast.error("Không tìm thấy giỏ hàng của bạn");
       return;
     }
 
     createOrder({
       studentId: userId,
-      cartId: cart.cartId,
+      cartId: (cart as any).cartId,
     });
   };
 

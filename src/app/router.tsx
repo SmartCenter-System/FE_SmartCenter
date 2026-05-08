@@ -13,6 +13,7 @@ import ExploreCoursePage from "@/features/courses/pages/ExploreCoursePage";
 import LandingLayout from "@/features/landing/LandingLayout";
 import CoursesPage from "@/pages/courses/CoursesPage";
 import CourseDetailPage from "@/pages/courses/CourseDetailPage";
+import CourseStudyingPage from "@/pages/courses/CourseStudyingPage";
 import CheckoutPage from "@/pages/checkout/CheckoutPage";
 
 // ─── Student Dashboard (yêu cầu đăng nhập) ───────────────────────────────────
@@ -40,6 +41,7 @@ const router = createBrowserRouter([
       { path: "register", element: <RegisterPage /> },
       { path: "courses", element: <CoursesPage /> },
       { path: "courses/:id", element: <CourseDetailPage /> },
+      { path: "courses/:id/study/:lessonId", element: <CourseStudyingPage /> },
     ],
   },
 

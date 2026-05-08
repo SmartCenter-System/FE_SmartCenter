@@ -1,20 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Filter, BookOpen, Star, Users, Wifi, Building2 } from "lucide-react";
+import { Filter, BookOpen, Star, Users, Wifi, Building2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import PaginationBar from "@/shared/components/common/PaginationBar";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
+import { PublicCourseFilter } from "@/features/courses/components/PublicCourseFilter";
+import type { PublicCourseItem } from "@/features/courses/type";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -128,43 +122,18 @@ export default function CoursesPage() {
                   Bộ lọc tìm kiếm
                 </div>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Tìm kiếm</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      placeholder="Tên khóa học..." 
-                      className="pl-9 bg-background/50"
-                      value={searchInput}
-                      onChange={(e) => {
-                        setSearchInput(e.target.value);
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Hình thức học</label>
-                  <Select 
-                    value={mode} 
-                    onValueChange={(val) => {
-                      setMode(val);
-                      handleFilterChange();
-                    }}
-                  >
-                    <SelectTrigger className="bg-background/50">
-                      <SelectValue placeholder="Tất cả hình thức" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">Tất cả hình thức</SelectItem>
-                      <SelectItem value="1">Online</SelectItem>
-                      <SelectItem value="2">Offline</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Button variant="outline" onClick={resetFilters}>Xóa bộ lọc</Button>
+              <CardContent className="p-5">
+                <PublicCourseFilter
+                  searchInput={searchInput}
+                  onSearchChange={setSearchInput}
+                  mode={mode}
+                  onModeChange={(val) => {
+                    setMode(val);
+                    handleFilterChange();
+                  }}
+                  onApply={() => handleFilterChange()}
+                  onReset={resetFilters}
+                />
               </CardContent>
             </Card>
           </div>
@@ -199,8 +168,8 @@ export default function CoursesPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
-                {paginatedCourses.map((course) => (
-                  <Link to={`/courses/${course.courseId}`} key={course.courseId} className="group h-full">
+                {paginatedCourses.map((course: PublicCourseItem) => (
+                  <Link to={`/courses/${course.id}`} key={course.id} className="group h-full">
                     <Card className="h-full flex flex-col overflow-hidden hover:shadow-xl transition-all duration-300 border-none bg-background/60 backdrop-blur-sm group-hover:-translate-y-1">
                       <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-sky-100 via-indigo-100 to-cyan-100">
                         <div className="absolute inset-0 flex items-center justify-center">
@@ -224,7 +193,7 @@ export default function CoursesPage() {
                           <span className="text-muted-foreground ml-1">(120)</span>
                         </div>
                         <h3 className="font-bold text-lg leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                          {course.courseName}
+                          {course.title}
                         </h3>
                         <p className="text-sm text-muted-foreground mt-2 line-clamp-1">
                           Khóa học tại SmartCenter
@@ -247,7 +216,7 @@ export default function CoursesPage() {
                       <CardFooter className="p-5 pt-0 flex items-end justify-between">
                         <div>
                           <div className="text-lg font-bold text-primary">
-                            {formatPrice(course.basePrice)}
+                            {formatPrice(course.price)}
                           </div>
                         </div>
                         <Button variant="ghost" className="rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors">

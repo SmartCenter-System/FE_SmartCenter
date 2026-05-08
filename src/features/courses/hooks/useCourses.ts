@@ -11,7 +11,7 @@ export const COURSE_KEYS = {
 export function useCourses(params?: CourseFilterParams) {
   return useQuery({
     queryKey: COURSE_KEYS.list(params),
-    queryFn: () => courseService.getAll(params),
+    queryFn: () => courseService.getCourses(params),
   });
 }
 
