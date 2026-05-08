@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Filter, BookOpen, Star, Clock, Users } from "lucide-react";
+import { Search, Filter, BookOpen, Star, Users, Wifi, Building2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader } from "@/shared/components/ui/card";
@@ -12,44 +12,94 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/shared/components/ui/pagination";
+import PaginationBar from "@/shared/components/common/PaginationBar";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
 
 const ITEMS_PER_PAGE = 6;
 
+function createPaginationItems(totalPages: number, currentPage: number): Array<number | "ellipsis"> {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  if (currentPage <= 4) {
+    return [1, 2, 3, 4, 5, "ellipsis", totalPages];
+  }
+
+  if (currentPage >= totalPages - 3) {
+    return [1, "ellipsis", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  }
+
+  return [1, "ellipsis", currentPage - 1, currentPage, currentPage + 1, "ellipsis", totalPages];
+}
+
 export default function CoursesPage() {
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [level, setLevel] = useState<string>("ALL");
-  const [format, setFormat] = useState<string>("ALL");
+  const [mode, setMode] = useState<string>("ALL");
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["courses", { Keyword: search, Mode: format }],
-    queryFn: () => courseService.getAll({ 
-      Keyword: search, 
-      Mode: format === "ALL" ? undefined : format === "ONLINE" ? 1 : 2 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const normalized = searchInput.trim();
+      setSearch((prev) => {
+        if (prev === normalized) {
+          return prev;
+        }
+
+        setPage(1);
+        return normalized;
+      });
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["public-courses", { search, mode, page }],
+    queryFn: () => courseService.getPublicCourses({
+      Keyword: search.trim() || undefined,
+      Mode: mode === "ALL" ? undefined : Number(mode),
+      PageIndex: page,
+      PageSize: ITEMS_PER_PAGE,
     }),
+    retry: false,
+    retryOnMount: false,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
-  const filteredCourses = data?.items || [];
-  const totalCourses = data?.total || 0;
+  const paginatedCourses = data?.items || [];
+  const totalCourses = data?.totalCount || 0;
+  const totalPages = data?.totalPages || 1;
+  const canGoPrevious = (data?.hasPreviousPage ?? false) && page > 1;
+  const canGoNext = (data?.hasNextPage ?? false) && page < totalPages;
+  const paginationItems = useMemo(() => createPaginationItems(totalPages, page), [page, totalPages]);
 
-  const paginatedCourses = useMemo(() => {
-    const startIndex = (page - 1) * ITEMS_PER_PAGE;
-    return filteredCourses.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredCourses, page]);
+  const handleFilterChange = (nextPage = 1) => {
+    setPage(nextPage);
+  };
 
-  const totalPages = Math.ceil(totalCourses / ITEMS_PER_PAGE) || 1;
+  const modeBadge = (courseMode: number) => {
+    if (courseMode === 1) {
+      return { label: "Online", icon: Wifi, variant: "default" as const };
+    }
 
-  const handleFilterChange = () => {
+    return { label: "Offline", icon: Building2, variant: "secondary" as const };
+  };
+
+  const displayedSummary = useMemo(() => {
+    const start = totalCourses === 0 ? 0 : (page - 1) * ITEMS_PER_PAGE + 1;
+    const end = Math.min(page * ITEMS_PER_PAGE, totalCourses);
+    return { start, end };
+  }, [page, totalCourses]);
+
+  const resetFilters = () => {
+    setSearchInput("");
+    setSearch("");
+    setMode("ALL");
     setPage(1);
   };
 
@@ -86,43 +136,20 @@ export default function CoursesPage() {
                     <Input 
                       placeholder="Tên khóa học..." 
                       className="pl-9 bg-background/50"
-                      value={search}
+                      value={searchInput}
                       onChange={(e) => {
-                        setSearch(e.target.value);
-                        handleFilterChange();
+                        setSearchInput(e.target.value);
                       }}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Trình độ</label>
-                  <Select 
-                    value={level} 
-                    onValueChange={(val) => {
-                      setLevel(val);
-                      handleFilterChange();
-                    }}
-                  >
-                    <SelectTrigger className="bg-background/50">
-                      <SelectValue placeholder="Tất cả trình độ" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">Tất cả trình độ</SelectItem>
-                      <SelectItem value="BEGINNER">Người mới bắt đầu</SelectItem>
-                      <SelectItem value="INTERMEDIATE">Trung bình</SelectItem>
-                      <SelectItem value="ADVANCED">Nâng cao</SelectItem>
-                      <SelectItem value="ALL_LEVELS">Mọi trình độ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
                   <label className="text-sm font-medium">Hình thức học</label>
                   <Select 
-                    value={format} 
+                    value={mode} 
                     onValueChange={(val) => {
-                      setFormat(val);
+                      setMode(val);
                       handleFilterChange();
                     }}
                   >
@@ -131,11 +158,13 @@ export default function CoursesPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ALL">Tất cả hình thức</SelectItem>
-                      <SelectItem value="ONLINE">Học Online</SelectItem>
-                      <SelectItem value="OFFLINE">Học Offline tại trung tâm</SelectItem>
+                      <SelectItem value="1">Online</SelectItem>
+                      <SelectItem value="2">Offline</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                <Button variant="outline" onClick={resetFilters}>Xóa bộ lọc</Button>
               </CardContent>
             </Card>
           </div>
@@ -144,19 +173,27 @@ export default function CoursesPage() {
           <div className="w-full lg:w-3/4 flex flex-col">
             
             <div className="mb-6 flex justify-between items-center text-sm text-muted-foreground">
-              <span>Hiển thị <strong>{paginatedCourses.length}</strong> trên tổng số <strong>{totalCourses}</strong> khóa học</span>
+              <span>
+                Hiển thị <strong>{displayedSummary.start}-{displayedSummary.end}</strong> trên tổng số <strong>{totalCourses}</strong> khóa học
+              </span>
             </div>
 
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-24 text-center">
                 <p className="text-muted-foreground">Đang tải danh sách khóa học...</p>
               </div>
+            ) : isError ? (
+              <div className="flex flex-col items-center justify-center py-24 text-center bg-background/40 rounded-2xl border border-dashed border-border">
+                <BookOpen className="h-16 w-16 text-muted-foreground mb-4 opacity-50" />
+                <h3 className="text-xl font-semibold mb-2">Không thể tải danh sách khóa học</h3>
+                <p className="text-muted-foreground">API đang lỗi 500. Vui lòng thử lại sau hoặc đổi bộ lọc.</p>
+              </div>
             ) : paginatedCourses.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 text-center bg-background/40 rounded-2xl border border-dashed border-border">
                 <BookOpen className="h-16 w-16 text-muted-foreground mb-4 opacity-50" />
                 <h3 className="text-xl font-semibold mb-2">Không tìm thấy khóa học nào</h3>
                 <p className="text-muted-foreground">Vui lòng thử thay đổi điều kiện lọc hoặc từ khóa tìm kiếm.</p>
-                <Button variant="outline" className="mt-6" onClick={() => { setSearch(""); setLevel("ALL"); setFormat("ALL"); }}>
+                <Button variant="outline" className="mt-6" onClick={resetFilters}>
                   Xóa bộ lọc
                 </Button>
               </div>
@@ -165,15 +202,17 @@ export default function CoursesPage() {
                 {paginatedCourses.map((course) => (
                   <Link to={`/courses/${course.courseId}`} key={course.courseId} className="group h-full">
                     <Card className="h-full flex flex-col overflow-hidden hover:shadow-xl transition-all duration-300 border-none bg-background/60 backdrop-blur-sm group-hover:-translate-y-1">
-                      <div className="relative aspect-video overflow-hidden">
-                        <img 
-                          src={course.imgUrl || undefined} 
-                          alt={course.courseName}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
+                      <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-sky-100 via-indigo-100 to-cyan-100">
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <BookOpen className="h-12 w-12 text-indigo-500/60" />
+                        </div>
                         <div className="absolute top-3 left-3 flex flex-col gap-2">
-                          <Badge variant={course.courseType === 1 ? "default" : "secondary"} className="shadow-sm">
-                            {course.courseType === 1 ? "Online" : "Offline"}
+                          <Badge variant={modeBadge(course.mode).variant} className="shadow-sm inline-flex items-center gap-1.5">
+                            {(() => {
+                              const Icon = modeBadge(course.mode).icon;
+                              return <Icon className="h-3.5 w-3.5" />;
+                            })()}
+                            {modeBadge(course.mode).label}
                           </Badge>
                         </div>
                       </div>
@@ -188,19 +227,19 @@ export default function CoursesPage() {
                           {course.courseName}
                         </h3>
                         <p className="text-sm text-muted-foreground mt-2 line-clamp-1">
-                          Bởi Giảng viên
+                          Khóa học tại SmartCenter
                         </p>
                       </CardHeader>
 
                       <CardContent className="p-5 pt-4 pb-4">
                         <div className="flex items-center justify-between text-sm text-muted-foreground">
                           <div className="flex items-center gap-1.5">
-                            <Clock className="h-4 w-4" />
-                            24 giờ
+                            <Users className="h-4 w-4" />
+                            Còn {course.availableSlots} chỗ
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <Users className="h-4 w-4" />
-                            1200
+                            <Star className="h-4 w-4 fill-current text-yellow-500" />
+                            4.8
                           </div>
                         </div>
                       </CardContent>
@@ -224,35 +263,20 @@ export default function CoursesPage() {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="mt-auto pt-8 flex justify-center">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious 
-                        href="#" 
-                        onClick={(e) => { e.preventDefault(); setPage(p => Math.max(1, p - 1)); }}
-                        className={page === 1 ? "pointer-events-none opacity-50" : ""}
-                      />
-                    </PaginationItem>
-                    {Array.from({ length: totalPages }).map((_, idx) => (
-                      <PaginationItem key={idx}>
-                        <PaginationLink 
-                          href="#" 
-                          isActive={page === idx + 1}
-                          onClick={(e) => { e.preventDefault(); setPage(idx + 1); }}
-                        >
-                          {idx + 1}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
-                    <PaginationItem>
-                      <PaginationNext 
-                        href="#" 
-                        onClick={(e) => { e.preventDefault(); setPage(p => Math.min(totalPages, p + 1)); }}
-                        className={page === totalPages ? "pointer-events-none opacity-50" : ""}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+                <PaginationBar
+                  items={paginationItems}
+                  activePage={page}
+                  previousLabel="Trước"
+                  nextLabel="Sau"
+                  previousHref={`?page=${Math.max(1, page - 1)}`}
+                  nextHref={`?page=${Math.min(totalPages, page + 1)}`}
+                  pageHref={(nextPage) => `?page=${nextPage}`}
+                  onPageChange={(nextPage) => setPage(nextPage)}
+                  onPrevious={() => setPage((prev) => Math.max(1, prev - 1))}
+                  onNext={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                  previousDisabled={!canGoPrevious}
+                  nextDisabled={!canGoNext}
+                />
               </div>
             )}
 

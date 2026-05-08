@@ -7,6 +7,16 @@ const API_TARGET = "https://smartcenter-deploy-latest.onrender.com";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    port: 3000,
+    proxy: {
+      "/api": {
+        target: "https://smartcenter-deploy-latest.onrender.com",
+        changeOrigin: true,
+        secure: true,
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

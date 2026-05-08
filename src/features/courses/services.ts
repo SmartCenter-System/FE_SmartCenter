@@ -1,29 +1,46 @@
 import { apiClient } from "@/lib/axios";
-import { API_ENDPOINTS } from "@/shared/constants";
-import type { Course, CourseFilterParams, CreateCoursePayload, UpdateCoursePayload } from "./type";
+import type {
+  Course,
+  CourseFilterParams,
+  PublicCourseListResult,
+  PublicCourseQueryParams,
+} from "./type";
 
-const mapCourse = (apiCourse: any): Course => ({
-  courseId: apiCourse.id,
-  courseName: apiCourse.title,
-  basePrice: apiCourse.price,
-  courseType: apiCourse.mode === 1 ? 1 : 2,
-  imgUrl: apiCourse.imgUrl || null,
-  description: apiCourse.description || "",
-  startAt: apiCourse.startAt,
-  endAt: apiCourse.endAt,
-  maxStudents: apiCourse.availableSlots,
-  academicYear: apiCourse.academicYear,
-});
+interface PublicCourseApiResponse {
+  items?: unknown;
+  total?: number;
+  pageIndex?: number;
+  pageSize?: number;
+  totalCount?: number;
+  totalPages?: number;
+  hasPreviousPage?: boolean;
+  hasNextPage?: boolean;
+}
 
 export const courseService = {
-  getAll: async (params?: CourseFilterParams): Promise<{ items: Course[]; total: number }> => {
-    const response = (await apiClient.get<any>(API_ENDPOINTS.COURSES.BASE, { 
-      params: {
-        ...params,
-        PageIndex: params?.page,
-        PageSize: params?.limit
-      } 
-    })) as any;
+  async getPublicCourses(params?: PublicCourseQueryParams): Promise<PublicCourseListResult> {
+    const response = await apiClient.get("/Courses", { params }) as PublicCourseApiResponse;
+    const items = Array.isArray(response?.items) ? response.items : [];
+    const pageIndex = response?.pageIndex ?? params?.PageIndex ?? 1;
+    const pageSize = response?.pageSize ?? params?.PageSize ?? 9;
+    const totalCount = response?.totalCount ?? response?.total ?? items.length;
+    const totalPages = response?.totalPages ?? Math.max(1, Math.ceil(totalCount / Math.max(pageSize, 1)));
+
+    return {
+      items: items as PublicCourseListResult["items"],
+      pageIndex,
+      pageSize,
+      totalCount,
+      totalPages,
+      hasPreviousPage: response?.hasPreviousPage ?? pageIndex > 1,
+      hasNextPage: response?.hasNextPage ?? pageIndex < totalPages,
+    };
+  },
+
+  // Lấy danh sách khóa học (dành cho Admin hoặc Public)
+  async getCourses(params?: CourseFilterParams): Promise<{ data: Course[], total: number }> {
+    // TODO: Uncomment dòng bên dưới để dùng API thật khi backend hoàn thành
+    // return apiClient.get("/courses", { params }) as any;
     
     return {
       items: (response?.items || []).map(mapCourse),

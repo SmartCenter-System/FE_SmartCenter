@@ -1,44 +1,67 @@
 import type { ReactNode } from "react";
-import { GraduationCap } from "lucide-react";
+
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      {/* Left panel - Image */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-primary">
-        <div className="absolute inset-0 bg-primary/20 mix-blend-multiply z-10" />
-        <img
-          src="/images/auth_hero_bg.png"
-          alt="Trung tâm giáo dục hiện đại"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 z-20 flex flex-col justify-between p-12 text-white">
-          <div className="flex items-center gap-2 font-bold text-2xl drop-shadow-md">
-            <div className="bg-white/10 p-2 rounded-lg backdrop-blur-sm border border-white/20">
-              <GraduationCap className="h-8 w-8" />
-            </div>
-            <span>Smart Center</span>
-          </div>
-          <div className="max-w-md backdrop-blur-md bg-black/20 p-8 rounded-2xl border border-white/10 shadow-2xl">
-            <h1 className="text-4xl font-bold mb-4 tracking-tight leading-tight text-white">
-              Nền tảng học tập bứt phá
-            </h1>
-            <p className="text-lg text-white/90 font-light">
-              Cung cấp lộ trình luyện thi và các khóa học chất lượng cao, đồng hành cùng học sinh THPT chinh phục mọi mục tiêu.
-            </p>
+    <div className="min-h-screen bg-white text-foreground">
+      {}
+      <div className="grid min-h-screen w-full items-center lg:grid-cols-[3fr_2fr]">
+        
+      
+        <div
+          className="
+            flex
+            min-h-screen
+            flex-col
+            items-end
+            justify-center
+            bg-white
+            px-4
+            py-8
+            sm:px-6
+            lg:px-24
+          "
+        >
+          {/* 
+            max-w-[500px]
+            => làm form rộng hơn
+          */}
+          <div className="w-full max-w-[500px]">
+            {children}
           </div>
         </div>
-      </div>
 
-      {/* Right panel - Form */}
-      <div className="flex w-full lg:w-1/2 flex-col relative items-center justify-center p-8 sm:p-12">
-        
-        {/* Mobile Header */}
-        <div className="flex lg:hidden items-center gap-2 font-bold text-2xl text-primary mb-8">
-          <GraduationCap className="h-8 w-8" />
-          <span>Smart Center</span>
+        {/* ================= IMAGE SECTION ================= */}
+        <div
+          className="
+            relative
+            hidden
+            min-h-screen
+            items-center
+            justify-center
+            bg-[#F7F8FC]
+            lg:flex
+          "
+        >
+          {/* Background blur effect */}
+          <div className="absolute inset-12 rounded-full bg-white/40 blur-2xl" />
+
+          {/* 
+          
+          */}
+          <img
+            src="/images/img-login.png"
+            alt="Học sinh với sách vở"
+            className="
+              relative
+              z-10
+              h-auto
+              w-full
+              max-w-[520px]
+              object-contain
+              drop-shadow-[0_20px_40px_rgba(15,23,42,0.08)]
+            "
+          />
         </div>
-        
-        {children}
       </div>
     </div>
   );
