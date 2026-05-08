@@ -11,20 +11,6 @@ export default defineConfig({
     port: 3000,
     proxy: {
       "/api": {
-        target: "https://smartcenter-deploy-latest.onrender.com",
-        changeOrigin: true,
-        secure: true,
-      },
-    },
-  },
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
-  server: {
-    proxy: {
-      "/api": {
         target: API_TARGET,
         changeOrigin: true,
         secure: true,
@@ -66,5 +52,9 @@ export default defineConfig({
       },
     },
   },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
 });
-

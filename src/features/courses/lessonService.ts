@@ -2,11 +2,13 @@ import { apiClient } from "@/lib/axios";
 import { API_ENDPOINTS } from "@/shared/constants";
 
 export interface Lesson {
-  lessonId: string;
+  id: string;
   title: string;
-  content: string;
+  description?: string;
   videoUrl?: string;
-  position: number;
+  order?: number;
+  isPreview?: boolean;
+  duration?: number;
 }
 
 export const lessonService = {

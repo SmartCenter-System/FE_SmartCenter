@@ -1,0 +1,223 @@
+import { useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { courseService } from "@/features/courses/services";
+import { lessonService } from "@/features/courses/lessonService";
+import { enrollmentService } from "@/features/courses/enrollmentService";
+import { useAuthStore } from "@/features/auth/store";
+import { getYouTubeEmbedUrl, isYouTubeUrl } from "@/lib/utils";
+import { Button } from "@/shared/components/ui/button";
+import { Card, CardContent } from "@/shared/components/ui/card";
+import { ChevronLeft, Lock } from "lucide-react";
+import type { Course } from "@/features/courses/type";
+import type { Enrollment } from "@/features/courses/enrollmentService";
+
+export default function CourseStudyingPage() {
+  const { id, lessonId } = useParams();
+  const navigate = useNavigate();
+  const accessToken = useAuthStore((state) => state.accessToken);
+
+  const { data: courseData, isLoading } = useQuery<Course>({
+    queryKey: ["course", id],
+    queryFn: () => courseService.getById(id as string),
+    enabled: !!id,
+  });
+
+  const { data: enrollmentData } = useQuery<{ items: Enrollment[]; total: number }>({
+    queryKey: ["myEnrollments"],
+    queryFn: () => enrollmentService.getMyEnrollments(),
+    enabled: !!accessToken,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+  });
+
+  const enrollments = enrollmentData?.items;
+
+  const { data: sectionLessonsData } = useQuery<{ id: string; title: string; lessons: { id: string; title: string; description?: string; videoUrl?: string; order?: number; isPreview?: boolean; duration?: number; }[]; }[]>({
+    queryKey: ["courseSectionLessons", courseData?.courseId],
+    queryFn: async () => {
+      if (!courseData || !Array.isArray(courseData.sections)) {
+        return [];
+      }
+
+      return Promise.all(
+        courseData.sections.map(async (section) => {
+          const rawLessons = await lessonService.getAll(courseData.courseId, section.id);
+          return {
+            ...section,
+            lessons: Array.isArray(rawLessons)
+              ? rawLessons.map((lesson) => ({
+                  id: String(lesson.id),
+                  title: lesson.title,
+                  description: lesson.description,
+                  videoUrl: lesson.videoUrl,
+                  order: lesson.order,
+                  isPreview: Boolean(lesson.isPreview),
+                  duration: lesson.duration,
+                }))
+              : [],
+          };
+        }),
+      );
+    },
+    enabled: !!courseData?.courseId && Array.isArray(courseData?.sections) && courseData.sections.length > 0,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+  });
+
+  const sections = useMemo(() => {
+    if (!courseData) return [];
+    if (Array.isArray(sectionLessonsData) && sectionLessonsData.length > 0) {
+      return sectionLessonsData;
+    }
+    return (courseData as any).sections ?? [];
+  }, [courseData, sectionLessonsData]);
+
+  const allLessons = useMemo(
+    () => sections.flatMap((section: any) => section.lessons ?? []),
+    [sections],
+  );
+
+  const lesson = useMemo(
+    () => allLessons.find((item: any) => item.id === lessonId),
+    [allLessons, lessonId],
+  );
+
+  const isPurchased = useMemo(() => {
+    if (!courseData || !enrollments) return false;
+    return enrollments.some((item) => item.courseId === courseData.courseId);
+  }, [courseData, enrollments]);
+
+  const canView = Boolean(lesson && (lesson.isPreview || isPurchased));
+
+  if (isLoading) {
+    return (
+      <div className="bg-background min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Đang tải nội dung học...</p>
+      </div>
+    );
+  }
+
+  if (!courseData || !lesson) {
+    return (
+      <div className="bg-background min-h-screen flex items-center justify-center px-4">
+        <div className="max-w-xl text-center">
+          <p className="text-xl font-semibold mb-4">Không tìm thấy bài học.</p>
+          <Button onClick={() => navigate(`/courses/${id}`)}>Quay lại trang khóa học</Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-background min-h-screen pb-12">
+      <div className="container mx-auto px-4 md:px-8 pt-8">
+        <div className="flex items-center gap-3 mb-6">
+          <Button variant="outline" className="h-11 px-4" onClick={() => navigate(`/courses/${id}`)}>
+            <ChevronLeft className="mr-2 h-4 w-4" /> Quay lại khóa học
+          </Button>
+          <div>
+            <p className="text-sm text-muted-foreground">{courseData.courseName}</p>
+            <h1 className="text-3xl font-bold">{lesson.title}</h1>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-10">
+          <section className="space-y-6">
+            <Card className="overflow-hidden border-border shadow-sm">
+              <div className="relative aspect-video bg-slate-950">
+                {canView ? (
+                  lesson.videoUrl ? (
+                    isYouTubeUrl(lesson.videoUrl) ? (
+                      <iframe
+                        src={getYouTubeEmbedUrl(lesson.videoUrl)}
+                        title={lesson.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full"
+                      />
+                    ) : (
+                      <video src={lesson.videoUrl} controls className="w-full h-full object-cover" />
+                    )
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-white text-lg">
+                      Video chưa có sẵn cho bài học này.
+                    </div>
+                  )
+                ) : (
+                  <div className="flex h-full flex-col items-center justify-center gap-4 bg-slate-950 text-center text-white px-6">
+                    <Lock className="h-8 w-8 text-amber-400" />
+                    <div>
+                      <p className="text-xl font-semibold">Bài học bị khoá</p>
+                      <p className="text-sm text-slate-300">Bạn cần mua khóa học để mở toàn bộ nội dung.</p>
+                    </div>
+                    <Button onClick={() => navigate(`/checkout/${id}`)}>Mua khóa học</Button>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            <Card className="border-border shadow-sm">
+              <CardContent>
+                <h2 className="text-xl font-semibold mb-3">Mô tả bài học</h2>
+                <p className="text-sm text-muted-foreground">
+                  {lesson.isPreview
+                    ? "Đây là bài xem trước. Bạn có thể truy cập ngay cả khi chưa mua khóa học."
+                    : "Bạn đã mở khoá bài học này."}
+                </p>
+                {courseData.description ? (
+                  <p className="mt-4 text-sm text-slate-700">{courseData.description}</p>
+                ) : null}
+              </CardContent>
+            </Card>
+          </section>
+
+          <aside className="space-y-6">
+            <Card className="border-border shadow-sm">
+              <CardContent>
+                <h2 className="text-lg font-semibold mb-4">Danh sách bài học</h2>
+                <ul className="space-y-2">
+                  {sections.map((section: any) => (
+                    <li key={section.id} className="space-y-2">
+                      <p className="text-sm font-semibold">{section.title}</p>
+                      <ul className="space-y-2">
+                        {section.lessons?.map((item: any) => {
+                          const isActive = item.id === lesson.id;
+                          const allowed = item.isPreview || isPurchased;
+                          return (
+                            <li
+                              key={item.id}
+                              className={`rounded-xl px-3 py-2 text-sm flex items-center justify-between ${
+                                isActive ? "bg-primary/10 text-primary" : "bg-slate-50"
+                              } ${allowed ? "cursor-pointer hover:bg-primary/5" : "opacity-80"}`}
+                              onClick={() => {
+                                if (allowed) {
+                                  navigate(`/courses/${id}/study/${item.id}`);
+                                }
+                              }}
+                            >
+                              <span>{item.title}</span>
+                              <span className="text-[11px] rounded-full px-2 py-1 font-semibold text-slate-600 bg-slate-100">
+                                {item.isPreview ? "Xem trước" : allowed ? "Mở khóa" : "Khoá"}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </aside>
+        </div>
+
+        <div className="mt-8 text-sm text-muted-foreground">
+          <p>
+            Nếu bạn chưa mua khóa học, chỉ những bài xem trước mới có thể truy cập được. Để mở khóa thêm bài học, vui lòng đăng ký khóa học.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

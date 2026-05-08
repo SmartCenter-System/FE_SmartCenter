@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { useAuthStore } from "@/features/auth/store";
 import { useLogout } from "@/features/auth/hooks/useLogout";
 import { LogOut, LayoutDashboard } from "lucide-react";
-import { toast } from "sonner";
 
 const navigationItems = [
   { icon: Home, label: "Trang chủ", path: "/" },

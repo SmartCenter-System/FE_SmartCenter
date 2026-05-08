@@ -16,9 +16,8 @@ import {
 	usePublicCourses,
 	type PublicCourseFilterState,
 } from "../hooks/usePublicCourses";
+import type { PublicCourseItem } from "../type";
 import PaginationBar from "@/shared/components/common/PaginationBar";
-import { useCourses } from "../hooks/useCourses";
-import type { CourseFilterParams } from "../type";
 
 const DEFAULT_PAGE_SIZE = 9;
 
@@ -274,7 +273,7 @@ export default function ExploreCoursePage() {
 								) : null}
 
 								{!isLoading && !isError
-									? courses.map((course) => {
+									? courses.map((course: PublicCourseItem) => {
 											const ModeIcon = getModeIcon(course.mode);
 
 											return (

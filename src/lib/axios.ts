@@ -19,8 +19,10 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 //Task 1.1.1:Khởi tạo Axios Instance
+const base = env.API_URL === "/api" ? "" : env.API_URL;
+
 export const apiClient = axios.create({
-  baseURL: env.API_URL,
+  baseURL: base,
   timeout: 15000,
   headers: {
     "Content-Type": "application/json",

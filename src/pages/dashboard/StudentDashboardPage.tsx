@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useAuthStore } from "@/features/auth/store";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
+import type { Course } from "@/features/courses/type";
 import {
   BookOpen,
   Clock,
@@ -282,7 +283,7 @@ export default function StudentDashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {suggestedCourses?.items.map((course) => (
+              {suggestedCourses?.data.map((course: Course) => (
                 <Card
                   key={course.courseId}
                   className="border-none shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 group overflow-hidden"

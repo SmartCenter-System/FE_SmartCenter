@@ -20,18 +20,18 @@ const ITEMS_PER_PAGE = 5; // Tăng lên 5 cho đẹp
 
 export default function CourseManagementPage() {
   const [search, setSearch] = useState("");
-  const [format, setFormat] = useState<"ONLINE" | "OFFLINE" | "ALL">("ALL");
+  const [format, setFormat] = useState<1 | 2 | "ALL">("ALL");
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-courses", { search, format }],
     queryFn: () => courseService.getAll({ 
       Keyword: search, 
-      Mode: format === "ALL" ? undefined : format === "ONLINE" ? 1 : 2 
+      Mode: format === "ALL" ? undefined : format,
     }),
   });
 
-  const filteredCourses = data?.items || [];
+  const filteredCourses = data?.data || [];
   const totalCourses = data?.total || 0;
 
   const paginatedCourses = useMemo(() => {
@@ -46,7 +46,7 @@ export default function CourseManagementPage() {
     setPage(1);
   };
 
-  const handleFormatChange = (val: "ONLINE" | "OFFLINE" | "ALL") => {
+  const handleFormatChange = (val: 1 | 2 | "ALL") => {
     setFormat(val);
     setPage(1);
   };
@@ -74,6 +74,16 @@ export default function CourseManagementPage() {
           onFormatChange={handleFormatChange}
         />
       </div>
+
+      {isError && (
+        <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded mb-4 flex items-center justify-between">
+          <div>Đã có lỗi từ server. Vui lòng thử lại sau hoặc đổi bộ lọc.</div>
+          <div className="flex gap-2">
+            <Button onClick={() => refetch()}>Thử lại</Button>
+            <Button onClick={() => { setSearch(""); setFormat("ALL"); setPage(1); }}>Đổi bộ lọc</Button>
+          </div>
+        </div>
+      )}
 
       <CourseTable courses={paginatedCourses} isLoading={isLoading} />
 
