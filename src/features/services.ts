@@ -14,4 +14,21 @@ export const authService = {
   async logout(): Promise<void> {
     return apiClient.post(API_ENDPOINTS.AUTH.LOGOUT) as unknown as void;
   },
+
+  async verifyEmail(code: number): Promise<void> {
+    return apiClient.get(API_ENDPOINTS.AUTH.VERIFY_EMAIL, {
+      params: { code },
+    }) as unknown as void;
+  },
+
+  async forgotPassword(email: string): Promise<void> {
+    return apiClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email }) as unknown as void;
+  },
+
+  async resetPassword(code: number, newPassword: string): Promise<void> {
+    return apiClient.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
+      code,
+      newPassword,
+    }) as unknown as void;
+  },
 };
