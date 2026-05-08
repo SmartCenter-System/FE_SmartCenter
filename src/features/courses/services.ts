@@ -1,7 +1,42 @@
-// import { apiClient } from "@/lib/axios";
-import type { Course, CourseFilterParams } from "./type";
+import { apiClient } from "@/lib/axios";
+import type {
+  Course,
+  CourseFilterParams,
+  PublicCourseListResult,
+  PublicCourseQueryParams,
+} from "./type";
+
+interface PublicCourseApiResponse {
+  items?: unknown;
+  total?: number;
+  pageIndex?: number;
+  pageSize?: number;
+  totalCount?: number;
+  totalPages?: number;
+  hasPreviousPage?: boolean;
+  hasNextPage?: boolean;
+}
 
 export const courseService = {
+  async getPublicCourses(params?: PublicCourseQueryParams): Promise<PublicCourseListResult> {
+    const response = await apiClient.get("/Courses", { params }) as PublicCourseApiResponse;
+    const items = Array.isArray(response?.items) ? response.items : [];
+    const pageIndex = response?.pageIndex ?? params?.PageIndex ?? 1;
+    const pageSize = response?.pageSize ?? params?.PageSize ?? 9;
+    const totalCount = response?.totalCount ?? response?.total ?? items.length;
+    const totalPages = response?.totalPages ?? Math.max(1, Math.ceil(totalCount / Math.max(pageSize, 1)));
+
+    return {
+      items: items as PublicCourseListResult["items"],
+      pageIndex,
+      pageSize,
+      totalCount,
+      totalPages,
+      hasPreviousPage: response?.hasPreviousPage ?? pageIndex > 1,
+      hasNextPage: response?.hasNextPage ?? pageIndex < totalPages,
+    };
+  },
+
   // Lấy danh sách khóa học (dành cho Admin hoặc Public)
   async getCourses(params?: CourseFilterParams): Promise<{ data: Course[], total: number }> {
     // TODO: Uncomment dòng bên dưới để dùng API thật khi backend hoàn thành
@@ -73,8 +108,7 @@ export const courseService = {
 
   // Lấy chi tiết 1 khóa học
   async getCourseById(id: string): Promise<Course> {
-    // TODO: Uncomment dòng bên dưới để dùng API thật khi backend hoàn thành
-    // return apiClient.get(`/courses/${id}`) as any;
+    
     
     // TODO: Xóa phần mock data này khi đã tích hợp API
     return new Promise((resolve) => {

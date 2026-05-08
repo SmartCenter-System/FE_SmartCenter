@@ -23,7 +23,7 @@ export function useLogin() {
   return useMutation<AuthResponse, Error, LoginRequest>({
     mutationFn: (data) => authService.login(data),
     onSuccess: (res) => {
-      const decoded = jwtDecode<JwtPayload>(res.accessToken);
+     const decoded = jwtDecode<JwtPayload>(res.accessToken);
 
       setAuth({
         accessToken: res.accessToken,
@@ -41,5 +41,8 @@ export function useLogin() {
         navigate(destination, { replace: true });
       }
     },
+    
   });
+
+  
 }

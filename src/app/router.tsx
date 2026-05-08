@@ -79,11 +79,6 @@ const router = createBrowserRouter([
     ],
   },
 
-  // ─── Protected: chỉ STAFF (và ADMIN) ─────────────────────────────
-  {
-    path: "/courses",
-    element: <ExploreCoursePage />,
-  },
   {
     path: "/explore-course",
     element: <ExploreCoursePage />,
