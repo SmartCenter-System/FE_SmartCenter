@@ -115,13 +115,13 @@ export default function ExploreCoursePage() {
 	};
 
 	return (
-		<div className="flex min-h-screen flex-col bg-white text-foreground">
+		<div className="flex min-h-screen flex-col bg-background text-foreground">
 			<Header tone="solid" />
 
-			<main className="flex-1 bg-white">
+			<main className="flex-1 bg-background">
 				<section className="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
 					<div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-						<aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)] lg:overflow-y-auto">
+						<aside className="rounded-2xl border border-border bg-card p-5 shadow-sm lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)] lg:overflow-y-auto">
 							<div className="mb-6 flex items-center gap-2 text-slate-900">
 								<Filter className="h-4 w-4" />
 								<h2 className="text-base font-semibold">Bộ lọc</h2>
@@ -129,7 +129,7 @@ export default function ExploreCoursePage() {
 
 							<div className="space-y-7">
 								<div className="space-y-3">
-									<div className="text-sm font-semibold text-slate-700">Hình thức học</div>
+									<div className="text-sm font-semibold text-foreground">Hình thức học</div>
 									<div className="space-y-2">
 										<label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
 											<input
@@ -172,7 +172,7 @@ export default function ExploreCoursePage() {
 										value={minPriceInput}
 										onChange={(e) => setMinPriceInput(e.target.value)}
 										placeholder="Ví dụ: 200000"
-										className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500"
+										className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary"
 									/>
 								</div>
 
@@ -184,7 +184,7 @@ export default function ExploreCoursePage() {
 										value={maxPriceInput}
 										onChange={(e) => setMaxPriceInput(e.target.value)}
 										placeholder="Ví dụ: 800000"
-										className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500"
+										className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary"
 									/>
 								</div>
 
@@ -199,7 +199,7 @@ export default function ExploreCoursePage() {
 								<button
 									onClick={resetFilters}
 									disabled={isApplyingFilter}
-									className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100"
+									className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted"
 								>
 									<CircleX className="h-4 w-4" />
 									Xóa lọc
@@ -208,8 +208,8 @@ export default function ExploreCoursePage() {
 						</aside>
 
 						<div className="space-y-6">
-							<div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-								<form onSubmit={handleSearchSubmit} className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-inner">
+							<div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+								<form onSubmit={handleSearchSubmit} className="flex items-center gap-3 rounded-full border border-border bg-background px-4 py-2 shadow-inner">
 									<div className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm font-semibold text-slate-500">
 										<Search className="h-5 w-5 shrink-0 text-slate-400" />
 										<span>Tìm kiếm</span>
@@ -220,7 +220,7 @@ export default function ExploreCoursePage() {
 										value={searchInput}
 										onChange={(e) => setSearchInput(e.target.value)}
 										placeholder="Tìm kiếm khóa học"
-										className="min-w-0 flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+										className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
 									/>
 									<div className="flex shrink-0 items-center gap-2">
 										<button
@@ -279,7 +279,7 @@ export default function ExploreCoursePage() {
 											return (
 												<article
 													key={course.id}
-													className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg"
+													className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg"
 												>
 													<div className="relative bg-gradient-to-br from-indigo-50 to-cyan-50 p-5">
 														<span className="inline-flex items-center gap-2 rounded-full bg-indigo-700 px-3 py-1 text-xs font-semibold text-white shadow-sm">

@@ -82,7 +82,7 @@ export default function PaginationBar({
 						onClick={handlePreviousClick}
 						aria-disabled={previousDisabled}
 						text={previousLabel}
-						className={`h-10 w-auto min-w-0 shrink-0 rounded-xl border border-slate-200 bg-white px-4 text-slate-500 transition-colors hover:border-yellow-400 hover:bg-yellow-400 hover:text-blue-950 ${previousDisabled ? "pointer-events-none opacity-50" : ""}`}
+						className={`h-10 w-auto min-w-0 shrink-0 rounded-xl border border-border bg-card px-4 text-muted-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary ${previousDisabled ? "pointer-events-none opacity-50" : ""}`}
 					/>
 				</PaginationItem>
 
@@ -101,7 +101,7 @@ export default function PaginationBar({
 								href={pageHref(item)}
 								onClick={handlePageClick(item)}
 								isActive={item === activePage}
-								className="h-10 w-10 rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:border-yellow-400 hover:bg-yellow-400 hover:text-blue-950 data-[active=true]:border-indigo-700 data-[active=true]:bg-indigo-700 data-[active=true]:text-yellow-400 data-[active=true]:shadow-sm data-[active=true]:[&_svg]:text-yellow-400 data-[active=true]:[&_svg]:fill-yellow-400"
+								className="h-10 w-10 rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary data-[active=true]:border-primary data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:shadow-sm"
 							>
 								{item}
 							</PaginationLink>
@@ -115,7 +115,7 @@ export default function PaginationBar({
 						onClick={handleNextClick}
 						aria-disabled={nextDisabled}
 						text={nextLabel}
-						className={`h-10 w-auto min-w-0 shrink-0 rounded-xl border border-slate-200 bg-white px-4 text-slate-500 transition-colors hover:border-yellow-400 hover:bg-yellow-400 hover:text-blue-950 ${nextDisabled ? "pointer-events-none opacity-50" : ""}`}
+						className={`h-10 w-auto min-w-0 shrink-0 rounded-xl border border-border bg-card px-4 text-muted-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary ${nextDisabled ? "pointer-events-none opacity-50" : ""}`}
 					/>
 				</PaginationItem>
 			</PaginationContent>

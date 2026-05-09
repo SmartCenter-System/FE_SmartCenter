@@ -145,9 +145,9 @@ export default function CheckoutPage() {
                         Hệ thống tự động kích hoạt khóa học trong vòng 3-5 giây sau khi thanh toán thành công.
                       </p>
                       <div className="flex items-center gap-2">
-                        <div className="h-10 px-3 bg-white border rounded-md flex items-center justify-center">
-                          <QrCode className="h-6 w-6 text-slate-800" />
-                          <span className="ml-2 font-bold text-slate-800 text-sm">VietQR</span>
+                        <div className="h-10 px-3 bg-muted border border-border rounded-md flex items-center justify-center">
+                          <QrCode className="h-6 w-6 text-foreground" />
+                          <span className="ml-2 font-bold text-foreground text-sm">VietQR</span>
                         </div>
                       </div>
                     </div>
