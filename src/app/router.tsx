@@ -27,6 +27,9 @@ import CourseEditorPage from "@/features/courses/pages/admin/CourseEditorPage";
 import CourseContentEditor from "@/features/courses/pages/admin/CourseContentEditor";
 import UserManagementPage from "@/features/users/pages/admin/UserManagementPage";
 
+// ─── User Profile ────────────────────────────────────────────────────────────
+import ProfileUserPage from "@/features/users/pages/user/ProfileUserPage";
+
 // ─── Staff Panel ──────────────────────────────────────────────────────────────
 import StaffLayout from "@/shared/layouts/StaffLayout";
 import EnrollmentManagementPage from "@/features/courses/pages/staff/EnrollmentManagementPage";
@@ -63,6 +66,11 @@ const router = createBrowserRouter([
           {
             path: "/dashboard",
             element: <StudentDashboardPage />,
+          },
+          // User Profile
+          {
+            path: "/profile",
+            element: <ProfileUserPage />,
           },
         ],
       },

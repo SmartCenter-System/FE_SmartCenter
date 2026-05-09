@@ -147,6 +147,16 @@ export const API_ENDPOINTS = {
   },
 
   /**
+   * User endpoints
+   * - GET_PROFILE: GET /User/get-profile
+   * - UPDATE_PROFILE: PUT /User/update-profile
+   */
+  USER: {
+    GET_PROFILE: "/User/get-profile",
+    UPDATE_PROFILE: "/User/update-profile",
+  },
+
+  /**
    * Combo endpoints
    * - BASE: GET/POST /api/Combos
    * - BY_ID: GET/PUT/DELETE /api/Combos/:comboId
