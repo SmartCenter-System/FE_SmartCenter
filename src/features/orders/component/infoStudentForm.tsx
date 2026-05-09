@@ -1,4 +1,3 @@
-import { ShieldCheck } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
@@ -59,10 +58,7 @@ export default function InfoStudentForm({
 					/>
 				</div>
 
-				<p className="pt-2 text-sm text-muted-foreground">
-					<ShieldCheck className="mr-1 inline h-4 w-4 text-green-500" />
-					Thông tin của bạn được bảo mật tuyệt đối theo chuẩn PCI-DSS.
-				</p>
+				
 			</CardContent>
 		</Card>
 	);

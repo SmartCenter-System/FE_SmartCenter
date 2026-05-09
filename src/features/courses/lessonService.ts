@@ -11,9 +11,29 @@ export interface Lesson {
   duration?: number;
 }
 
+function normalizeLessonResponse(response: any): Lesson[] {
+  const items = response?.data ?? response?.items ?? response ?? [];
+
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items.map((item: any) => ({
+    id: String(item.id),
+    title: item.title ?? "",
+    description: item.description,
+    videoUrl: item.videoUrl,
+    order: item.order,
+    isPreview: Boolean(item.isPreview),
+    duration: item.duration,
+  }));
+}
+
 export const lessonService = {
-  getAll: (courseId: string, sectionId: string) =>
-    apiClient.get(API_ENDPOINTS.LESSON.BASE, { params: { courseId, sectionId } }) as unknown as Promise<Lesson[]>,
+  getAll: async (courseId: string, sectionId: string): Promise<Lesson[]> => {
+    const response = await apiClient.get(API_ENDPOINTS.LESSON.BASE, { params: { courseId, sectionId } });
+    return normalizeLessonResponse(response);
+  },
 
   create: (courseId: string, sectionId: string, data: { title: string; content?: string; videoUrl?: string; position?: number }) =>
     apiClient.post(API_ENDPOINTS.LESSON.BASE, data, { params: { courseId, sectionId } }) as unknown as Promise<Lesson>,

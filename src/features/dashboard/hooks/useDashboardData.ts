@@ -21,7 +21,7 @@ export function useDashboardData() {
         
         // Axios interceptor extract response.data.data, nên response chính là DashboardData object
         if (response && typeof response === 'object' && 'totalWatchTimeMinutes' in response) {
-          return response as DashboardData;
+          return response as unknown as DashboardData;
         }
         
         console.error("Invalid response format:", response);
