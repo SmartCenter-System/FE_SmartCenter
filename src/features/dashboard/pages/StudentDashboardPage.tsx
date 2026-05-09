@@ -2,12 +2,12 @@ import { Link } from "react-router-dom";
 import { useAuthStore } from "@/features/auth/store";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
+import { enrollmentService } from "@/features/courses/enrollmentService";
 import type { Course } from "@/features/courses/type";
 import {
   BookOpen,
   Clock,
   TrendingUp,
-  Award,
   ChevronRight,
   PlayCircle,
   Search,
@@ -19,6 +19,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { useDashboardData } from "@/features/dashboard/hooks/useDashboardData";
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({
@@ -126,49 +127,86 @@ export default function StudentDashboardPage() {
   // TODO: Sau khi có API /me, replace bằng useCurrentUser hook
   const { role } = useAuthStore();
 
-  // Fetch danh sách khóa học công khai để demo "đề xuất" (sẽ thay bằng API enrollments)
-  const { data: suggestedCourses, isLoading } = useQuery({
+  // Fetch danh sách khóa học công khai để demo "đề xuất"
+  const { data: suggestedCourses, isLoading: isSuggestedLoading } = useQuery({
     queryKey: ["courses", { limit: 4 }],
     queryFn: () => courseService.getAll({ limit: 4 }),
     staleTime: 0, // Ghi đè cấu hình global để Dashboard luôn lấy data mới nhất
   });
 
-  // Mock data cho enrolled courses — sẽ replace bằng API /me/enrollments
-  const mockEnrolled = [
+  // Fetch danh sách khóa học đã đăng ký của học sinh
+  const { data: enrolledCoursesData } = useQuery({
+    queryKey: ["myEnrollments"],
+    queryFn: () => enrollmentService.getMyEnrollmentCourses(),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const enrolledCourses = enrolledCoursesData?.map((item) => ({
+    id: item.courseId ?? item.courseName,
+    title: item.courseName,
+    thumbnail: item.imgUrl ?? null,
+    level: "ALL_LEVELS",
+    format: item.courseType === 1 ? "ONLINE" : "OFFLINE",
+    progress: item.progress ?? 0,
+  })) ?? [];
+
+  const enrolledCount = enrolledCourses.length;
+  const displayEnrolledCourses = enrolledCount > 0 ? enrolledCourses : [
     { id: "1", title: "Toán 12 — Chinh phục kỳ thi THPT Quốc Gia", progress: 65, level: "INTERMEDIATE", format: "ONLINE", thumbnail: null },
     { id: "2", title: "Vật Lý THPT: Từ cơ bản đến nâng cao", progress: 30, level: "BEGINNER", format: "ONLINE", thumbnail: null },
     { id: "3", title: "Ngữ Văn — Phân tích tác phẩm toàn diện", progress: 90, level: "ALL_LEVELS", format: "OFFLINE", thumbnail: null },
   ];
 
-  // Thống kê (mock — sẽ đến từ API)
+  const {
+    data: dashboardData = {
+      totalWatchTimeMinutes: 0,
+      completedLessons: 0,
+      inProgressLessons: 0,
+    },
+    isError: isDashboardError,
+    error: dashboardError,
+  } = useDashboardData();
+
+  if (isDashboardError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-500">Lỗi tải dữ liệu dashboard: {dashboardError instanceof Error ? dashboardError.message : 'Unknown error'}</p>
+      </div>
+    );
+  }
+
+  // Chuyển đổi thời gian học từ phút sang giờ và phút
+  const totalHours = Math.floor(dashboardData.totalWatchTimeMinutes / 60);
+  const totalMinutes = dashboardData.totalWatchTimeMinutes % 60;
+
+  // Tổng số bài học
+  const totalLessons =
+    dashboardData.completedLessons + dashboardData.inProgressLessons;
+
+  // Số bài học chưa hoàn thành
+  const notCompletedLessons = dashboardData.inProgressLessons;
+
   const stats = [
     {
       icon: BookOpen,
       label: "Khóa học đang học",
-      value: mockEnrolled.length,
+      value: enrolledCount,
       sub: "1 khóa gần hoàn thành",
       color: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
     },
     {
       icon: Clock,
       label: "Thời gian học tuần này",
-      value: "4h 20m",
+      value: `${totalHours}h ${totalMinutes}m`,
       sub: "+30m so với tuần trước",
       color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
     },
     {
       icon: TrendingUp,
-      label: "Streak học tập",
-      value: "7 ngày",
-      sub: "Kỷ lục của bạn: 14 ngày",
+      label: "Bài học đã hoàn thành",
+      value: `${dashboardData.completedLessons}/${totalLessons}`,
+      sub: `${notCompletedLessons} bài chưa hoàn thành`,
       color: "bg-green-500/10 text-green-600 dark:text-green-400",
-    },
-    {
-      icon: Award,
-      label: "Chứng chỉ đã nhận",
-      value: 1,
-      sub: "Hoàn thành thêm để nhận thêm",
-      color: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
     },
   ];
 
@@ -206,15 +244,10 @@ export default function StudentDashboardPage() {
             </div>
             <h1 className="text-3xl font-bold mb-1">Tiếp tục hành trình học tập 🚀</h1>
             <p className="text-white/70 max-w-lg text-sm mt-2">
-              Bạn đang học <strong className="text-white">{mockEnrolled.length} khóa học</strong>. Khóa học Ngữ Văn của bạn sắp hoàn thành — chỉ còn 10% nữa thôi!
+              Bạn đang học <strong className="text-white">{enrolledCount} khóa học</strong>. Hãy tiếp tục cố gắng và hoàn thành mục tiêu học tập của bạn!
             </p>
             <div className="mt-5 flex gap-3 flex-wrap">
-              <Link to={`/courses/${mockEnrolled[2].id}`}>
-                <Button size="sm" className="bg-white text-primary hover:bg-white/90 font-semibold shadow">
-                  <PlayCircle className="mr-1.5 h-4 w-4" />
-                  Tiếp tục học Ngữ Văn
-                </Button>
-              </Link>
+              
               <Link to="/courses">
                 <Button size="sm" variant="ghost" className="text-white border-white/30 border hover:bg-white/10">
                   Xem tất cả khóa học
@@ -229,7 +262,7 @@ export default function StudentDashboardPage() {
 
         {/* ─── Stats ───────────────────────────────────────────────── */}
         <section>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {stats.map((s) => (
               <StatCard key={s.label} {...s} />
             ))}
@@ -245,7 +278,7 @@ export default function StudentDashboardPage() {
             </Link>
           </div>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {mockEnrolled.map((c) => (
+            {displayEnrolledCourses.map((c) => (
               <EnrolledCourseCard key={c.id} course={c} progress={c.progress} />
             ))}
           </div>
@@ -268,7 +301,7 @@ export default function StudentDashboardPage() {
             </Link>
           </div>
 
-          {isLoading ? (
+          {isSuggestedLoading ? (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {[...Array(4)].map((_, i) => (
                 <Card key={i} className="border-none shadow-sm overflow-hidden">

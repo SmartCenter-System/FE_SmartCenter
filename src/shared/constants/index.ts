@@ -74,7 +74,7 @@ export const API_ENDPOINTS = {
    * - BASE: POST /Enrollment
    */
   ENROLLMENT: {
-    MY: "/Enrollment/MyEnrollments",
+    MY: "/Enrollment/my-enrollments",
     BASE: "/Enrollment",
   },
 
