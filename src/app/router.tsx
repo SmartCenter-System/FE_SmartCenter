@@ -17,7 +17,7 @@ import CourseStudyingPage from "@/pages/courses/CourseStudyingPage";
 import CheckoutPage from "@/pages/checkout/CheckoutPage";
 
 // ─── Student Dashboard (yêu cầu đăng nhập) ───────────────────────────────────
-import StudentDashboardPage from "@/pages/dashboard/StudentDashboardPage";
+import StudentDashboardPage from "@/features/dashboard/pages/StudentDashboardPage";
 
 // ─── Admin Panel ──────────────────────────────────────────────────────────────
 import AdminLayout from "@/shared/layouts/AdminLayout";

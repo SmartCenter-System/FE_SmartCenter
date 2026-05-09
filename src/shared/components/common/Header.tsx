@@ -10,7 +10,7 @@ const navigationItems = [
   { icon: Home, label: "Trang chủ", path: "/" },
   { icon: BookOpen, label: "Khóa học", path: "/courses" },
   { icon: CircleHelp, label: "Hỗ trợ", path: "/help" },
-  { icon: Phone, label: "Liên hệ", path: "/contact" },
+  { icon: Phone, label: "Tư vấn", path: "/contact" },
   { icon: User, label: "Cá nhân", path: "/profile" },
 ];
 
