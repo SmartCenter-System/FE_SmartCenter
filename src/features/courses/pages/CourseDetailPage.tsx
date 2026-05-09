@@ -511,22 +511,11 @@ export default function CourseDetailPage() {
                         <Smartphone className="h-5 w-5 shrink-0 text-primary" />
                         Học trên máy tính và thiết bị di động
                       </li>
-                      <li className="flex items-center gap-3">
-                        <Trophy className="h-5 w-5 shrink-0 text-primary" />
-                        Cấp chứng chỉ hoàn thành
-                      </li>
+                      
                     </ul>
                   </div>
 
-                  <div className="mt-8 pt-6 border-t border-border">
-                    <p className="text-sm font-semibold mb-3">Dành cho doanh nghiệp?</p>
-                    <p className="text-xs text-muted-foreground mb-4">
-                      Cung cấp khóa học này cho đội ngũ của bạn để nâng cao kỹ năng chuyên môn.
-                    </p>
-                    <Button variant="secondary" className="w-full text-sm h-10">
-                      Liên hệ tư vấn Doanh nghiệp
-                    </Button>
-                  </div>
+                  
                 </CardContent>
               </Card>
             </div>
