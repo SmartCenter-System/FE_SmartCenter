@@ -33,8 +33,6 @@ export default function CourseDetailPage() {
 
   const accessToken = useAuthStore((state) => state.accessToken);
 
-  console.log("Access Token:", accessToken);
-
   const { data: courseData, isLoading } = useQuery<Course>({
     queryKey: ["course", id],
     queryFn: () => courseService.getById(id as string),
