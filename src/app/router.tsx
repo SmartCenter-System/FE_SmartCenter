@@ -15,6 +15,7 @@ import CoursesPage from "@/features/courses/pages/CoursesPage";
 import CourseDetailPage from "@/features/courses/pages/CourseDetailPage";
 import CourseStudyingPage from "@/features/courses/pages/CourseStudyingPage";
 import CheckoutPage from "@/features/orders/pages/CheckoutPage";
+import ConsultantPage from "@/pages/consultant/ConsultantPage";
 
 // ─── Student Dashboard (yêu cầu đăng nhập) ───────────────────────────────────
 import StudentDashboardPage from "@/features/dashboard/pages/StudentDashboardPage";
@@ -42,6 +43,7 @@ const router = createBrowserRouter([
       { path: "courses", element: <CoursesPage /> },
       { path: "courses/:id", element: <CourseDetailPage /> },
       { path: "courses/:id/study/:lessonId", element: <CourseStudyingPage /> },
+      { path: "contact", element: <ConsultantPage /> },
     ],
   },
 

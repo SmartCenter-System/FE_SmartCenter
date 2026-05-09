@@ -1,4 +1,4 @@
-import { createBaseService } from "@/shared/services/BaseService";
+import { apiClient } from "@/lib/axios";
 
 // Định nghĩa interface cho DashboardData
 export interface DashboardData {
@@ -8,6 +8,9 @@ export interface DashboardData {
 }
 
 // Tạo service cho dashboard
-export const dashboardService = createBaseService<DashboardData>({
-  endpoint: "/api/Courses/dashboard",
-});
+export const dashboardService = {
+  getStats: async (): Promise<DashboardData> => {
+    const response = await apiClient.get<DashboardData>("/api/Courses/dashboard");
+    return response.data;
+  },
+};

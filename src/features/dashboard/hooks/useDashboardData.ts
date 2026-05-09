@@ -15,21 +15,8 @@ export function useDashboardData() {
   return useQuery<DashboardData>({
     queryKey: ["dashboardData"],
     queryFn: async () => {
-      try {
-        const response = await dashboardService.getAll();
-        console.log("Dashboard API Response:", response);
-        
-        // Axios interceptor extract response.data.data, nên response chính là DashboardData object
-        if (response && typeof response === 'object' && 'totalWatchTimeMinutes' in response) {
-          return response as DashboardData;
-        }
-        
-        console.error("Invalid response format:", response);
-        throw new Error("Invalid dashboard data format");
-      } catch (error) {
-        console.error("Dashboard data fetch error:", error);
-        throw error;
-      }
+      const data = await dashboardService.getStats();
+      return data;
     },
     staleTime: 1000 * 60 * 5, // 5 phút
     retry: 1,

@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { useAuthStore } from "@/features/auth/store";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
 import { enrollmentService } from "@/features/courses/enrollmentService";
@@ -10,9 +9,7 @@ import {
   TrendingUp,
   ChevronRight,
   PlayCircle,
-  Search,
   Sparkles,
-  LayoutDashboard,
   Star,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
@@ -122,7 +119,6 @@ function EnrolledCourseCard({
 export default function StudentDashboardPage() {
   // Lấy thông tin user từ Zustand store (role được lưu, nhưng chưa có user info đầy đủ)
   // TODO: Sau khi có API /me, replace bằng useCurrentUser hook
-  const { role } = useAuthStore();
 
   // Fetch danh sách khóa học công khai để demo "đề xuất"
   const { data: suggestedCourses, isLoading: isSuggestedLoading } = useQuery({
