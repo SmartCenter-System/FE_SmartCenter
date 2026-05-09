@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 export function useCreateOrder() {
   return useMutation({
-    mutationFn: (data: { studentId: string; cartId: string }) => orderService.create(data),
+    mutationFn: (data: { studentId?: string; cartId: string }) => orderService.create(data),
     onSuccess: (res: any) => {
       toast.success("Tạo đơn hàng thành công! Đang chuyển hướng thanh toán...");
       if (res?.paymentUrl) {

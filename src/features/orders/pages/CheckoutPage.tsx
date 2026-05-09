@@ -1,25 +1,139 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useMemo, useState, useEffect } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { jwtDecode } from "jwt-decode";
 import { courseService } from "@/features/courses/services";
-import { ChevronLeft, ShieldCheck, QrCode, Tag, Loader2 } from "lucide-react";
+import { userService } from "@/features/users/services";
+import { paymentService } from "@/features/orders/paymentService";
+import { ChevronLeft, ShieldCheck, QrCode, Tag, Loader2, X } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/shared/components/ui/card";
-import { Label } from "@/shared/components/ui/label";
 import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/store";
 import { useCart } from "@/features/cart/hooks/useCart";
-import { useCreateOrder } from "@/features/orders/hooks/useCreateOrder";
+import InfoStudentForm from "@/features/orders/component/infoStudentForm";
 
 export default function CheckoutPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { userId } = useAuthStore();
+  const location = useLocation();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const userId = useAuthStore((state) => state.userId);
 
   const [voucher, setVoucher] = useState("");
   const [discount, setDiscount] = useState(0);
+  const [fullNameInput, setFullNameInput] = useState<string | undefined>(undefined);
+  const [emailInput, setEmailInput] = useState<string | undefined>(undefined);
+  const [phoneInput, setPhoneInput] = useState<string | undefined>(undefined);
+  const [paymentLink, setPaymentLink] = useState<any>(null);
+  const [isLoadingPayment, setIsLoadingPayment] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
+
+  const resolveUserIdFromToken = (token?: string | null) => {
+    if (!token) return null;
+    try {
+      const decoded = jwtDecode<Record<string, unknown>>(token);
+      return (
+        (decoded.sub as string | undefined) ??
+        (decoded.userId as string | undefined) ??
+        (decoded.nameid as string | undefined) ??
+        (decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] as string | undefined) ??
+        null
+      );
+    } catch {
+      return null;
+    }
+  };
+
+  const effectiveUserId = useMemo(() => {
+    let resolvedId = userId;
+    if (!resolvedId) {
+      try {
+        const stored = localStorage.getItem("auth-storage");
+        if (stored) {
+          const { state } = JSON.parse(stored);
+          resolvedId = state?.userId || resolveUserIdFromToken(state?.accessToken);
+        }
+      } catch {
+        // ignore malformed storage
+      }
+    }
+    if (!resolvedId) {
+      resolvedId = resolveUserIdFromToken(accessToken);
+    }
+    return resolvedId;
+  }, [userId, accessToken]);
+
+  const { data: userProfile } = useQuery({
+    queryKey: ["checkout-user-profile", accessToken],
+    enabled: !!accessToken,
+    queryFn: async () => {
+      try {
+        const profile = (await userService.getProfile()) as any;
+        
+        // Check if response is HTML (proxy not working)
+        if (typeof profile === 'string' && profile.includes('<!doctype')) {
+          throw new Error("Got HTML response - proxy not configured correctly");
+        }
+        
+        const fullName = [profile?.lastName, profile?.firstName]
+          .filter(Boolean)
+          .join(" ")
+          .trim();
+
+        const result = {
+          firstName: profile?.firstName ?? "",
+          lastName: profile?.lastName ?? "",
+          fullName: fullName,
+          email: profile?.email ?? "",
+          phone: profile?.phone ?? "",
+        };
+        return result;
+      } catch (error) {
+        return {
+          firstName: "",
+          lastName: "",
+          fullName: "",
+          email: "",
+          phone: "",
+        };
+      }
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  // Auto-fill form inputs when profile is loaded (only once on mount)
+  useEffect(() => {
+    if (userProfile && userProfile.fullName) {
+      setFullNameInput(userProfile.fullName);
+      setEmailInput(userProfile.email);
+      setPhoneInput(userProfile.phone);
+    }
+  }, [userProfile?.fullName, userProfile?.email, userProfile?.phone]);
+
+  // Countdown timer for payment link expiration
+  useEffect(() => {
+    if (!paymentLink?.expireAt) return;
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const expireTime = new Date(paymentLink.expireAt).getTime();
+      const remaining = Math.max(0, expireTime - now);
+
+      setTimeRemaining(remaining);
+
+      // Auto-refresh QR code when expired
+      if (remaining === 0) {
+        clearInterval(interval);
+        toast.info("Link thanh toán đã hết hạn. Tạo link mới để tiếp tục.");
+        setPaymentLink(null);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [paymentLink?.expireAt]);
 
   // ─── Queries & Mutations ───────────────────────────────────────
   const { data: course, isLoading: isLoadingCourse } = useQuery({
@@ -29,7 +143,6 @@ export default function CheckoutPage() {
   });
 
   const { data: cart, isLoading: isLoadingCart } = useCart();
-  const { mutate: createOrder, isPending: isCreatingOrder } = useCreateOrder();
 
   // ─── Handlers ──────────────────────────────────────────────────
   if (isLoadingCourse || isLoadingCart) {
@@ -53,6 +166,13 @@ export default function CheckoutPage() {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
   };
 
+  const formatTimeRemaining = (milliseconds: number) => {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  };
+
   const handleApplyVoucher = () => {
     if (voucher.toUpperCase() === "SMARTCENTER") {
       setDiscount(500000);
@@ -63,22 +183,29 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleCheckout = () => {
-    if (!userId) {
+  const handleCheckout = async () => {
+    if (!accessToken && !effectiveUserId) {
       toast.error("Vui lòng đăng nhập để thanh toán");
-      navigate("/login");
+      navigate("/login", { state: { from: { pathname: location.pathname } } });
       return;
     }
 
-    if (!(cart as any)?.cartId) {
-      toast.error("Không tìm thấy giỏ hàng của bạn");
+    if (!id) {
+      toast.error("Không tìm thấy thông tin khóa học");
       return;
     }
 
-    createOrder({
-      studentId: userId,
-      cartId: (cart as any).cartId,
-    });
+    setIsLoadingPayment(true);
+    try {
+      const response = await paymentService.createLink({ courseId: id });
+      setPaymentLink(response);
+      toast.success("Tạo link thanh toán thành công!");
+    } catch (error) {
+      console.error("Lỗi khi tạo link thanh toán:", error);
+      toast.error("Không thể tạo link thanh toán. Vui lòng thử lại.");
+    } finally {
+      setIsLoadingPayment(false);
+    }
   };
 
   const finalPrice = Math.max(0, course.basePrice - discount);
@@ -100,31 +227,14 @@ export default function CheckoutPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
           <div className="lg:col-span-2 space-y-6">
-            <Card className="border-none shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-xl">Thông tin học viên</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">Họ và tên</Label>
-                    <Input id="fullName" placeholder="VD: Nguyễn Văn A" readOnly value={useAuthStore.getState().userId ? "Học Viên SmartCenter" : ""} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Số điện thoại</Label>
-                    <Input id="phone" placeholder="Chưa cập nhật" readOnly />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email nhận tài khoản học</Label>
-                  <Input id="email" type="email" placeholder="VD: email@example.com" readOnly value={useAuthStore.getState().userId ? "student@smartcenter.edu.vn" : ""} />
-                </div>
-                <p className="text-sm text-muted-foreground pt-2">
-                  <ShieldCheck className="inline h-4 w-4 mr-1 text-green-500" />
-                  Thông tin của bạn được bảo mật tuyệt đối theo chuẩn PCI-DSS.
-                </p>
-              </CardContent>
-            </Card>
+            <InfoStudentForm
+              fullName={fullNameInput ?? userProfile?.fullName ?? ""}
+              phone={phoneInput ?? userProfile?.phone ?? ""}
+              email={emailInput ?? userProfile?.email ?? ""}
+              onFullNameChange={setFullNameInput}
+              onPhoneChange={setPhoneInput}
+              onEmailChange={setEmailInput}
+            />
 
             <Card className="border-none shadow-sm overflow-hidden">
               <CardHeader className="bg-primary/5 border-b border-border/50">
@@ -216,24 +326,79 @@ export default function CheckoutPage() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex-col gap-4 bg-muted/20 pb-6 rounded-b-xl">
-                  <Button
-                    className="w-full h-12 text-lg shadow-md hover:shadow-lg transition-all"
-                    onClick={() => handleCheckout()}
-                    disabled={isCreatingOrder}
-                  >
-                    {isCreatingOrder ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Đang tạo đơn hàng...
-                      </>
-                    ) : (
-                      "Tiến hành thanh toán"
-                    )}
-                  </Button>
-                  <div className="flex items-center justify-center text-xs text-muted-foreground gap-1">
-                    <ShieldCheck className="h-4 w-4" />
-                    Bảo mật thanh toán 256-bit SSL
-                  </div>
+                  {!paymentLink ? (
+                    <>
+                      <Button
+                        className="w-full h-12 text-lg shadow-md hover:shadow-lg transition-all"
+                        onClick={() => handleCheckout()}
+                        disabled={isLoadingPayment}
+                      >
+                        {isLoadingPayment ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Đang tạo link thanh toán...
+                          </>
+                        ) : (
+                          "Tiến hành thanh toán"
+                        )}
+                      </Button>
+                      <div className="flex items-center justify-center text-xs text-muted-foreground gap-1">
+                        <ShieldCheck className="h-4 w-4" />
+                        Bảo mật thanh toán 256-bit SSL
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-full space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold">Quét mã QR để thanh toán</h3>
+                        <button
+                          onClick={() => setPaymentLink(null)}
+                          className="p-1 hover:bg-muted rounded-md transition-colors"
+                        >
+                          <X className="h-5 w-5 text-muted-foreground" />
+                        </button>
+                      </div>
+                      
+                      <div className="bg-white p-4 rounded-lg flex items-center justify-center">
+                        <img
+                          src={paymentLink.qrCode}
+                          alt="QR Code thanh toán"
+                          className="h-64 w-64 object-contain"
+                        />
+                      </div>
+
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Mã đơn hàng:</span>
+                          <span className="font-mono font-semibold">{paymentLink.orderCode}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Số tiền:</span>
+                          <span className="font-semibold text-primary">
+                            {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+                              paymentLink.totalAmount
+                            )}
+                          </span>
+                        </div>
+                        <div className={`flex justify-between p-2 rounded-md ${timeRemaining < 300000 ? "bg-red-50" : "bg-muted/50"}`}>
+                          <span className={timeRemaining < 300000 ? "text-red-600 font-medium" : "text-muted-foreground"}>
+                            Hết hạn trong:
+                          </span>
+                          <span className={`font-mono font-bold ${timeRemaining < 300000 ? "text-red-600" : "text-primary"}`}>
+                            {formatTimeRemaining(timeRemaining)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <Button
+                        className="w-full"
+                        variant="outline"
+                        onClick={() => setPaymentLink(null)}
+                      >
+                        Tạo link mới
+                      </Button>
+                    </div>
+                  )}
                 </CardFooter>
               </Card>
             </div>

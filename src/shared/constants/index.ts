@@ -165,4 +165,12 @@ export const API_ENDPOINTS = {
     BASE: "/api/Combos",
     BY_ID: (comboId: string) => `/api/Combos/${comboId}`,
   },
+
+  /**
+   * User endpoints
+   * - GET_PROFILE: GET /User/profile
+   */
+  USER: {
+    GET_PROFILE: "/User/profile",
+  },
 };

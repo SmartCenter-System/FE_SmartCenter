@@ -1,4 +1,5 @@
-// import { apiClient } from "@/lib/axios";
+import { apiClient } from "@/lib/axios";
+import { API_ENDPOINTS } from "@/shared/constants";
 
 import { apiClient } from "@/lib/axios";
 import { id } from "zod/v4/locales";
@@ -155,5 +156,9 @@ export const userService = {
         });
       }, 800);
     });
-  }
+  },
+  // Lấy profile người dùng hiện tại
+  async getProfile(): Promise<any> {
+    return apiClient.get(API_ENDPOINTS.USER.GET_PROFILE);
+  },
 };
