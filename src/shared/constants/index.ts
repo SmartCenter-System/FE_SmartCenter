@@ -152,7 +152,7 @@ export const API_ENDPOINTS = {
    * - UPDATE_PROFILE: PUT /User/update-profile
    */
   USER: {
-    GET_PROFILE: "/User/get-profile",
+    GET_PROFILE: "/User/profile",
     UPDATE_PROFILE: "/User/update-profile",
   },
 
@@ -170,7 +170,5 @@ export const API_ENDPOINTS = {
    * User endpoints
    * - GET_PROFILE: GET /User/profile
    */
-  USER: {
-    GET_PROFILE: "/User/profile",
-  },
+  
 };
