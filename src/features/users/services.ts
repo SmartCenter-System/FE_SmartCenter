@@ -1,8 +1,44 @@
 // import { apiClient } from "@/lib/axios";
 
+import { apiClient } from "@/lib/axios";
+import { id } from "zod/v4/locales";
+
 // Core Types
 export type UserRole = "ADMIN" | "STAFF" | "LECTURER" | "STUDENT";
 export type UserStatus = "ACTIVE" | "LOCKED";
+
+export interface UserProfile {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string | null;
+  role: number;
+  imgUrl: string | null;
+  address: string | null;
+  city: string | null;
+  zaloLink: string | null;
+  bio: string | null;
+  expertise: string | null;
+}
+
+export interface UserProfileResponse {
+  success: boolean;
+  message: string;
+  data: UserProfile;
+  errors: string | null;
+  traceId: string;
+  timestampUtc: string;
+}
+
+export interface UpdateProfileRequest {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  zaloLink?: string;
+  imgUrl?: string;
+}
 
 export interface User {
   id: string;
@@ -97,7 +133,7 @@ export const userService = {
   // Thay đổi trạng thái tài khoản
   async toggleUserStatus(_id: string, _newStatus: UserStatus): Promise<void> {
     // TODO: Uncomment dòng bên dưới để dùng API thật
-    // return apiClient.patch(`/admin/users/${id}/status`, { status: newStatus }) as any;
+    return apiClient.patch(`/admin/users/${id}/status`, { status: _newStatus }) as any;
     
     return new Promise((resolve) => {
       setTimeout(() => resolve(), 400);
