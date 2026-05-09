@@ -62,6 +62,9 @@ apiClient.interceptors.response.use(
               refreshToken: newAuth.refreshToken,
               role: useAuthStore.getState().role as any,
               userId: useAuthStore.getState().userId,
+              email: useAuthStore.getState().email,
+              firstName: useAuthStore.getState().firstName,
+              lastName: useAuthStore.getState().lastName,
             });
 
             processQueue(null, newAuth.accessToken);

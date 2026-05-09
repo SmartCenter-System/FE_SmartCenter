@@ -25,7 +25,7 @@ import {
 import { consultationSchema } from "../schema";
 import type { CreateConsultationPayload } from "../type";
 import { useCreateConsultation } from "../hooks/useConsultation";
-import { courseService } from "@/features/courses/services.ts";
+import { courseService } from "@/features/courses/services";
 
 export default function ConsultationForm() {
   const form = useForm<CreateConsultationPayload>({
@@ -77,7 +77,7 @@ export default function ConsultationForm() {
             <div className="relative">
               <div className="absolute -inset-4 rounded-full bg-primary/10 blur-2xl" />
               <img
-                src="/images/man-customer-service.png"
+                src="/images/man-costumer-service.png"
                 alt="Tư vấn khoá học"
                 className="relative z-10 w-64 max-w-full drop-shadow-lg sm:w-80 md:w-96"
               />

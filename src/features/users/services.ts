@@ -5,6 +5,39 @@ import { API_ENDPOINTS } from "@/shared/constants";
 export type UserRole = "ADMIN" | "STUDENT" | "LECTURER" | "STAFF";
 export type UserStatus = "ACTIVE" | "LOCKED";
 
+export interface UserProfile {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string | null;
+  role: number;
+  imgUrl: string | null;
+  address: string | null;
+  city: string | null;
+  zaloLink: string | null;
+  bio: string | null;
+  expertise: string | null;
+}
+
+export interface UserProfileResponse {
+  success: boolean;
+  message: string;
+  data: UserProfile;
+  errors: string | null;
+  traceId: string;
+  timestampUtc: string;
+}
+
+export interface UpdateProfileRequest {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  zaloLink?: string;
+  imgUrl?: string;
+}
+
 export interface User {
   id: string;
   fullName: string;
@@ -213,7 +246,6 @@ export const userService = {
 
   // Xóa người dùng
   async deleteUser(id: string): Promise<void> {
-    // Backend spec không có DELETE cho admin/users nhưng giữ theo code cũ nếu backend hỗ trợ ẩn
     await apiClient.delete(`${API_ENDPOINTS.ADMIN.USERS}/${id}`);
   },
 };

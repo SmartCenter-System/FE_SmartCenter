@@ -17,7 +17,7 @@ import CoursesPage from "@/features/courses/pages/CoursesPage";
 import CourseDetailPage from "@/features/courses/pages/CourseDetailPage";
 import CourseStudyingPage from "@/features/courses/pages/CourseStudyingPage";
 import CheckoutPage from "@/features/orders/pages/CheckoutPage";
-import ConsultantPage from "@/pages/consultant/ConsultantPage";
+import ConsultationPage from "@/features/consultation/pages/ConsultantPage";
 
 // ─── Student Dashboard (yêu cầu đăng nhập) ───────────────────────────────────
 import StudentDashboardPage from "@/features/dashboard/pages/StudentDashboardPage";
@@ -36,6 +36,9 @@ import CourseContentEditor from "@/features/courses/pages/admin/CourseContentEdi
 import UserManagementPage from "@/features/users/pages/admin/UserManagementPage";
 import OrderManagementPage from "@/features/orders/pages/admin/OrderManagementPage";
 import SettingsPage from "@/features/settings/pages/SettingsPage";
+
+// ─── User Profile ────────────────────────────────────────────────────────────
+import ProfileUserPage from "@/features/users/pages/user/ProfileUserPage";
 
 // ─── Staff Panel ──────────────────────────────────────────────────────────────
 import StaffLayout from "@/shared/layouts/StaffLayout";
@@ -56,7 +59,8 @@ const router = createBrowserRouter([
       { path: "courses", element: <CoursesPage /> },
       { path: "courses/:id", element: <CourseDetailPage /> },
       { path: "courses/:id/study/:lessonId", element: <CourseStudyingPage /> },
-      { path: "contact", element: <ConsultantPage /> },
+      { path: "contact", element: <ConsultationPage /> },
+      { path: "consultation", element: <ConsultationPage /> }, // Keep both for safety
     ],
   },
 
@@ -93,6 +97,11 @@ const router = createBrowserRouter([
                 element: <SettingsPage />,
               },
             ],
+          },
+          // User Profile
+          {
+            path: "/profile",
+            element: <ProfileUserPage />,
           },
         ],
       },

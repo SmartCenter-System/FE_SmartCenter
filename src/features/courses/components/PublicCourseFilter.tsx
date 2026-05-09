@@ -104,26 +104,7 @@ export function PublicCourseFilter({
         </div>
       </div>
 
-      <div>
-        <h3 className="text-sm font-semibold mb-3">Cấp độ</h3>
-        <div className="flex flex-col gap-2">
-          {["Lớp 10", "Lớp 11", "Lớp 12"].map((lvl) => (
-            <label
-              key={lvl}
-              className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer"
-            >
-              <input
-                type="radio"
-                name="level"
-                checked={selectedLevel === lvl}
-                onChange={() => setSelectedLevel(lvl)}
-                className="accent-primary"
-              />
-              <span>{lvl}</span>
-            </label>
-          ))}
-        </div>
-      </div>
+     
 
       <div>
         <h3 className="text-sm font-semibold mb-3">Học phí</h3>

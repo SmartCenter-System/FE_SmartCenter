@@ -139,6 +139,16 @@ export const API_ENDPOINTS = {
   },
 
   /**
+   * User Profile endpoints
+   */
+  USER: {
+    PROFILE: "/User/profile",
+    UPDATE: "/User/update-profile",
+    GET_PROFILE: "/User/profile", // Backward compatibility
+    UPDATE_PROFILE: "/User/update-profile", // Backward compatibility
+  },
+
+  /**
    * Combo endpoints
    */
   COMBO: {
@@ -170,12 +180,4 @@ export const API_ENDPOINTS = {
     COMPLETE: "/api/progress/complete",
     BY_COURSE: (courseId: string) => `/api/progress/course/${courseId}`,
   },
-
-  /**
-   * User Profile endpoints
-   */
-  USER: {
-    PROFILE: "/User/profile",
-    UPDATE: "/User/update-profile",
-  }
 };

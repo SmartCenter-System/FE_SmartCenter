@@ -50,6 +50,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
       },
+      "/User": {
+        target: API_TARGET,
+        changeOrigin: true,
+        secure: true,
+      },
     },
   },
   resolve: {
