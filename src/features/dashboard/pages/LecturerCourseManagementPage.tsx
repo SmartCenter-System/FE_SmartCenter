@@ -13,6 +13,7 @@ import {
   Loader2
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -40,17 +41,9 @@ export default function LecturerCourseManagementPage() {
   const { userId } = useAuthStore();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<any>(null);
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["lecturer-courses", userId, search],
-    queryFn: () => courseService.getCourses({ 
-      LecturerId: userId || undefined,
-      Keyword: search || undefined
-    }),
-    enabled: !!userId,
-  });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => courseService.remove(id),
@@ -61,6 +54,24 @@ export default function LecturerCourseManagementPage() {
     onError: (error: any) => {
       toast.error(`Lỗi khi xóa: ${error.message}`);
     }
+  });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["lecturer-courses", userId, search, status],
+    queryFn: () => courseService.getCourses({ 
+      LecturerId: userId || undefined,
+      Keyword: search || undefined,
+      // Note: If API supports isActive filter, we can add it here
+    }),
+    enabled: !!userId,
+  });
+
+  // Local filtering if API doesn't support status filter yet
+  const rawCourses = data?.data || [];
+  const courses = rawCourses.filter(c => {
+    if (status === "ACTIVE") return c.isActive;
+    if (status === "INACTIVE") return !c.isActive;
+    return true;
   });
 
   const handleCreate = () => {
@@ -78,8 +89,6 @@ export default function LecturerCourseManagementPage() {
       deleteMutation.mutate(id);
     }
   };
-
-  const courses = data?.data || [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -104,8 +113,20 @@ export default function LecturerCourseManagementPage() {
           />
         </div>
         <div className="flex gap-2">
-          <Badge variant="secondary" className="cursor-pointer">Tất cả ({courses.length})</Badge>
-          <Badge variant="outline" className="cursor-pointer hover:bg-primary/10 transition-colors">Đang hoạt động</Badge>
+          <Badge 
+            variant={status === "ALL" ? "secondary" : "outline"} 
+            className="cursor-pointer"
+            onClick={() => setStatus("ALL")}
+          >
+            Tất cả ({rawCourses.length})
+          </Badge>
+          <Badge 
+            variant={status === "ACTIVE" ? "secondary" : "outline"} 
+            className="cursor-pointer hover:bg-primary/10 transition-colors"
+            onClick={() => setStatus("ACTIVE")}
+          >
+            Đang hoạt động ({rawCourses.filter(c => c.isActive).length})
+          </Badge>
         </div>
       </div>
 
@@ -130,9 +151,11 @@ export default function LecturerCourseManagementPage() {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                  <Button size="sm" variant="secondary" className="gap-2">
-                    <PlayCircle className="h-4 w-4" /> Nội dung
-                  </Button>
+                  <Link to={`/lecturer/courses/${course.courseId}/content`}>
+                    <Button size="sm" variant="secondary" className="gap-2">
+                      <PlayCircle className="h-4 w-4" /> Nội dung
+                    </Button>
+                  </Link>
                 </div>
                 <Badge 
                   className={`absolute top-3 left-3 border-none ${course.isActive ? 'bg-green-500' : 'bg-slate-500'}`}
@@ -148,11 +171,11 @@ export default function LecturerCourseManagementPage() {
                 <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1.5">
                     <Users className="h-4 w-4" />
-                    <span>{course.maxStudents || 0}</span>
+                    <span>{(course as any).enrolledCount || 0}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                    <span>4.8</span>
+                    <span>{(course as any).averageRating || "N/A"}</span>
                   </div>
                 </div>
 
@@ -167,12 +190,37 @@ export default function LecturerCourseManagementPage() {
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem className="gap-2" onClick={() => handleEdit(course)}>
-                          <Edit className="h-4 w-4" /> Chỉnh sửa
+                      <DropdownMenuContent align="end" className="w-52">
+                        <DropdownMenuItem 
+                          className="gap-2 font-semibold"
+                          onClick={() => {
+                            const newStatus = !course.isActive;
+                            courseService.update(course.courseId, { ...course, isActive: newStatus })
+                              .then(() => {
+                                queryClient.invalidateQueries({ queryKey: ["lecturer-courses"] });
+                                toast.success(newStatus ? "Đã xuất bản khóa học!" : "Đã tạm ẩn khóa học!");
+                              });
+                          }}
+                        >
+                          {course.isActive ? (
+                            <><Eye className="h-4 w-4 text-slate-500" /> Tạm ẩn khóa học</>
+                          ) : (
+                            <><Eye className="h-4 w-4 text-green-600" /> Xuất bản khóa học</>
+                          )}
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2">
-                          <Eye className="h-4 w-4" /> Xem trang học
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="gap-2" onClick={() => handleEdit(course)}>
+                          <Edit className="h-4 w-4" /> Chỉnh sửa thông tin
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="gap-2" asChild>
+                          <Link to={`/lecturer/courses/${course.courseId}/content`}>
+                            <PlayCircle className="h-4 w-4" /> Quản lý nội dung
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="gap-2" asChild>
+                          <Link to={`/lecturer/courses/${course.courseId}/students`}>
+                            <Users className="h-4 w-4" /> Tiến độ học viên
+                          </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
@@ -208,13 +256,12 @@ export default function LecturerCourseManagementPage() {
         </div>
       )}
 
-      {/* Course Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingCourse ? "Chỉnh sửa khóa học" : "Tạo khóa học mới"}</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
+        <DialogContent className="w-[95vw] max-w-[600px] max-h-[90vh] overflow-y-auto p-0 border-none shadow-2xl">
+          <div className="p-8">
+            <DialogHeader className="mb-6">
+              <DialogTitle className="text-3xl font-black tracking-tight">{editingCourse ? "Chỉnh sửa khóa học" : "Tạo khóa học mới"}</DialogTitle>
+            </DialogHeader>
             <CourseForm 
               courseId={editingCourse?.courseId} 
               initialData={editingCourse} 

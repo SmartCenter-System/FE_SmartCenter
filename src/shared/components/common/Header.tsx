@@ -136,13 +136,24 @@ export default function Header({ variant = "fixed", tone = "solid" }: HeaderProp
                   else if (r === "LECTURER" || r === "3") dashboardPath = "/lecturer";
                   
                   return (
-                    <Link
-                      to={dashboardPath}
-                      className="flex items-center gap-2 text-sm font-semibold text-primary hover:opacity-80"
-                    >
-                      <LayoutDashboard className="h-4 w-4" />
-                      Dashboard
-                    </Link>
+                    <div className="flex items-center gap-4">
+                      {(r === "STUDENT" || r === "LECTURER" || r === "3") && (
+                        <Link
+                          to={r === "STUDENT" ? "/dashboard/my-courses" : "/lecturer/courses"}
+                          className={`flex items-center gap-2 text-sm font-bold transition-all hover:text-primary ${isScrolledPastHero ? "text-foreground" : "text-white"}`}
+                        >
+                          <BookOpen className="h-4 w-4" />
+                          Khóa học của tôi
+                        </Link>
+                      )}
+                      <Link
+                        to={dashboardPath}
+                        className="flex items-center gap-2 text-sm font-semibold text-primary hover:opacity-80"
+                      >
+                        <LayoutDashboard className="h-4 w-4" />
+                        Dashboard
+                      </Link>
+                    </div>
                   );
                 })()}
                 <Button

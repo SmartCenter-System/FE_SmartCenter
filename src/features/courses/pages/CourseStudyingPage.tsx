@@ -9,6 +9,8 @@ import { getYouTubeEmbedUrl, isYouTubeUrl } from "@/lib/utils";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { ChevronLeft, Lock } from "lucide-react";
+import { Badge } from "@/shared/components/ui/badge";
+import { CommentSection } from "../components/CommentSection";
 import type { Course } from "@/features/courses/type";
 import type { Enrollment } from "@/features/courses/enrollmentService";
 
@@ -78,10 +80,17 @@ export default function CourseStudyingPage() {
     [sections],
   );
 
-  const lesson = useMemo(
-    () => allLessons.find((item: any) => item.id === lessonId),
-    [allLessons, lessonId],
-  );
+  const lesson = useMemo(() => {
+    if (!lessonId && allLessons.length > 0) {
+      // Find first accessible lesson
+      const firstAccessible = allLessons.find(l => l.isPreview || isPurchased) || allLessons[0];
+      if (firstAccessible) {
+        navigate(`/courses/${id}/study/${firstAccessible.id}`, { replace: true });
+        return firstAccessible;
+      }
+    }
+    return allLessons.find((item: any) => item.id === lessonId);
+  }, [allLessons, lessonId, id, navigate, isPurchased]);
 
   const isPurchased = useMemo(() => {
     if (!courseData || !enrollments) return false;
@@ -158,18 +167,25 @@ export default function CourseStudyingPage() {
             </Card>
 
             <Card className="border-border shadow-sm">
-              <CardContent>
-                <h2 className="text-xl font-semibold mb-3">Mô tả bài học</h2>
-                <p className="text-sm text-muted-foreground">
-                  {lesson.isPreview
-                    ? "Đây là bài xem trước. Bạn có thể truy cập ngay cả khi chưa mua khóa học."
-                    : "Bạn đã mở khoá bài học này."}
-                </p>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold">Mô tả bài học</h2>
+                  <Badge variant="secondary" className="rounded-full">
+                    {lesson.isPreview ? "Bài học miễn phí" : "Nội dung học tập"}
+                  </Badge>
+                </div>
                 {courseData.description ? (
-                  <p className="mt-4 text-sm text-foreground/80">{courseData.description}</p>
-                ) : null}
+                  <p className="text-sm text-foreground/80 leading-relaxed">{courseData.description}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">Chưa có mô tả chi tiết cho bài học này.</p>
+                )}
               </CardContent>
             </Card>
+
+            {/* Discussion Section */}
+            <div className="mt-10 pt-10 border-t">
+              <CommentSection lessonId={lesson.id} />
+            </div>
           </section>
 
           <aside className="space-y-6">

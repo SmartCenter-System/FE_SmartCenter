@@ -1,18 +1,21 @@
 export type RoleType = "ADMIN" | "STUDENT" | "LECTURER" | "STAFF" | "GUEST";
 
-// ─── Pagination ──────────────────────────────────────────
-export interface PaginationMeta {
-  totalItems: number;
-  totalPages: number;
-  itemsPerPage: number;
-  currentPage: number;
-  hasPreviousPage: boolean;
-  hasNextPage: boolean;
+// ─── API Structure ──────────────────────────────────────────
+export interface ApiResponse<T> {
+  data: T;
+  message?: string;
+  statusCode?: number;
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  meta: PaginationMeta;
+// .NET standard PaginatedList structure
+export interface PaginatedList<T> {
+  items: T[];
+  pageIndex: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
 }
 
 // ─── Base filter params ──────────────────────────────────
@@ -28,9 +31,8 @@ export interface BaseFilterParams {
 export interface ApiError {
   statusCode: number;
   message: string;
-  error?: string;
+  errors?: Record<string, string[]>;
   timestamp?: string;
-  path?: string;
 }
 
 // ─── Select Option ───────────────────────────────────────

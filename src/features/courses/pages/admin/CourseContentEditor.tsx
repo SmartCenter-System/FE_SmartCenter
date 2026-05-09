@@ -1,154 +1,208 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, 
-  Plus, 
-  PlayCircle, 
-  FileText, 
-  HelpCircle, 
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  ArrowLeft,
+  Plus,
+  PlayCircle,
+  FileText,
+  HelpCircle,
   GripVertical,
   Save,
-  Trash2
+  Trash2,
+  Loader2,
+  UploadCloud,
+  ImageIcon,
 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card";
 import { toast } from "sonner";
-import { 
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/shared/components/ui/accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/shared/components/ui/accordion";
 import { Badge } from "@/shared/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/shared/components/ui/dialog";
+import { useExams, useCreateExam } from "@/features/courses/hooks/useExams";
+import {
+  useSections,
+  useCreateSection,
+  useUpdateSection,
+  useDeleteSection,
+  useCreateLesson,
+  useUpdateLesson,
+  useDeleteLesson,
+} from "@/features/courses/hooks/useCourseContent";
 
-// Mock types
+// types
 type LessonType = "VIDEO" | "DOCUMENT" | "QUIZ";
 
 interface Lesson {
   id: string;
   title: string;
   type: LessonType;
-  contentUrl?: string; // Youtube URL or Cloudinary URL
+  videoUrl?: string;
   duration?: string;
 }
 
-interface Chapter {
+interface Section {
   id: string;
   title: string;
   lessons: Lesson[];
 }
 
-// Mock initial data
-const MOCK_CHAPTERS: Chapter[] = [
-  {
-    id: "ch-1",
-    title: "Chuyên đề 1: Khảo sát hàm số",
-    lessons: [
-      { id: "ls-1", title: "Tính đơn điệu của hàm số", type: "VIDEO", contentUrl: "https://youtube.com/watch?v=123", duration: "45 phút" },
-      { id: "ls-2", title: "Cực trị của hàm số", type: "VIDEO", contentUrl: "https://youtube.com/watch?v=456", duration: "60 phút" },
-      { id: "ls-3", title: "Bài tập tự luyện Khảo sát hàm số", type: "QUIZ" },
-    ]
-  },
-  {
-    id: "ch-2",
-    title: "Chuyên đề 2: Lũy thừa và Logarit",
-    lessons: [
-      { id: "ls-4", title: "Công thức Logarit cần nhớ", type: "DOCUMENT", contentUrl: "https://cloudinary.com/docs/logarit.pdf" },
-    ]
-  }
-];
-
 export default function CourseContentEditor() {
+  const { id: courseId } = useParams();
   const navigate = useNavigate();
-  
-  // TODO: Gọi API lấy dữ liệu nội dung khóa học theo id (useQuery)
-  // const { data: chapters } = useQuery(...)
-  const [chapters, setChapters] = useState<Chapter[]>(MOCK_CHAPTERS);
+  const queryClient = useQueryClient();
+
+  // Form state
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editType, setEditType] = useState<LessonType>("VIDEO");
+  const [editUrl, setEditUrl] = useState("");
+
+  // Dialog state
+  const [isSectionDialogOpen, setIsSectionDialogOpen] = useState(false);
+  const [isLessonDialogOpen, setIsLessonDialogOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newType, setNewType] = useState<LessonType>("VIDEO");
+  const [newUrl, setNewUrl] = useState("");
+  const [targetSectionId, setTargetSectionId] = useState<string | null>(null);
+
+  // Exam state
+  const [isExamDialogOpen, setIsExamDialogOpen] = useState(false);
+  const [examTitle, setExamTitle] = useState("");
+  const [examDuration, setExamDuration] = useState(60);
+  const [examPoints, setExamPoints] = useState(10);
+
+  const { data: rawSections, isLoading: isLoadingSections } = useSections(courseId!);
+
+  // Normalize sections data
+  const sections: Section[] = (Array.isArray(rawSections) ? rawSections : (rawSections as any)?.data || []).map(
+    (s: any) => ({
+      id: s.id || s.sectionId,
+      title: s.title,
+      lessons: (s.lessons || []).map((l: any) => ({
+        id: l.id,
+        title: l.title,
+        type: (l.type || "VIDEO") as LessonType,
+        videoUrl: l.videoUrl || l.contentUrl || "",
+        description: l.description || "",
+      })),
+    }),
+  );
+
+  const { data: exams } = useExams(courseId!);
+  const currentLessonExam = (exams as any[])?.find((e) => e.lessonId === activeLesson?.id);
+  const createExamMutation = useCreateExam();
+
+  const createSectionMutation = useCreateSection();
+  const updateSectionMutation = useUpdateSection();
+  const deleteSectionMutation = useDeleteSection();
+
+  const createLessonMutation = useCreateLesson();
+  const updateLessonMutation = useUpdateLesson();
+  const deleteLessonMutation = useDeleteLesson();
+
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
-  const [activeChapter, setActiveChapter] = useState<Chapter | null>(null);
+  const [activeSection, setActiveSection] = useState<Section | null>(null);
 
-  // Form state for lesson
-  const [lessonTitle, setLessonTitle] = useState("");
-  const [lessonType, setLessonType] = useState<LessonType>("VIDEO");
-  const [lessonUrl, setLessonUrl] = useState("");
-
-  const handleSelectLesson = (_chapter: Chapter, lesson: Lesson) => {
-    setActiveChapter(null);
+  const handleSelectLesson = (section: Section, lesson: Lesson) => {
+    setActiveSection(section);
     setActiveLesson(lesson);
-    setLessonTitle(lesson.title);
-    setLessonType(lesson.type);
-    setLessonUrl(lesson.contentUrl || "");
+    setEditTitle(lesson.title);
+    setEditType(lesson.type);
+    setEditUrl(lesson.videoUrl || "");
+    setEditDescription(lesson.description || "");
   };
 
-  const handleSelectChapter = (chapter: Chapter) => {
+  const handleSelectSection = (section: Section) => {
     setActiveLesson(null);
-    setActiveChapter(chapter);
+    setActiveSection(section);
+    setEditTitle(section.title);
   };
 
   const handleSaveLesson = () => {
-    if (!activeLesson) return;
-    
-    // TODO: Gọi API cập nhật bài giảng (useMutation -> put /lessons/:id)
-    // Update local state (Mock logic)
-    const updatedChapters = chapters.map(ch => ({
-      ...ch,
-      lessons: ch.lessons.map(ls => ls.id === activeLesson.id ? {
-        ...ls,
-        title: lessonTitle,
-        type: lessonType,
-        contentUrl: lessonUrl
-      } : ls)
-    }));
-    
-    setChapters(updatedChapters);
-    toast.success("Lưu bài giảng thành công!");
+    if (!activeLesson || !activeSection) return;
+    updateLessonMutation.mutate({
+      lessonId: activeLesson.id,
+      courseId: courseId!,
+      sectionId: activeSection.id,
+      data: {
+        title: editTitle,
+        videoUrl: editUrl,
+        description: editDescription,
+      },
+    });
   };
 
-  const handleAddChapter = () => {
-    // TODO: Gọi API tạo chương mới (useMutation -> post /chapters)
-    const newChapter: Chapter = {
-      id: `ch-${Date.now()}`,
-      title: "Chương mới",
-      lessons: []
-    };
-    setChapters([...chapters, newChapter]);
-    handleSelectChapter(newChapter);
+  const handleAddSection = () => {
+    setNewTitle("");
+    setIsSectionDialogOpen(true);
   };
 
-  const handleAddLesson = (chapterId: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent accordion toggle
-    
-    // TODO: Gọi API tạo bài giảng mới thuộc chapterId (useMutation -> post /chapters/:chapterId/lessons)
-    const newLesson: Lesson = {
-      id: `ls-${Date.now()}`,
-      title: "Bài giảng mới",
-      type: "VIDEO"
-    };
+  const handleConfirmAddSection = async () => {
+    if (!courseId) return;
+    if (newTitle.trim()) {
+      createSectionMutation.mutate(
+        { courseId, title: newTitle },
+        {
+          onSuccess: () => {
+            setIsSectionDialogOpen(false);
+            setNewTitle("");
+          },
+        },
+      );
+    }
+  };
 
-    const updatedChapters = chapters.map(ch => 
-      ch.id === chapterId 
-        ? { ...ch, lessons: [...ch.lessons, newLesson] } 
-        : ch
-    );
-    
-    setChapters(updatedChapters);
-    toast.success("Đã thêm bài giảng mới!");
+  const handleAddLesson = (sectionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNewTitle("");
+    setNewType("VIDEO");
+    setNewUrl("");
+    setTargetSectionId(sectionId);
+    setIsLessonDialogOpen(true);
+  };
+
+  const handleConfirmAddLesson = async () => {
+    if (newTitle.trim() && targetSectionId) {
+      createLessonMutation.mutate(
+        {
+          courseId: courseId!,
+          sectionId: targetSectionId,
+          data: {
+            title: newTitle,
+            videoUrl: newUrl || "https://youtube.com/watch?v=placeholder",
+            description: "",
+            order: 0,
+          },
+        },
+        {
+          onSuccess: () => {
+            setIsLessonDialogOpen(false);
+            setNewTitle("");
+            setNewUrl("");
+          },
+        },
+      );
+    }
   };
 
   const getIconForType = (type: LessonType) => {
     switch (type) {
-      case "VIDEO": return <PlayCircle className="h-4 w-4 text-blue-500" />;
-      case "DOCUMENT": return <FileText className="h-4 w-4 text-orange-500" />;
-      case "QUIZ": return <HelpCircle className="h-4 w-4 text-purple-500" />;
+      case "VIDEO":
+        return <PlayCircle className="h-4 w-4 text-blue-500" />;
+      case "DOCUMENT":
+        return <FileText className="h-4 w-4 text-orange-500" />;
+      case "QUIZ":
+        return <HelpCircle className="h-4 w-4 text-purple-500" />;
     }
   };
 
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto pb-10">
-      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -163,84 +217,98 @@ export default function CourseContentEditor() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate(-1)}>Hủy</Button>
-          <Button className="flex items-center gap-2">
-            <Save className="h-4 w-4" /> Xuất bản (Publish)
+          <Button variant="outline" onClick={() => navigate(-1)}>
+            Quay lại
+          </Button>
+          <Button className="flex items-center gap-2" disabled>
+            <Save className="h-4 w-4" /> Đã lưu tự động
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
         {/* Left Column: Curriculum Tree */}
         <div className="lg:col-span-4 xl:col-span-3 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold">Nội dung ({chapters.length} chương)</h2>
-            <Button variant="ghost" size="sm" className="h-8 px-2 text-primary" onClick={handleAddChapter}>
+            <h2 className="font-semibold">Nội dung ({sections.length} chương)</h2>
+            <Button variant="ghost" size="sm" className="h-8 px-2 text-primary" onClick={handleAddSection}>
               <Plus className="h-4 w-4 mr-1" /> Thêm chương
             </Button>
           </div>
 
-          <div className="bg-card border rounded-lg overflow-hidden">
-            <Accordion type="multiple" defaultValue={["ch-1", "ch-2"]} className="w-full">
-              {chapters.map((chapter) => (
-                <AccordionItem key={chapter.id} value={chapter.id} className="border-b last:border-0">
-                  <AccordionTrigger className="px-4 py-3 hover:bg-muted/50 data-[state=open]:bg-muted/20">
-                    <div className="flex items-center justify-between w-full pr-4" onClick={() => handleSelectChapter(chapter)}>
-                      <div className="flex items-center gap-2">
-                        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                        <span className="font-semibold text-sm text-left">{chapter.title}</span>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6 ml-auto hover:bg-background"
-                        onClick={(e) => handleAddLesson(chapter.id, e)}
+          <div className="bg-card border rounded-lg overflow-hidden min-h-[400px]">
+            {isLoadingSections ? (
+              <div className="flex items-center justify-center h-40">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : sections.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground text-sm">
+                Chưa có nội dung. Bấm "Thêm chương" để bắt đầu.
+              </div>
+            ) : (
+              <Accordion type="multiple" defaultValue={[sections[0]?.id]} className="w-full">
+                {sections.map((section) => (
+                  <AccordionItem key={section.id} value={section.id} className="border-b last:border-0">
+                    <AccordionTrigger className="px-4 py-3 hover:bg-muted/50 data-[state=open]:bg-muted/20">
+                      <div
+                        className="flex items-center justify-between w-full pr-4"
+                        onClick={() => handleSelectSection(section)}
                       >
-                        <Plus className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </div>
-                  </AccordionTrigger>
-                  
-                  <AccordionContent className="pt-0 pb-2 px-2 bg-muted/10">
-                    {chapter.lessons.length === 0 ? (
-                      <div className="text-xs text-muted-foreground text-center py-4 border border-dashed rounded mt-2">
-                        Chưa có bài giảng nào
+                        <div className="flex items-center gap-2">
+                          <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                          <span className="font-semibold text-sm text-left">{section.title}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 ml-auto hover:bg-background"
+                          onClick={(e) => handleAddLesson(section.id, e)}
+                        >
+                          <Plus className="h-4 w-4 text-muted-foreground" />
+                        </Button>
                       </div>
-                    ) : (
-                      <ul className="space-y-1 mt-2">
-                        {chapter.lessons.map((lesson) => (
-                          <li key={lesson.id}>
-                            <button
-                              onClick={() => handleSelectLesson(chapter, lesson)}
-                              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm transition-colors text-left
-                                ${activeLesson?.id === lesson.id 
-                                  ? 'bg-primary/10 text-primary font-medium border border-primary/20' 
-                                  : 'hover:bg-muted text-foreground'
-                                }
-                              `}
-                            >
-                              <div className="flex items-center gap-3 overflow-hidden">
-                                {getIconForType(lesson.type)}
-                                <span className="truncate">{lesson.title}</span>
-                              </div>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+                    </AccordionTrigger>
+
+                    <AccordionContent className="pt-0 pb-2 px-2 bg-muted/10">
+                      {section.lessons.length === 0 ? (
+                        <div className="text-xs text-muted-foreground text-center py-4 border border-dashed rounded mt-2">
+                          Chưa có bài giảng nào
+                        </div>
+                      ) : (
+                        <ul className="space-y-1 mt-2">
+                          {section.lessons.map((lesson) => (
+                            <li key={lesson.id}>
+                              <button
+                                onClick={() => handleSelectLesson(section, lesson)}
+                                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm transition-colors text-left
+                                  ${
+                                    activeLesson?.id === lesson.id
+                                      ? "bg-primary/10 text-primary font-medium border border-primary/20"
+                                      : "hover:bg-muted text-foreground"
+                                  }
+                                `}
+                              >
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                  {getIconForType(lesson.type)}
+                                  <span className="truncate">{lesson.title}</span>
+                                </div>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
           </div>
         </div>
 
         {/* Right Column: Editor Workspace */}
         <div className="lg:col-span-8 xl:col-span-9">
-          
           {/* No Selection State */}
-          {!activeLesson && !activeChapter && (
+          {!activeLesson && !activeSection && (
             <div className="flex flex-col items-center justify-center h-[500px] border border-dashed rounded-xl bg-muted/20">
               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 <PlayCircle className="h-8 w-8 text-primary opacity-50" />
@@ -252,8 +320,8 @@ export default function CourseContentEditor() {
             </div>
           )}
 
-          {/* Chapter Editor */}
-          {activeChapter && !activeLesson && (
+          {/* Section Editor */}
+          {activeSection && !activeLesson && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -261,7 +329,16 @@ export default function CourseContentEditor() {
                     <CardTitle>Chỉnh sửa Chương</CardTitle>
                     <CardDescription>Cập nhật tiêu đề chương</CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" className="text-red-500 border-red-200 hover:bg-red-50">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-500 border-red-200 hover:bg-red-50"
+                    onClick={() => {
+                      if (confirm("Xóa chương này sẽ xóa tất cả bài giảng bên trong. Bạn chắc chứ?")) {
+                        deleteSectionMutation.mutate({ sectionId: activeSection.id, courseId: courseId! });
+                      }
+                    }}
+                  >
                     <Trash2 className="h-4 w-4 mr-2" /> Xóa chương
                   </Button>
                 </div>
@@ -269,129 +346,331 @@ export default function CourseContentEditor() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Tên chương</Label>
-                  <Input defaultValue={activeChapter.title} />
+                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
                 </div>
-                <Button>Cập nhật chương</Button>
+                <Button
+                  onClick={() =>
+                    updateSectionMutation.mutate({ sectionId: activeSection.id, courseId: courseId!, title: editTitle })
+                  }
+                  disabled={updateSectionMutation.isPending}
+                >
+                  {updateSectionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Cập nhật chương
+                </Button>
               </CardContent>
             </Card>
           )}
 
           {/* Lesson Editor */}
-          {activeLesson && (
+          {activeLesson && activeSection && (
             <Card className="shadow-md border-border/60">
               <CardHeader className="bg-muted/30 border-b pb-6">
                 <div className="flex items-center justify-between mb-4">
-                  <Badge variant="outline" className="bg-background">ID: {activeLesson.id}</Badge>
-                  <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-50 hover:text-red-600">
+                  <Badge variant="outline" className="bg-background uppercase">
+                    LOẠI: {activeLesson.type}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                    onClick={() => {
+                      if (confirm("Bạn có chắc muốn xóa bài giảng này?")) {
+                        deleteLessonMutation.mutate({
+                          lessonId: activeLesson.id,
+                          courseId: courseId!,
+                          sectionId: activeSection.id,
+                        });
+                      }
+                    }}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-                <CardTitle className="text-2xl">{lessonTitle || "Bài giảng không tên"}</CardTitle>
+                <CardTitle className="text-2xl">{editTitle || "Bài giảng không tên"}</CardTitle>
               </CardHeader>
               <CardContent className="pt-6 space-y-8">
-                
                 <div className="space-y-3">
                   <Label className="text-base">Tên bài giảng / Bài tập</Label>
-                  <Input 
-                    value={lessonTitle} 
-                    onChange={(e) => setLessonTitle(e.target.value)} 
-                    className="text-lg py-6"
+                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="text-lg py-6" />
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-base">Mô tả bài giảng</Label>
+                  <Input
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    placeholder="Mô tả nội dung bài học..."
                   />
                 </div>
 
                 <div className="space-y-4">
                   <Label className="text-base">Loại nội dung</Label>
                   <div className="grid grid-cols-3 gap-4">
-                    <div 
+                    <div
                       className={`border rounded-lg p-4 cursor-pointer flex flex-col items-center justify-center gap-2 transition-all
-                        ${lessonType === "VIDEO" ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:bg-muted'}
+                        ${editType === "VIDEO" ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "hover:bg-muted"}
                       `}
-                      onClick={() => setLessonType("VIDEO")}
+                      onClick={() => setEditType("VIDEO")}
                     >
-                      <PlayCircle className={`h-8 w-8 ${lessonType === "VIDEO" ? 'text-blue-500' : 'text-muted-foreground'}`} />
+                      <PlayCircle
+                        className={`h-8 w-8 ${editType === "VIDEO" ? "text-blue-500" : "text-muted-foreground"}`}
+                      />
                       <span className="font-medium text-sm">Video (Youtube)</span>
                     </div>
-                    <div 
+                    <div
                       className={`border rounded-lg p-4 cursor-pointer flex flex-col items-center justify-center gap-2 transition-all
-                        ${lessonType === "DOCUMENT" ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:bg-muted'}
+                        ${editType === "DOCUMENT" ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "hover:bg-muted"}
                       `}
-                      onClick={() => setLessonType("DOCUMENT")}
+                      onClick={() => setEditType("DOCUMENT")}
                     >
-                      <FileText className={`h-8 w-8 ${lessonType === "DOCUMENT" ? 'text-orange-500' : 'text-muted-foreground'}`} />
+                      <FileText
+                        className={`h-8 w-8 ${editType === "DOCUMENT" ? "text-orange-500" : "text-muted-foreground"}`}
+                      />
                       <span className="font-medium text-sm">Tài liệu (PDF)</span>
                     </div>
-                    <div 
+                    <div
                       className={`border rounded-lg p-4 cursor-pointer flex flex-col items-center justify-center gap-2 transition-all
-                        ${lessonType === "QUIZ" ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:bg-muted'}
+                        ${editType === "QUIZ" ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "hover:bg-muted"}
                       `}
-                      onClick={() => setLessonType("QUIZ")}
+                      onClick={() => setEditType("QUIZ")}
                     >
-                      <HelpCircle className={`h-8 w-8 ${lessonType === "QUIZ" ? 'text-purple-500' : 'text-muted-foreground'}`} />
+                      <HelpCircle
+                        className={`h-8 w-8 ${editType === "QUIZ" ? "text-purple-500" : "text-muted-foreground"}`}
+                      />
                       <span className="font-medium text-sm">Bài tập / Bài thi</span>
                     </div>
                   </div>
                 </div>
 
-                {lessonType === "VIDEO" && (
+                {editType === "VIDEO" && (
                   <div className="space-y-4 p-5 bg-blue-50/50 rounded-lg border border-blue-100">
                     <Label className="text-base text-blue-900">Liên kết Video Youtube</Label>
-                    <Input 
-                      placeholder="VD: https://www.youtube.com/watch?v=dQw4w9WgXcQ" 
-                      value={lessonUrl}
-                      onChange={(e) => setLessonUrl(e.target.value)}
+                    <Input
+                      placeholder="VD: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                      value={editUrl}
+                      onChange={(e) => setEditUrl(e.target.value)}
                     />
-                    {lessonUrl && lessonUrl.includes("youtube.com") && (
-                      <div className="aspect-video w-full max-w-xl mx-auto bg-black rounded-lg mt-4 flex items-center justify-center overflow-hidden">
-                        {/* Fake Youtube Iframe Preview */}
-                        <div className="text-white flex flex-col items-center">
-                          <PlayCircle className="h-12 w-12 text-red-600 mb-2" />
-                          <span className="text-sm">Bản xem trước Video</span>
+                  </div>
+                )}
+
+                {editType === "DOCUMENT" && (
+                  <div className="space-y-4 p-5 bg-orange-50/50 rounded-lg border border-orange-100">
+                    <Label className="text-base text-orange-900">Liên kết Tài liệu (PDF, Word)</Label>
+                    <Input
+                      placeholder="Nhập link tài liệu (Cloudinary/Google Drive...)"
+                      value={editUrl}
+                      onChange={(e) => setEditUrl(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {editType === "QUIZ" && (
+                  <div className="space-y-4 p-5 bg-purple-50/50 rounded-lg border border-purple-100 flex flex-col items-center justify-center text-center py-12">
+                    <HelpCircle className="h-16 w-16 text-purple-400 mb-4" />
+                    <h3 className="text-lg font-bold text-purple-900">Trình soạn thảo Bài Tập / Bài Thi</h3>
+
+                    {currentLessonExam ? (
+                      <div className="space-y-4">
+                        <div className="bg-white p-4 rounded-xl border border-purple-200 shadow-sm text-left">
+                          <p className="font-bold text-purple-900">{currentLessonExam.title}</p>
+                          <div className="flex gap-4 mt-2 text-sm text-purple-700">
+                            <span>Thời gian: {currentLessonExam.countDown} phút</span>
+                            <span>Tổng điểm: {currentLessonExam.totalPoints}</span>
+                          </div>
                         </div>
+                        <Button
+                          className="bg-purple-600 hover:bg-purple-700 text-white w-full"
+                          onClick={() => toast.info("Tính năng chỉnh sửa câu hỏi chi tiết đang mở...")}
+                        >
+                          Chỉnh sửa câu hỏi
+                        </Button>
                       </div>
+                    ) : (
+                      <>
+                        <p className="text-purple-700 max-w-md mx-auto mb-6">
+                          Chưa có đề thi cho bài tập này. Hãy tạo mới để bắt đầu thêm câu hỏi.
+                        </p>
+                        <Button
+                          className="bg-purple-600 hover:bg-purple-700 text-white"
+                          onClick={() => {
+                            setExamTitle(`Đề thi: ${editTitle}`);
+                            setIsExamDialogOpen(true);
+                          }}
+                        >
+                          Tạo Đề Thi Mới
+                        </Button>
+                      </>
                     )}
                   </div>
                 )}
 
-                {lessonType === "DOCUMENT" && (
-                  <div className="space-y-4 p-5 bg-orange-50/50 rounded-lg border border-orange-100">
-                    <Label className="text-base text-orange-900">Tải lên Tài liệu (PDF, Word)</Label>
-                    <div className="border-2 border-dashed border-orange-200 rounded-lg p-10 flex flex-col items-center justify-center text-center bg-white">
-                      <FileText className="h-10 w-10 text-orange-400 mb-4" />
-                      <p className="font-medium text-orange-900">Kéo thả file vào đây hoặc bấm để chọn file</p>
-                      <p className="text-sm text-orange-600/70 mt-1">Hỗ trợ PDF, DOCX (Tối đa 50MB)</p>
-                      <Button variant="outline" className="mt-6 border-orange-200 text-orange-700 hover:bg-orange-50">
-                        Chọn file từ máy tính
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {lessonType === "QUIZ" && (
-                  <div className="space-y-4 p-5 bg-purple-50/50 rounded-lg border border-purple-100 flex flex-col items-center justify-center text-center py-12">
-                    <HelpCircle className="h-16 w-16 text-purple-400 mb-4" />
-                    <h3 className="text-lg font-bold text-purple-900">Trình soạn thảo Bài Tập / Bài Thi</h3>
-                    <p className="text-purple-700 max-w-md mx-auto mb-6">
-                      Bạn sẽ được chuyển đến giao diện Quản lý Đánh giá để soạn thảo câu hỏi trắc nghiệm, tự luận và thiết lập chấm điểm.
-                    </p>
-                    <Button className="bg-purple-600 hover:bg-purple-700 text-white">
-                      Mở Trình Soạn Thảo Đề Thi
-                    </Button>
-                  </div>
-                )}
-
                 <div className="pt-6 flex justify-end gap-3 border-t">
-                  <Button variant="outline" onClick={() => handleSelectLesson(chapters[0], activeLesson)}>Hủy thay đổi</Button>
-                  <Button onClick={handleSaveLesson} className="flex items-center gap-2">
-                    <Save className="h-4 w-4" /> Lưu thông tin
+                  <Button variant="outline" onClick={() => handleSelectLesson(activeSection, activeLesson)}>
+                    Hủy thay đổi
+                  </Button>
+                  <Button
+                    onClick={handleSaveLesson}
+                    className="flex items-center gap-2"
+                    disabled={updateLessonMutation.isPending}
+                  >
+                    {updateLessonMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    Lưu thông tin
                   </Button>
                 </div>
-
               </CardContent>
             </Card>
           )}
-
         </div>
       </div>
+
+      {/* Add Section Dialog */}
+      <Dialog open={isSectionDialogOpen} onOpenChange={setIsSectionDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Thêm chương mới</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="section-title">Tiêu đề chương</Label>
+              <Input
+                id="section-title"
+                placeholder="VD: Giới thiệu khóa học"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsSectionDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleConfirmAddSection} disabled={!newTitle.trim() || createSectionMutation.isPending}>
+              Thêm chương
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Lesson Dialog */}
+      <Dialog open={isLessonDialogOpen} onOpenChange={setIsLessonDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Thêm bài giảng mới</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="lesson-title">Tiêu đề bài giảng</Label>
+              <Input
+                id="lesson-title"
+                placeholder="VD: Cài đặt môi trường"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label>Loại bài giảng</Label>
+              <div className="grid grid-cols-3 gap-3">
+                <Button
+                  type="button"
+                  variant={newType === "VIDEO" ? "default" : "outline"}
+                  className="flex flex-col h-auto py-3 gap-1"
+                  onClick={() => setNewType("VIDEO")}
+                >
+                  <PlayCircle className="h-5 w-5" />
+                  <span className="text-xs">Video</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={newType === "DOCUMENT" ? "default" : "outline"}
+                  className="flex flex-col h-auto py-3 gap-1"
+                  onClick={() => setNewType("DOCUMENT")}
+                >
+                  <FileText className="h-5 w-5" />
+                  <span className="text-xs">Tài liệu</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={newType === "QUIZ" ? "default" : "outline"}
+                  className="flex flex-col h-auto py-3 gap-1"
+                  onClick={() => setNewType("QUIZ")}
+                >
+                  <HelpCircle className="h-5 w-5" />
+                  <span className="text-xs">Quiz</span>
+                </Button>
+              </div>
+            </div>
+
+            {newType !== "QUIZ" && (
+              <div className="space-y-2">
+                <Label htmlFor="lesson-url">{newType === "VIDEO" ? "Link Youtube" : "Link Tài liệu"}</Label>
+                <Input
+                  id="lesson-url"
+                  placeholder={newType === "VIDEO" ? "https://youtube.com/..." : "https://..."}
+                  value={newUrl}
+                  onChange={(e) => setNewUrl(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsLessonDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleConfirmAddLesson} disabled={!newTitle.trim()}>
+              Thêm bài giảng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Add Exam Dialog */}
+      <Dialog open={isExamDialogOpen} onOpenChange={setIsExamDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Cấu hình Đề Thi</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label>Tiêu đề đề thi</Label>
+              <Input value={examTitle} onChange={(e) => setExamTitle(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Thời gian (phút)</Label>
+                <Input type="number" value={examDuration} onChange={(e) => setExamDuration(Number(e.target.value))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Tổng điểm</Label>
+                <Input type="number" value={examPoints} onChange={(e) => setExamPoints(Number(e.target.value))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsExamDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button
+              onClick={() => {
+                createExamMutation.mutate({
+                  title: examTitle,
+                  countDown: examDuration,
+                  totalPoints: examPoints,
+                  lessonId: activeLesson?.id,
+                });
+              }}
+              disabled={!examTitle.trim() || createExamMutation.isPending}
+            >
+              Xác nhận tạo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

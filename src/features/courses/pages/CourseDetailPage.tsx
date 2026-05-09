@@ -101,80 +101,33 @@ export default function CourseDetailPage() {
     return {
       ...courseData,
       instructor: {
-        name: "Thầy Nguyễn Đức Anh",
+        name: courseData.lecturerName || "Giảng viên SmartCenter",
         avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop",
-        title: "Chuyên gia luyện thi môn Toán THPT Quốc Gia",
+        title: "Chuyên gia tại SmartCenter",
         rating: 4.9,
-        students: 15400,
-        courses: 12,
-        bio: "Với hơn 10 năm kinh nghiệm luyện thi, Thầy đã giúp hàng ngàn học sinh đạt điểm 9+ môn Toán trong kỳ thi THPT Quốc Gia. Phương pháp dạy dễ hiểu, bám sát cấu trúc đề thi mới nhất.",
+        students: 1500,
+        courses: 5,
+        bio: "Giảng viên tâm huyết với nhiều năm kinh nghiệm trong lĩnh vực đào tạo.",
       },
       rating: 4.8,
-      reviews: 1240,
-      students: 5430,
-      duration: "48 giờ video",
-      lastUpdated: courseData.startAt ? new Date(courseData.startAt).toLocaleDateString("vi-VN") : "01/01/2026",
+      reviews: 120,
+      students: courseData.enrolledCount || 0,
+      duration: "Đang cập nhật",
+      lastUpdated: courseData.startAt ? new Date(courseData.startAt).toLocaleDateString("vi-VN") : "Đang cập nhật",
       benefits: [
-        "Hệ thống hóa toàn bộ kiến thức Toán 12 theo chuyên đề",
-        "Kỹ năng bấm máy tính Casio giải nhanh trắc nghiệm",
-        "Luyện các dạng bài vận dụng cao (câu 35-50)",
-        "Làm quen với áp lực phòng thi qua các đề thi thử",
+        "Hệ thống hóa toàn bộ kiến thức chuyên môn",
+        "Kỹ năng thực hành thực tế và áp dụng ngay",
+        "Luyện tập với các dự án thực tế trong khóa học",
+        "Hỗ trợ giải đáp thắc mắc từ giảng viên",
       ],
-      syllabus: [
-        {
-          title: "Chuyên đề 1: Ứng dụng đạo hàm để khảo sát hàm số",
-          lectures: 12,
-          duration: "4 giờ 15 phút",
-          items: [
-            "Tính đơn điệu của hàm số",
-            "Cực trị của hàm số",
-            "Giá trị lớn nhất, nhỏ nhất",
-            "Tiệm cận đồ thị hàm số",
-          ],
-        },
-        {
-          title: "Chuyên đề 2: Hàm số Lũy thừa, Mũ và Logarit",
-          lectures: 15,
-          duration: "5 giờ 30 phút",
-          items: [
-            "Lũy thừa và Logarit",
-            "Hàm số mũ và logarit",
-            "Phương trình mũ và logarit",
-            "Bất phương trình mũ và logarit",
-          ],
-        },
-        {
-          title: "Chuyên đề 3: Nguyên hàm, Tích phân và Ứng dụng",
-          lectures: 10,
-          duration: "3 giờ 45 phút",
-          items: ["Nguyên hàm cơ bản", "Phương pháp tính tích phân", "Ứng dụng tính diện tích và thể tích"],
-        },
-        {
-          title: "Chuyên đề 4: Khối đa diện và Thể tích",
-          lectures: 8,
-          duration: "2 giờ 30 phút",
-          items: ["Khái niệm khối đa diện", "Thể tích khối lăng trụ", "Thể tích khối chóp", "Khoảng cách và góc"],
-        },
-      ],
+      syllabus: Array.isArray(courseData.sections) ? courseData.sections.map((s: any) => ({
+        title: s.title,
+        lectures: s.lessons?.length || 0,
+        duration: "Đang cập nhật",
+        items: s.lessons?.map((l: any) => l.title) || [],
+      })) : [],
     };
-  }, [courseData]) as Course & {
-    instructor: {
-      name: string;
-      avatar: string;
-      title: string;
-      rating: number;
-      students: number;
-      courses: number;
-      bio: string;
-    };
-    rating: number;
-    reviews: number;
-    students: number;
-    duration: string;
-    lastUpdated: string;
-    benefits: string[];
-    syllabus: Array<{ title: string; lectures: number; duration: string; items: string[] }>;
-  };
+  }, [courseData]) as any;
 
   const sections: CourseSection[] = useMemo(() => {
     if (!courseData) return [];

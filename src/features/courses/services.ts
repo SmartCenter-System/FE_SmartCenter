@@ -60,7 +60,7 @@ function normalizeCourse(raw: any): Course {
 
 export const courseService = {
   async getPublicCourses(params?: PublicCourseQueryParams): Promise<PublicCourseListResult> {
-    const response = (await apiClient.get(API_ENDPOINTS.COURSES.BASE, {
+    const response = await apiClient.get<PublicCourseListResult>(API_ENDPOINTS.COURSES.BASE, {
       params: {
         CategoryId: params?.CategoryId,
         Mode: params?.Mode,
@@ -70,30 +70,13 @@ export const courseService = {
         PageIndex: params?.PageIndex ?? 1,
         PageSize: params?.PageSize ?? 12,
       },
-    })) as PublicCourseApiResponse;
+    });
 
-    const rawItems = Array.isArray(response?.items) ? response.items : [];
-    const items: PublicCourseItem[] = rawItems.map((item: any) => ({
-      id: String(item.id || item.courseId),
-      title: item.courseName || item.title,
-      mode: normalizeCourseType(item.courseType || item.mode),
-      price: item.basePrice || item.price || 0,
-      availableSlots: item.maxStudents || item.availableSlots || 0,
-    }));
-
-    return {
-      items,
-      pageIndex: response.pageIndex ?? 1,
-      pageSize: response.pageSize ?? 12,
-      totalCount: response.totalCount || response.total || items.length,
-      totalPages: response.totalPages ?? 1,
-      hasPreviousPage: response.hasPreviousPage ?? false,
-      hasNextPage: response.hasNextPage ?? false,
-    };
+    return response;
   },
 
   async getCourses(params?: CourseFilterParams): Promise<{ data: Course[]; total: number }> {
-    const response = (await apiClient.get(API_ENDPOINTS.COURSES.BASE, {
+    const response = await apiClient.get<PaginatedList<any>>(API_ENDPOINTS.COURSES.BASE, {
       params: {
         CategoryId: params?.CategoryId,
         CourseId: params?.CourseId,
@@ -105,13 +88,11 @@ export const courseService = {
         PageIndex: params?.page ?? 1,
         PageSize: params?.limit ?? 10,
       },
-    })) as PublicCourseApiResponse;
-
-    const rawItems = Array.isArray(response?.items) ? response.items : [];
+    });
 
     return {
-      data: rawItems.map(normalizeCourse),
-      total: Number(response?.totalCount ?? response?.total ?? rawItems.length),
+      data: response.items.map(normalizeCourse),
+      total: response.totalCount,
     };
   },
 
@@ -177,14 +158,18 @@ export const courseService = {
 
   // Section Management
   async getSections(courseId: string) {
+    if (!courseId) throw new Error("Course ID is required");
     return apiClient.get(API_ENDPOINTS.SECTION.BASE, { params: { courseId } });
   },
 
-  async createSection(courseId: string, data: any) {
+  async createSection(courseId: string, data: { title: string }) {
+    if (!courseId) throw new Error("Course ID is required");
+    // OpenAPI shows courseId as query param, body is CreateSectionRequest (title, position)
     return apiClient.post(API_ENDPOINTS.SECTION.BASE, data, { params: { courseId } });
   },
 
-  async updateSection(sectionId: string, courseId: string, data: any) {
+  async updateSection(sectionId: string, courseId: string, data: { title: string }) {
+    // Body is UpdateSectionRequest (title, position)
     return apiClient.put(API_ENDPOINTS.SECTION.BY_ID(sectionId), data, { params: { courseId } });
   },
 
@@ -197,12 +182,30 @@ export const courseService = {
     return apiClient.get(API_ENDPOINTS.LESSON.BASE, { params: { courseId, sectionId } });
   },
 
-  async createLesson(courseId: string, sectionId: string, data: any) {
-    return apiClient.post(API_ENDPOINTS.LESSON.BASE, data, { params: { courseId, sectionId } });
+  async createLesson(courseId: string, sectionId: string, data: { title: string; description?: string; videoUrl?: string; order?: number; isPreview?: boolean; duration?: number }) {
+    // Body is CreateLessonRequest (title, videoUrl, description, order, isPreview, duration)
+    const payload = {
+      title: data.title,
+      videoUrl: data.videoUrl || "https://youtube.com/watch?v=placeholder",
+      description: data.description || "",
+      order: data.order || 0,
+      isPreview: data.isPreview || false,
+      duration: data.duration || 0
+    };
+    return apiClient.post(API_ENDPOINTS.LESSON.BASE, payload, { params: { courseId, sectionId } });
   },
 
-  async updateLesson(lessonId: string, courseId: string, sectionId: string, data: any) {
-    return apiClient.put(API_ENDPOINTS.LESSON.BY_ID(lessonId), data, { params: { courseId, sectionId } });
+  async updateLesson(lessonId: string, courseId: string, sectionId: string, data: { title: string; description?: string; videoUrl?: string; order?: number; isPreview?: boolean; duration?: number }) {
+    // Body is UpdateLessonRequest (title, videoUrl, description, order, isPreview, duration)
+    const payload = {
+      title: data.title,
+      videoUrl: data.videoUrl || "https://youtube.com/watch?v=placeholder",
+      description: data.description || "",
+      order: data.order || 0,
+      isPreview: data.isPreview || false,
+      duration: data.duration || 0
+    };
+    return apiClient.put(API_ENDPOINTS.LESSON.BY_ID(lessonId), payload, { params: { courseId, sectionId } });
   },
 
   async deleteLesson(lessonId: string, courseId: string, sectionId: string) {

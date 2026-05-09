@@ -65,8 +65,7 @@ export default function EnrollmentManagementPage() {
 
   const enrollMutation = useMutation({
     mutationFn: (data: { studentId: string, courseId: string, amount: number }) => 
-      // Assuming a generic enrollment or staff-specific one. Using 'enroll' as placeholder.
-      enrollmentService.enroll(data.courseId, `STAFF_MANUAL_${Date.now()}`),
+      enrollmentService.enroll(data.courseId, `STAFF_MANUAL_${Date.now()}`, data.studentId),
     onSuccess: () => {
       toast.success("Ghi danh thành công! Học viên đã được thêm vào lớp.");
       setEnrollEmail("");

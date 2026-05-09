@@ -18,7 +18,11 @@ import {
   Loader2,
   LogOut,
   MessageCircle,
+  CheckCircle2,
+  FileText as FileIcon,
+  Text as TextAreaIcon
 } from "lucide-react";
+import { Textarea } from "@/shared/components/ui/textarea";
 import { useLogout } from "@/features/auth/hooks/useLogout";
 import { useProfile, useUpdateProfile } from "../../hooks/useProfile";
 import type { UpdateProfileRequest } from "../../services";
@@ -107,6 +111,8 @@ export default function ProfileUserPage() {
       address: profile.address ?? "",
       city: profile.city ?? "",
       zaloLink: profile.zaloLink ?? "",
+      bio: profile.bio ?? "",
+      expertise: profile.expertise ?? "",
     });
     setIsEditing(true);
   };
@@ -259,6 +265,16 @@ export default function ProfileUserPage() {
               <InfoRow icon={MapPin} label="Địa chỉ" value={profile.address} />
               <InfoRow icon={Building2} label="Thành phố" value={profile.city} />
               <InfoRow icon={MessageCircle} label="Zalo" value={profile.zaloLink} />
+              {(authRole === "LECTURER" || profile.role === 3) && (
+                <>
+                  <div className="sm:col-span-2">
+                    <InfoRow icon={FileIcon} label="Chuyên môn" value={profile.expertise} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <InfoRow icon={CheckCircle2} label="Tiểu sử" value={profile.bio} />
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             /* ─── Edit Form ──────────────────────────────────────── */
@@ -352,6 +368,36 @@ export default function ProfileUserPage() {
                   placeholder="VD: https://zalo.me/0901234567"
                 />
               </div>
+
+              {(authRole === "LECTURER" || profile.role === 3) && (
+                <>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="expertise" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Chuyên môn
+                    </Label>
+                    <Input
+                      id="expertise"
+                      value={formData.expertise ?? ""}
+                      onChange={(e) => handleChange("expertise", e.target.value)}
+                      className="rounded-xl"
+                      placeholder="VD: Fullstack Developer, UI/UX Designer..."
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="bio" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Tiểu sử / Bio
+                    </Label>
+                    <Textarea
+                      id="bio"
+                      value={formData.bio ?? ""}
+                      onChange={(e) => handleChange("bio", e.target.value)}
+                      className="rounded-xl min-h-[100px]"
+                      placeholder="Chia sẻ một chút về kinh nghiệm và bản thân bạn..."
+                    />
+                  </div>
+                </>
+              )}
             </div>
           )}
         </CardContent>
