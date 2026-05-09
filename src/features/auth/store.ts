@@ -13,16 +13,26 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       firstName: null,
       lastName: null,
 
-      setAuth: ({ accessToken, refreshToken, role, userId, email, firstName, lastName }) =>
+      setAuth: ({ accessToken, refreshToken, role, userId, email, firstName, lastName }) => {
+        // Normalize role from Backend (1: Admin, 2: Student, 3: Lecturer, 4: Staff)
+        let normalizedRole = role;
+        const roleStr = String(role);
+        
+        if (roleStr === "1" || roleStr === "Admin" || roleStr === "ADMIN") normalizedRole = "ADMIN";
+        else if (roleStr === "2" || roleStr === "Student" || roleStr === "STUDENT") normalizedRole = "STUDENT";
+        else if (roleStr === "3" || roleStr === "Lecturer" || roleStr === "LECTURER") normalizedRole = "LECTURER";
+        else if (roleStr === "4" || roleStr === "Staff" || roleStr === "STAFF") normalizedRole = "STAFF";
+
         set({
           accessToken,
           refreshToken,
-          role,
+          role: normalizedRole as any,
           userId,
           email: email ?? null,
           firstName: firstName ?? null,
           lastName: lastName ?? null,
-        }),
+        });
+      },
       clearAuth: () =>
         set({
           accessToken: null,

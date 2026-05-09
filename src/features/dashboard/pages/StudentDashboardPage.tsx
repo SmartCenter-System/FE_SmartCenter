@@ -84,7 +84,8 @@ export default function StudentDashboardPage() {
     staleTime: 0,
   });
 
-  const { data: enrolledCoursesData } = useQuery({
+  // Fetch danh sách khóa học đã đăng ký của học sinh
+  const { data: enrolledCoursesData, isLoading: isEnrolledLoading } = useQuery({
     queryKey: ["myEnrollments"],
     queryFn: () => enrollmentService.getMyEnrollmentCourses(),
     staleTime: 1000 * 60 * 5,
@@ -123,10 +124,19 @@ export default function StudentDashboardPage() {
               <Sparkles className="h-5 w-5 text-yellow-300" />
               <span className="text-sm font-medium text-white/80">Chào mừng trở lại!</span>
             </div>
-            <h1 className="text-3xl font-bold mb-1">Tiếp tục hành trình học tập 🚀</h1>
-            <p className="text-white/70 max-w-lg text-sm mt-2">
-              Bạn đang học <strong className="text-white">{enrolledCount} khóa học</strong>. Hãy tiếp tục cố gắng và hoàn thành mục tiêu học tập của bạn!
-            </p>
+            {isEnrolledLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-9 w-64 bg-white/20" />
+                <Skeleton className="h-4 w-48 bg-white/20" />
+              </div>
+            ) : (
+              <>
+                <h1 className="text-3xl font-bold mb-1">Tiếp tục hành trình học tập 🚀</h1>
+                <p className="text-white/70 max-w-lg text-sm mt-2">
+                  Bạn đang học <strong className="text-white">{enrolledCount} khóa học</strong>. Hãy tiếp tục cố gắng và hoàn thành mục tiêu học tập của bạn!
+                </p>
+              </>
+            )}
             <div className="mt-5 flex gap-3 flex-wrap">
               <Link to="/courses">
                 <Button size="sm" variant="ghost" className="text-white border-white/30 border hover:bg-white/10">

@@ -5,6 +5,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import PaginationBar from "@/shared/components/common/PaginationBar";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
 import { PublicCourseFilter } from "@/features/courses/components/PublicCourseFilter";
@@ -148,8 +149,27 @@ export default function CoursesPage() {
             </div>
 
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-24 text-center">
-                <p className="text-muted-foreground">Đang tải danh sách khóa học...</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
+                {[...Array(6)].map((_, i) => (
+                  <Card key={i} className="border-none shadow-sm overflow-hidden">
+                    <Skeleton className="h-48 w-full" />
+                    <CardHeader className="p-5 pb-0 space-y-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-6 w-full" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </CardHeader>
+                    <CardContent className="p-5 pt-4 pb-4">
+                      <div className="flex justify-between">
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-4 w-12" />
+                      </div>
+                    </CardContent>
+                    <CardFooter className="p-5 pt-0 flex justify-between">
+                      <Skeleton className="h-7 w-24" />
+                      <Skeleton className="h-9 w-20 rounded-full" />
+                    </CardFooter>
+                  </Card>
+                ))}
               </div>
             ) : isError ? (
               <div className="flex flex-col items-center justify-center py-24 text-center bg-background/40 rounded-2xl border border-dashed border-border">

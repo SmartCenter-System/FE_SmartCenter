@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/shared/components/ui/accordion";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
@@ -244,8 +245,45 @@ export default function CourseDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="bg-background min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Đang tải thông tin khóa học...</p>
+      <div className="bg-background min-h-screen pb-20">
+        {/* Skeleton Header */}
+        <div className="bg-slate-900 pt-8 pb-16 px-4 md:px-8">
+          <div className="container mx-auto space-y-6">
+            <Skeleton className="h-4 w-48 bg-slate-800" />
+            <Skeleton className="h-12 w-3/4 bg-slate-800" />
+            <Skeleton className="h-20 w-full bg-slate-800" />
+            <div className="flex gap-4">
+              <Skeleton className="h-6 w-24 bg-slate-800" />
+              <Skeleton className="h-6 w-24 bg-slate-800" />
+              <Skeleton className="h-6 w-24 bg-slate-800" />
+            </div>
+          </div>
+        </div>
+        
+        {/* Skeleton Body */}
+        <div className="container mx-auto px-4 md:px-8 mt-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <div className="lg:col-span-2 space-y-12">
+              <Skeleton className="h-48 w-full rounded-xl" />
+              <div className="space-y-4">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-64 w-full rounded-xl" />
+              </div>
+            </div>
+            <div className="hidden lg:block space-y-6">
+              <Card className="p-6 space-y-6 -mt-40 bg-background border shadow-xl">
+                <Skeleton className="aspect-video w-full rounded-lg" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-12 w-full rounded-full" />
+                <div className="space-y-3">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-4 w-full" />
+                  ))}
+                </div>
+              </Card>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

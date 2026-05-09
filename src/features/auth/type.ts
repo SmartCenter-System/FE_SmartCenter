@@ -10,6 +10,12 @@ export interface RegisterRequest {
   password: string;
   firstName: string;
   lastName: string;
+  phone?: string;
+}
+
+export interface RegisterLecturerRequest extends RegisterRequest {
+  bio: string;
+  expertise: string;
 }
 
 export interface AuthResponse {

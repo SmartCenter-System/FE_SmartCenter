@@ -35,12 +35,17 @@ export const lessonService = {
     return normalizeLessonResponse(response);
   },
 
-  create: (courseId: string, sectionId: string, data: { title: string; content?: string; videoUrl?: string; position?: number }) =>
-    apiClient.post(API_ENDPOINTS.LESSON.BASE, data, { params: { courseId, sectionId } }) as unknown as Promise<Lesson>,
+  async create(courseId: string, sectionId: string, data: { title: string; content?: string; videoUrl?: string; position?: number }): Promise<Lesson> {
+    const res = await apiClient.post<any>(API_ENDPOINTS.LESSON.BASE, data, { params: { courseId, sectionId } });
+    return res.data;
+  },
 
-  update: (courseId: string, sectionId: string, lessonId: string, data: Partial<Lesson>) =>
-    apiClient.put(API_ENDPOINTS.LESSON.BY_ID(lessonId), data, { params: { courseId, sectionId } }) as unknown as Promise<Lesson>,
+  async update(courseId: string, sectionId: string, lessonId: string, data: Partial<Lesson>): Promise<Lesson> {
+    const res = await apiClient.put<any>(API_ENDPOINTS.LESSON.BY_ID(lessonId), data, { params: { courseId, sectionId } });
+    return res.data;
+  },
 
-  remove: (courseId: string, sectionId: string, lessonId: string) =>
-    apiClient.delete(API_ENDPOINTS.LESSON.BY_ID(lessonId), { params: { courseId, sectionId } }) as unknown as Promise<void>,
+  async remove(courseId: string, sectionId: string, lessonId: string): Promise<void> {
+    await apiClient.delete(API_ENDPOINTS.LESSON.BY_ID(lessonId), { params: { courseId, sectionId } });
+  },
 };

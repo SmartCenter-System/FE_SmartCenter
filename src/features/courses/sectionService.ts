@@ -8,15 +8,23 @@ export interface Section {
 }
 
 export const sectionService = {
-  getAll: (courseId: string) =>
-    apiClient.get(API_ENDPOINTS.SECTION.BASE, { params: { courseId } }) as unknown as Promise<Section[]>,
+  async getAll(courseId: string): Promise<Section[]> {
+    const res = await apiClient.get<any>(API_ENDPOINTS.SECTION.BASE, { params: { courseId } });
+    const data = res.data;
+    return Array.isArray(data) ? data : data?.items || [];
+  },
 
-  create: (courseId: string, data: { title: string; position?: number }) =>
-    apiClient.post(API_ENDPOINTS.SECTION.BASE, data, { params: { courseId } }) as unknown as Promise<Section>,
+  async create(courseId: string, data: { title: string; position?: number }): Promise<Section> {
+    const res = await apiClient.post<any>(API_ENDPOINTS.SECTION.BASE, data, { params: { courseId } });
+    return res.data;
+  },
 
-  update: (courseId: string, sectionId: string, data: { title?: string; position?: number }) =>
-    apiClient.put(API_ENDPOINTS.SECTION.BY_ID(sectionId), data, { params: { courseId } }) as unknown as Promise<Section>,
+  async update(courseId: string, sectionId: string, data: { title?: string; position?: number }): Promise<Section> {
+    const res = await apiClient.put<any>(API_ENDPOINTS.SECTION.BY_ID(sectionId), data, { params: { courseId } });
+    return res.data;
+  },
 
-  remove: (courseId: string, sectionId: string) =>
-    apiClient.delete(API_ENDPOINTS.SECTION.BY_ID(sectionId), { params: { courseId } }) as unknown as Promise<void>,
+  async remove(courseId: string, sectionId: string): Promise<void> {
+    await apiClient.delete(API_ENDPOINTS.SECTION.BY_ID(sectionId), { params: { courseId } });
+  },
 };
