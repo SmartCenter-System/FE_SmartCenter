@@ -5,7 +5,8 @@ import { jwtDecode } from "jwt-decode";
 import { courseService } from "@/features/courses/services";
 import { userService } from "@/features/users/services";
 import { paymentService } from "@/features/orders/paymentService";
-import { ChevronLeft, ShieldCheck, QrCode, Tag, Loader2, X } from "lucide-react";
+import { orderService } from "@/features/orders/service";
+import { ChevronLeft, QrCode, Tag, Loader2, X } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -19,6 +20,9 @@ export default function CheckoutPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const isValidCourseId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(id ?? ""),
+  );
   const accessToken = useAuthStore((state) => state.accessToken);
   const userId = useAuthStore((state) => state.userId);
 
@@ -135,20 +139,87 @@ export default function CheckoutPage() {
     return () => clearInterval(interval);
   }, [paymentLink?.expireAt]);
 
+  // Poll backend every 5s to check if order is paid
+  useEffect(() => {
+    if (!paymentLink) return;
+
+    let cancelled = false;
+    const checkInterval = 5000;
+    const intervalId = setInterval(async () => {
+      try {
+        console.log(
+          `[Order Poll] ${new Date().toISOString()} - checking order ${paymentLink.orderCode ?? paymentLink.orderId}`,
+        );
+        const resp = (await orderService.getMe()) as any;
+        console.log("[Order Poll] response:", resp);
+        const orders = resp?.data ?? resp;
+        if (!orders || !Array.isArray(orders)) {
+          console.log("[Order Poll] no orders array in response");
+          return;
+        }
+
+        const match = orders.find(
+          (o: any) => o.orderId === paymentLink.orderId || o.orderCode === paymentLink.orderCode,
+        );
+
+        if (!match) {
+          console.log("[Order Poll] no matching order yet");
+          return;
+        }
+
+        console.log("[Order Poll] matched order:", match);
+
+        const paid = Boolean(match?.paidAt) || (typeof match?.status === "string" && match.status.toLowerCase() === "paid");
+        if (paid && !cancelled) {
+          console.log("[Order Poll] order marked as paid, proceeding...");
+          clearInterval(intervalId);
+          toast.success("Thanh toán thành công. Đang chuyển tới khóa học...");
+          setPaymentLink(null);
+
+          // Try to derive the actual purchased course id from the order payload.
+          // Fallback to the `id` route param if we can't find it.
+          const purchasedCourseId =
+            match?.courseId ||
+            (match?.items && match.items.length > 0 && (match.items[0].courseId || match.items[0].productId)) ||
+            id;
+
+          console.log("[Order Poll] navigating to purchased course:", purchasedCourseId, "(order)");
+          navigate(`/courses/${purchasedCourseId}`);
+        }
+      } catch (error) {
+        console.error("[Order Poll] error checking order:", error);
+      }
+    }, checkInterval);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [paymentLink, id, navigate]);
+
   // ─── Queries & Mutations ───────────────────────────────────────
   const { data: course, isLoading: isLoadingCourse } = useQuery({
     queryKey: ["course", id],
     queryFn: () => courseService.getById(id as string),
-    enabled: !!id,
+    enabled: !!id && isValidCourseId,
   });
 
-  const { data: cart, isLoading: isLoadingCart } = useCart();
+  const { isLoading: isLoadingCart } = useCart();
 
   // ─── Handlers ──────────────────────────────────────────────────
   if (isLoadingCourse || isLoadingCart) {
     return (
       <div className="bg-muted/30 min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isValidCourseId) {
+    return (
+      <div className="bg-muted/30 min-h-screen flex flex-col items-center justify-center">
+        <p className="text-muted-foreground mb-4">Liên kết khóa học không hợp lệ.</p>
+        <Button onClick={() => navigate("/courses")}>Quay lại danh sách</Button>
       </div>
     );
   }
@@ -222,7 +293,7 @@ export default function CheckoutPage() {
             <ChevronLeft className="mr-2 h-4 w-4" /> Quay lại
           </Button>
           <h1 className="text-3xl font-bold tracking-tight">Thanh toán an toàn</h1>
-          <p className="text-muted-foreground mt-2">Vui lòng kiểm tra lại thông tin và chọn phương thức thanh toán.</p>
+          <p className="text-muted-foreground mt-2">Vui lòng kiểm tra lại thông tin trước khi thanh toán.</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
@@ -342,10 +413,7 @@ export default function CheckoutPage() {
                           "Tiến hành thanh toán"
                         )}
                       </Button>
-                      <div className="flex items-center justify-center text-xs text-muted-foreground gap-1">
-                        <ShieldCheck className="h-4 w-4" />
-                        Bảo mật thanh toán 256-bit SSL
-                      </div>
+                      
                     </>
                   ) : (
                     <div className="w-full space-y-4">

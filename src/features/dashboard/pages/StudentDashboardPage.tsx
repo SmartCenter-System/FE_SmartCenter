@@ -3,69 +3,22 @@ import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
 import { enrollmentService } from "@/features/courses/enrollmentService";
 import type { Course } from "@/features/courses/type";
-import {
-  BookOpen,
-  Clock,
-  TrendingUp,
-  ChevronRight,
-  PlayCircle,
-  Sparkles,
-  Star,
-} from "lucide-react";
+import { BookOpen, Clock, TrendingUp, ChevronRight, PlayCircle, Sparkles, Star } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { useDashboardData } from "@/features/dashboard/hooks/useDashboardData";
 
-// ─── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  color,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string | number;
-  sub?: string;
-  color: string;
-}) {
-  return (
-    <Card className="border-none shadow-sm hover:shadow-md transition-shadow">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">{label}</p>
-            <p className="text-3xl font-bold mt-1">{value}</p>
-            {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
-          </div>
-          <div className={`rounded-xl p-3 ${color}`}>
-            <Icon className="h-5 w-5" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ─── Course Card ──────────────────────────────────────────────────────────────
 function EnrolledCourseCard({
   course,
   progress,
 }: {
-  course: { id: string; title: string; thumbnail?: string | null; level: string; format: string };
+  course: { id?: string; title: string; thumbnail?: string | null; format: string };
   progress: number;
 }) {
-  const levelLabel: Record<string, string> = {
-    BEGINNER: "Cơ bản",
-    INTERMEDIATE: "Trung cấp",
-    ADVANCED: "Nâng cao",
-    ALL_LEVELS: "Mọi trình độ",
-  };
 
-  return (
+  const cardBody = (
     <Card className="border-none shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 group overflow-hidden">
       <div className="relative h-40 bg-muted overflow-hidden">
         {course.thumbnail ? (
@@ -79,25 +32,24 @@ function EnrolledCourseCard({
             <BookOpen className="h-10 w-10 text-primary/40" />
           </div>
         )}
-        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <Link to={`/courses/${course.id}`}>
-            <Button size="sm" className="gap-1.5 shadow-lg">
-              <PlayCircle className="h-4 w-4" />
-              Tiếp tục học
-            </Button>
-          </Link>
+
+        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+          <div className="inline-flex items-center gap-1.5 rounded-md bg-white/95 px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-lg">
+            <PlayCircle className="h-3.5 w-3.5" />
+            Tiếp tục học
+          </div>
         </div>
+
         <Badge variant="secondary" className="absolute top-2 right-2 text-[10px] uppercase tracking-wide">
           {course.format === "ONLINE" ? "Online" : "Offline"}
         </Badge>
       </div>
+
       <CardContent className="p-4 space-y-3">
         <h3 className="font-semibold text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors">
           {course.title}
         </h3>
-        <p className="text-xs text-muted-foreground">{levelLabel[course.level] ?? course.level}</p>
 
-        {/* Progress bar */}
         <div className="space-y-1">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Tiến độ</span>
@@ -113,18 +65,23 @@ function EnrolledCourseCard({
       </CardContent>
     </Card>
   );
+
+  if (course.id) {
+    return (
+      <Link to={`/courses/${encodeURIComponent(course.id)}`} className="block">
+        {cardBody}
+      </Link>
+    );
+  }
+
+  return cardBody;
 }
 
-// ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function StudentDashboardPage() {
-  // Lấy thông tin user từ Zustand store (role được lưu, nhưng chưa có user info đầy đủ)
-  // TODO: Sau khi có API /me, replace bằng useCurrentUser hook
-
-  // Fetch danh sách khóa học công khai để demo "đề xuất"
   const { data: suggestedCourses, isLoading: isSuggestedLoading } = useQuery({
     queryKey: ["courses", { limit: 4 }],
     queryFn: () => courseService.getAll({ limit: 4 }),
-    staleTime: 0, // Ghi đè cấu hình global để Dashboard luôn lấy data mới nhất
+    staleTime: 0,
   });
 
   // Fetch danh sách khóa học đã đăng ký của học sinh
@@ -134,76 +91,33 @@ export default function StudentDashboardPage() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const enrolledCourses = enrolledCoursesData?.map((item) => ({
-    id: item.courseId ?? item.courseName,
-    title: item.courseName,
+  console.log("Enrolled Courses Data:", enrolledCoursesData);
+
+  const enrollmentItems = Array.isArray(enrolledCoursesData)
+    ? enrolledCoursesData
+    : Array.isArray((enrolledCoursesData as { items?: unknown[] } | undefined)?.items)
+      ? ((enrolledCoursesData as { items: any[] }).items ?? [])
+      : [];
+
+  const enrolledCourses = enrollmentItems.map((item: any, index: number) => ({
+    id: String(item.courseId ?? "").trim() || undefined,
+    title: item.courseName || `Khóa học #${index + 1}`,
     thumbnail: item.imgUrl ?? null,
-    level: "ALL_LEVELS",
     format: item.courseType === 1 ? "ONLINE" : "OFFLINE",
     progress: item.progress ?? 0,
-  })) ?? [];
+  }));
 
   const enrolledCount = enrolledCourses.length;
-  const displayEnrolledCourses = enrolledCourses;
 
-  const {
-    data: dashboardData = {
-      totalWatchTimeMinutes: 0,
-      completedLessons: 0,
-      inProgressLessons: 0,
-    },
-    isError: isDashboardError,
-    error: dashboardError,
-    isLoading: isDashboardLoading,
-  } = useDashboardData();
+  const { data: dashboardData = { totalWatchTimeMinutes: 0, completedLessons: 0, inProgressLessons: 0 } } = useDashboardData();
 
-  if (isDashboardError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-red-500">Lỗi tải dữ liệu dashboard: {dashboardError instanceof Error ? dashboardError.message : 'Unknown error'}</p>
-      </div>
-    );
-  }
-
-  // Chuyển đổi thời gian học từ phút sang giờ và phút
   const totalHours = Math.floor(dashboardData.totalWatchTimeMinutes / 60);
   const totalMinutes = dashboardData.totalWatchTimeMinutes % 60;
-
-  // Tổng số bài học
-  const totalLessons =
-    dashboardData.completedLessons + dashboardData.inProgressLessons;
-
-  // Số bài học chưa hoàn thành
-  const notCompletedLessons = dashboardData.inProgressLessons;
-
-  const stats = [
-    {
-      icon: BookOpen,
-      label: "Khóa học đang học",
-      value: enrolledCount,
-      sub: "1 khóa gần hoàn thành",
-      color: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-    },
-    {
-      icon: Clock,
-      label: "Thời gian học tuần này",
-      value: `${totalHours}h ${totalMinutes}m`,
-      sub: "+30m so với tuần trước",
-      color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    },
-    {
-      icon: TrendingUp,
-      label: "Bài học đã hoàn thành",
-      value: `${dashboardData.completedLessons}/${totalLessons}`,
-      sub: `${notCompletedLessons} bài chưa hoàn thành`,
-      color: "bg-green-500/10 text-green-600 dark:text-green-400",
-    },
-  ];
+  const totalLessons = dashboardData.completedLessons + dashboardData.inProgressLessons;
 
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto space-y-10 px-4 py-8 md:px-8 max-w-6xl">
-        {/* ─── Welcome Banner ──────────────────────────────────────── */}
         <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/70 p-8 text-white shadow-lg">
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-2">
@@ -231,36 +145,44 @@ export default function StudentDashboardPage() {
               </Link>
             </div>
           </div>
-          {/* Decorative background blob */}
           <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10" />
           <div className="absolute -bottom-12 right-24 h-48 w-48 rounded-full bg-white/10" />
         </section>
 
-        {/* ─── Stats ───────────────────────────────────────────────── */}
         <section>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {isDashboardLoading ? (
-              [...Array(3)].map((_, i) => (
-                <Card key={i} className="border-none shadow-sm">
-                  <CardContent className="p-6 flex items-start justify-between">
-                    <div className="space-y-2 w-full">
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-8 w-16" />
-                      <Skeleton className="h-3 w-32" />
-                    </div>
-                    <Skeleton className="h-10 w-10 rounded-xl" />
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              stats.map((s) => (
-                <StatCard key={s.label} {...s} />
-              ))
-            )}
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <BookOpen className="h-6 w-6 text-blue-600" />
+                <div>
+                  <div className="text-sm text-muted-foreground">Khóa học đang học</div>
+                  <div className="text-lg font-bold">{enrolledCount}</div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <Clock className="h-6 w-6 text-amber-600" />
+                <div>
+                  <div className="text-sm text-muted-foreground">Thời gian học</div>
+                  <div className="text-lg font-bold">{`${totalHours}h ${totalMinutes}m`}</div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <TrendingUp className="h-6 w-6 text-green-600" />
+                <div>
+                  <div className="text-sm text-muted-foreground">Bài học đã hoàn thành</div>
+                  <div className="text-lg font-bold">{`${dashboardData.completedLessons}/${totalLessons}`}</div>
+                </div>
+              </div>
+            </Card>
           </div>
         </section>
 
-        {/* ─── Enrolled Courses ─────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-xl font-bold">Khóa học đang học</h2>
@@ -268,30 +190,10 @@ export default function StudentDashboardPage() {
               Xem tất cả <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
-          {isEnrolledLoading ? (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {[...Array(3)].map((_, i) => (
-                <Card key={i} className="border-none shadow-sm overflow-hidden">
-                  <Skeleton className="h-40 w-full" />
-                  <CardContent className="p-4 space-y-3">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/4" />
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <Skeleton className="h-3 w-10" />
-                        <Skeleton className="h-3 w-6" />
-                      </div>
-                      <Skeleton className="h-1.5 w-full" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : enrolledCount === 0 ? (
+
+          {enrolledCount === 0 ? (
             <div className="w-full py-12 flex flex-col items-center justify-center">
-              <p className="text-sm text-muted-foreground mb-4 text-center">
-                Bạn chưa mua khóa học nào. Hãy khám phá các khóa học để mua và bắt đầu học.
-              </p>
+              <p className="text-sm text-muted-foreground mb-4 text-center">Bạn chưa mua khóa học nào. Hãy khám phá các khóa học để mua và bắt đầu học.</p>
               <Link to="/courses">
                 <Button size="lg" className="gap-2 px-6 py-3 text-base md:text-lg">
                   Khám phá khóa học
@@ -301,14 +203,13 @@ export default function StudentDashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {displayEnrolledCourses.map((c) => (
-                <EnrolledCourseCard key={c.id} course={c} progress={c.progress} />
+              {enrolledCourses.map((c) => (
+                <EnrolledCourseCard key={c.id ?? c.title} course={c} progress={c.progress} />
               ))}
             </div>
           )}
         </section>
 
-        {/* ─── Suggested Courses ────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-5">
             <div>
@@ -339,10 +240,7 @@ export default function StudentDashboardPage() {
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {suggestedCourses?.data.map((course: Course) => (
-                <Card
-                  key={course.courseId}
-                  className="border-none shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 group overflow-hidden"
-                >
+                <Card key={course.courseId} className="border-none shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 group overflow-hidden">
                   <div className="relative h-36 bg-muted overflow-hidden">
                     {course.imgUrl ? (
                       <img
@@ -362,15 +260,11 @@ export default function StudentDashboardPage() {
                     </h3>
                     <div className="flex items-center justify-between">
                       <span className="text-lg font-bold text-primary">
-                        {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-                          course.basePrice,
-                        )}
+                        {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(course.basePrice)}
                       </span>
                     </div>
-                    <Link to={`/courses/${course.courseId}`} className="block">
-                      <Button size="sm" variant="outline" className="w-full">
-                        Xem chi tiết
-                      </Button>
+                    <Link to={`/courses/${encodeURIComponent(course.courseId)}`} className="block">
+                      <Button size="sm" variant="outline" className="w-full">Xem chi tiết</Button>
                     </Link>
                   </CardContent>
                 </Card>
