@@ -16,7 +16,11 @@ export function useDashboardData() {
     queryKey: ["dashboardData"],
     queryFn: async () => {
       const data = await dashboardService.getStats();
-      return data;
+      return data || {
+        totalWatchTimeMinutes: 0,
+        completedLessons: 0,
+        inProgressLessons: 0,
+      };
     },
     staleTime: 1000 * 60 * 5, // 5 phút
     retry: 1,

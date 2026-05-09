@@ -10,6 +10,12 @@ export interface RegisterRequest {
   password: string;
   firstName: string;
   lastName: string;
+  phone?: string;
+}
+
+export interface RegisterLecturerRequest extends RegisterRequest {
+  bio: string;
+  expertise: string;
 }
 
 export interface AuthResponse {
@@ -35,7 +41,7 @@ export interface AuthState {
 }
 
 export interface AuthActions {
-  setAuth: (payload: { accessToken: string; refreshToken: string; role: RoleType | null; userId: string | null }) => void;
+  setAuth: (payload: { accessToken: string; refreshToken: string; role: RoleType; userId: string | null }) => void;
 
   clearAuth: () => void;
 }

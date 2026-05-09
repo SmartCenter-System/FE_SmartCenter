@@ -1,38 +1,48 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, CreditCard, Menu, ChevronRight, Users, Settings } from "lucide-react";
+import { 
+  LayoutDashboard, 
+  BookOpen, 
+  Users, 
+  MessageCircle, 
+  Settings,
+  Menu,
+  ChevronRight
+} from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import ProgressBar from "@/shared/components/common/ProgressBar";
 import ScrollToTop from "@/shared/components/common/ScrollToTop";
 import Header from "@/shared/components/common/Header";
 
-export default function StaffLayout() {
+export default function LecturerLayout() {
   const location = useLocation();
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/staff/dashboard" },
-    { icon: CreditCard, label: "Ghi danh học viên", path: "/staff/enrollments" },
-    { icon: Users, label: "Quản lý Tư vấn", path: "/staff/consultations" },
-    { icon: Settings, label: "Cài đặt", path: "/staff/settings" },
+    { icon: LayoutDashboard, label: "Dashboard", path: "/lecturer" },
+    { icon: BookOpen, label: "Khóa học của tôi", path: "/lecturer/courses" },
+    { icon: Users, label: "Học viên", path: "/lecturer/students" },
+    { icon: MessageCircle, label: "Thảo luận", path: "/lecturer/discussions" },
+    { icon: Settings, label: "Cài đặt", path: "/lecturer/settings" },
   ];
-  
+
   return (
     <div className="min-h-screen bg-muted/30 flex flex-col">
       <ScrollToTop />
       <ProgressBar />
       <Header tone="solid" />
+      
       <div className="flex flex-1 w-full pt-[72px]">
         {/* Sidebar */}
         <aside className="w-64 border-r border-border bg-background p-4 hidden lg:block">
           <div className="flex items-center gap-2 mb-8 px-2">
-            <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-              <Users className="h-5 w-5" />
+            <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center text-white">
+              <BookOpen className="h-5 w-5" />
             </div>
-            <span className="font-bold text-xl tracking-tight">Staff</span>
+            <span className="font-bold text-xl tracking-tight">Lecturer</span>
           </div>
 
           <nav className="space-y-1">
             {menuItems.map((item) => {
-              const isActive = location.pathname.includes(item.path) || (item.path === "/staff/dashboard" && location.pathname === "/staff");
+              const isActive = location.pathname === item.path;
               return (
                 <Link
                   key={item.path}
@@ -60,8 +70,9 @@ export default function StaffLayout() {
             <Button variant="ghost" size="icon" className="lg:hidden">
               <Menu className="h-5 w-5" />
             </Button>
-            <span className="font-bold text-primary">Staff Portal</span>
+            <span className="font-bold text-primary">Lecturer Portal</span>
           </header>
+          
           <div className="p-4 md:p-8 lg:p-10 flex-1 overflow-auto w-full">
             <Outlet />
           </div>

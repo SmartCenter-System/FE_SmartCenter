@@ -22,13 +22,24 @@ export const authService = {
   },
 
   async forgotPassword(email: string): Promise<void> {
+    // Spec shows ForgotPasswordRequest { email: string }
     return apiClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email }) as unknown as void;
   },
 
   async resetPassword(code: number, newPassword: string): Promise<void> {
+    // Spec shows ResetPasswordRequest { code: int, newPassword: string }
     return apiClient.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
       code,
       newPassword,
     }) as unknown as void;
+  },
+
+  async registerLecturer(data: any): Promise<AuthResponse> {
+    // Spec shows RegisterLecturerRequest with expertise, bio etc.
+    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER_LECTURER, data) as unknown as AuthResponse;
+  },
+
+  async refresh(refreshToken: string): Promise<AuthResponse> {
+    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.REFRESH, { refreshToken }) as unknown as AuthResponse;
   },
 };

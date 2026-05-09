@@ -8,18 +8,25 @@ export function useCreateConsultation() {
     mutationFn: async (payload: CreateConsultationPayload) => {
       // API này sử dụng FormData theo spec (multipart/form-data)
       const formData = new FormData();
-      formData.append("FullName", payload.fullName);
+      
+      // Tách FullName thành FirstName và LastName (giả định đơn giản)
+      const nameParts = payload.fullName.trim().split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+
+      formData.append("FirstName", firstName);
+      formData.append("LastName", lastName);
       formData.append("Email", payload.email);
       formData.append("PhoneNumber", payload.phoneNumber);
       if (payload.courseId) formData.append("CourseId", payload.courseId);
-      if (payload.description) formData.append("Description", payload.description);
+      if (payload.description) formData.append("Message", payload.description);
 
       const response = await apiClient.post(API_ENDPOINTS.CONSULTATION.CREATE, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-      return response.data;
+      return response;
     },
   });
 }

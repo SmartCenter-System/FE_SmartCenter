@@ -1,14 +1,6 @@
 export const API_ENDPOINTS = {
   /**
    * Auth endpoints
-   * - LOGIN: POST /api/auth/login
-   * - REGISTER: POST /api/auth/register
-   * - LOGOUT: POST /api/auth/logout (chưa có trong spec, giữ để dùng interceptor)
-   * - REFRESH: POST /api/auth/refresh (chưa có trong spec, giữ để dùng interceptor)
-   * - VERIFY_EMAIL: GET /api/auth/verify-email?code=
-   * - FORGOT_PASSWORD: POST /api/auth/forgot-password
-   * - RESET_PASSWORD: POST /api/auth/reset-password
-   * - REGISTER_LECTURER: POST /api/auth/register-lecturer
    */
   AUTH: {
     LOGIN: "/api/auth/login",
@@ -22,24 +14,36 @@ export const API_ENDPOINTS = {
   },
 
   /**
+   * Admin endpoints
+   */
+  ADMIN: {
+    USERS: "/api/admin/users",
+    USER_LOCK: (userId: string) => `/api/admin/users/${userId}/lock`,
+    USER_UNLOCK: (userId: string) => `/api/admin/users/${userId}/unlock`,
+    ORDERS: "/api/admin/orders",
+  },
+
+  /**
    * Courses endpoints
-   * - BASE: GET/POST /api/Courses
-   * - BY_ID: GET/PUT/DELETE /api/Courses/:courseId
-   * - PREVIEWS: GET /api/Courses/:courseId/previews
    */
   COURSES: {
     BASE: "/api/Courses",
     BY_ID: (courseId: string) => `/api/Courses/${courseId}`,
     PREVIEWS: (courseId: string) => `/api/Courses/${courseId}/previews`,
     TOP_POPULAR: "/api/Courses/top-6-most-popular-courses",
+    HIGH_RATED: "/api/Courses/get-top-4-high-rated-recent-reviews-async",
+    DASHBOARD: "/api/Courses/dashboard",
+  },
+
+  /**
+   * Category endpoints
+   */
+  CATEGORY: {
+    GET_ALL: "/api/Category/get-categories",
   },
 
   /**
    * Cart endpoints
-   * - CREATE: POST /api/Cart/create/:studentId
-   * - GET: GET /api/Cart/:studentId
-   * - ADD: POST /api/Cart/add
-   * - REMOVE: DELETE /api/Cart/remove
    */
   CART: {
     CREATE: (studentId: string) => `/api/Cart/create/${studentId}`,
@@ -49,9 +53,7 @@ export const API_ENDPOINTS = {
   },
 
   /**
-   * Section endpoints (không có /api prefix)
-   * - BASE: GET/POST /Section?courseId=
-   * - BY_ID: PUT/DELETE /Section/:sectionId?courseId=
+   * Section endpoints
    */
   SECTION: {
     BASE: "/Section",
@@ -59,9 +61,7 @@ export const API_ENDPOINTS = {
   },
 
   /**
-   * Lesson endpoints (không có /api prefix)
-   * - BASE: GET/POST /Lesson?courseId=&sectionId=
-   * - BY_ID: PUT/DELETE /Lesson/:lessonId?courseId=&sectionId=
+   * Lesson endpoints
    */
   LESSON: {
     BASE: "/Lesson",
@@ -69,57 +69,52 @@ export const API_ENDPOINTS = {
   },
 
   /**
-   * Enrollment endpoints (không có /api prefix)
-   * - MY: GET /Enrollment/MyEnrollments
-   * - BASE: POST /Enrollment
+   * Document endpoints
    */
-  ENROLLMENT: {
-    MY: "/Enrollment/my-enrollments",
-    BASE: "/Enrollment",
+  DOCUMENT: {
+    UPLOAD: "/api/documents/upload",
+    BY_LESSON: (lessonId: string) => `/api/documents/lesson/${lessonId}`,
+    DELETE: (id: string) => `/api/documents/${id}`,
   },
 
   /**
-   * ExamPaper endpoints (không có /api prefix)
-   * - BASE: GET/POST /ExamPaper?courseId=
-   * - BY_ID: PUT/DELETE /ExamPaper/:examId
-   * - DEADLINE: POST /ExamPaper/:examId/deadline
+   * Enrollment endpoints
+   */
+  ENROLLMENT: {
+    MY: "/Enrollment/my-enrollments",
+    BASE: "/Enrollment/create-enrollment",
+  },
+
+  /**
+   * ExamPaper endpoints
    */
   EXAM_PAPER: {
     BASE: "/ExamPaper",
     BY_ID: (examId: string) => `/ExamPaper/${examId}`,
     DEADLINE: (examId: string) => `/ExamPaper/${examId}/deadline`,
+    ADD_QUESTIONS: "/ExamPaper/add-questions",
   },
 
   /**
    * ExamManagement endpoints
-   * - START: POST /api/ExamManagement/StartExam?ExamId=
-   * - SUBMIT: POST /api/ExamManagement/SubmitExam (multipart/form-data)
-   * - MY_EXAMS: GET /api/ExamManagement/MyExams
-   * - BY_ID: GET /api/ExamManagement/:ExamId/GetExamsByExamId
    */
   EXAM_MANAGEMENT: {
-    START: "/api/ExamManagement/StartExam",
-    SUBMIT: "/api/ExamManagement/SubmitExam",
-    MY_EXAMS: "/api/ExamManagement/MyExams",
-    BY_ID: (examId: string) => `/api/ExamManagement/${examId}/GetExamsByExamId`,
+    START: "/api/ExamManagement/start-exam",
+    SUBMIT: "/api/ExamManagement/submit-exam",
+    MY_EXAMS: "/api/ExamManagement/my-exams",
+    BY_ID: (examId: string) => `/api/ExamManagement/${examId}/get-exams-by-exam-id`,
   },
 
   /**
-   * GradeExam endpoints (không có /api prefix)
-   * - BASE: POST /GradeExam
-   * - MY_DETAILS: GET /GradeExam/MyExamDetails?ExamId=
+   * GradeExam endpoints
    */
   GRADE_EXAM: {
     BASE: "/GradeExam",
-    MY_DETAILS: "/GradeExam/MyExamDetails",
+    MY_DETAILS: "/GradeExam/my-exam-details",
   },
 
   /**
    * Order endpoints
-   * - BASE: POST /api/Order
-   * - ME: GET /api/Order/me
-   * - BY_ID: GET /api/Order/:orderId
-   * - CANCEL: PUT /api/Order/:orderId/cancel
    */
   ORDER: {
     BASE: "/api/Order",
@@ -130,8 +125,6 @@ export const API_ENDPOINTS = {
 
   /**
    * Payment endpoints
-   * - CREATE_LINK: POST /api/payments/create-link?orderId=
-   * - WEBHOOK: POST /api/payments/webhook
    */
   PAYMENT: {
     CREATE_LINK: "/api/payments/create-link",
@@ -139,20 +132,50 @@ export const API_ENDPOINTS = {
   },
 
   /**
-   * ConsultationRequest endpoints (không có /api prefix)
-   * - CREATE: POST /ConsultationRequest/CreateConsultationRequest (multipart/form-data)
+   * ConsultationRequest endpoints
    */
   CONSULTATION: {
-    CREATE: "/ConsultationRequest/CreateConsultationRequest",
+    CREATE: "/ConsultationRequest/create-consultation-request",
   },
 
   /**
    * Combo endpoints
-   * - BASE: GET/POST /api/Combos
-   * - BY_ID: GET/PUT/DELETE /api/Combos/:comboId
    */
   COMBO: {
-    BASE: "/api/Combos",
-    BY_ID: (comboId: string) => `/api/Combos/${comboId}`,
+    BASE: "/Combo",
+    BY_ID: (comboId: string) => `/Combo/${comboId}`,
   },
+
+  /**
+   * Comment endpoints
+   */
+  COMMENT: {
+    BASE: "/api/comments",
+    BY_LESSON: (lessonId: string) => `/api/comments/lesson/${lessonId}`,
+    DELETE: (id: string) => `/api/comments/${id}`,
+  },
+
+  /**
+   * ReviewCourse endpoints
+   */
+  REVIEW: {
+    CREATE: "/ReviewCourse/review-course",
+    GET: "/ReviewCourse/get-review-course",
+  },
+
+  /**
+   * Progress endpoints
+   */
+  PROGRESS: {
+    COMPLETE: "/api/progress/complete",
+    BY_COURSE: (courseId: string) => `/api/progress/course/${courseId}`,
+  },
+
+  /**
+   * User Profile endpoints
+   */
+  USER: {
+    PROFILE: "/User/profile",
+    UPDATE: "/User/update-profile",
+  }
 };

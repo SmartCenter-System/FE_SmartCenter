@@ -3,15 +3,13 @@ import { API_ENDPOINTS } from "@/shared/constants";
 import type {
   Course,
   CourseFilterParams,
-  CreateCoursePayload,
   PublicCourseItem,
-  PublicCourseListResult,
   PublicCourseQueryParams,
-  UpdateCoursePayload,
+  PublicCourseListResult,
 } from "./type";
 
 interface PublicCourseApiResponse {
-  items?: unknown;
+  items?: any[];
   total?: number;
   pageIndex?: number;
   pageSize?: number;
@@ -51,48 +49,47 @@ function normalizeCourse(raw: any): Course {
     courseType: normalizeCourseType(raw?.courseType ?? raw?.mode),
     startAt: raw?.startAt ?? null,
     endAt: raw?.endAt ?? null,
-    maxStudents: raw?.maxStudents ?? raw?.availableSlots ?? null,
     academicYear: raw?.academicYear ?? null,
-    isActive: raw?.isActive ?? true,
-    sections: Array.isArray(raw?.sections) ? raw.sections.map(normalizeCourseSection) : undefined,
-  };
-}
-
-function normalizePublicCourse(raw: any): PublicCourseItem {
-  return {
-    id: String(raw?.id ?? raw?.courseId ?? ""),
-    title: String(raw?.title ?? raw?.courseName ?? ""),
-    mode: Number(raw?.mode ?? raw?.courseType ?? 1),
-    price: Number(raw?.price ?? raw?.basePrice ?? 0),
-    availableSlots: Number(raw?.availableSlots ?? raw?.maxStudents ?? 0),
+    maxStudents: raw?.maxStudents ?? null,
+    lecturerId: raw?.lecturerId ?? null,
+    lecturerName: raw?.lecturerName ?? raw?.lecturer?.fullName ?? "Chưa có giảng viên",
+    isActive: Boolean(raw?.isActive ?? true),
+    sections: Array.isArray(raw?.sections) ? raw.sections.map(normalizeCourseSection) : [],
   };
 }
 
 export const courseService = {
   async getPublicCourses(params?: PublicCourseQueryParams): Promise<PublicCourseListResult> {
-    const response = (await apiClient.get(API_ENDPOINTS.COURSES.BASE, { params })) as PublicCourseApiResponse;
+    const response = (await apiClient.get(API_ENDPOINTS.COURSES.BASE, {
+      params: {
+        CategoryId: params?.CategoryId,
+        Mode: params?.Mode,
+        MinPrice: params?.MinPrice,
+        MaxPrice: params?.MaxPrice,
+        Keyword: params?.Keyword,
+        PageIndex: params?.PageIndex ?? 1,
+        PageSize: params?.PageSize ?? 12,
+      },
+    })) as PublicCourseApiResponse;
+
     const rawItems = Array.isArray(response?.items) ? response.items : [];
-    const items = rawItems.map(normalizePublicCourse);
-    const pageIndex = response?.pageIndex ?? params?.PageIndex ?? 1;
-    const pageSize = response?.pageSize ?? params?.PageSize ?? 9;
-    const totalCount = Number(response?.totalCount ?? response?.total ?? items.length);
-    const totalPages = Number(response?.totalPages ?? Math.max(1, Math.ceil(totalCount / Math.max(pageSize, 1))));
+    const items: PublicCourseItem[] = rawItems.map((item: any) => ({
+      id: String(item.id || item.courseId),
+      title: item.courseName || item.title,
+      mode: normalizeCourseType(item.courseType || item.mode),
+      price: item.basePrice || item.price || 0,
+      availableSlots: item.maxStudents || item.availableSlots || 0,
+    }));
 
     return {
       items,
-      pageIndex,
-      pageSize,
-      totalCount,
-      totalPages,
-      hasPreviousPage: response?.hasPreviousPage ?? pageIndex > 1,
-      hasNextPage: response?.hasNextPage ?? pageIndex < totalPages,
+      pageIndex: response.pageIndex ?? 1,
+      pageSize: response.pageSize ?? 12,
+      totalCount: response.totalCount || response.total || items.length,
+      totalPages: response.totalPages ?? 1,
+      hasPreviousPage: response.hasPreviousPage ?? false,
+      hasNextPage: response.hasNextPage ?? false,
     };
-  },
-
-  async getTopPopularCourses(): Promise<PublicCourseItem[]> {
-    const response = (await apiClient.get(API_ENDPOINTS.COURSES.TOP_POPULAR)) as unknown;
-    const rawItems = Array.isArray(response) ? response : [];
-    return rawItems.map((item) => normalizePublicCourse(item));
   },
 
   async getCourses(params?: CourseFilterParams): Promise<{ data: Course[]; total: number }> {
@@ -103,6 +100,7 @@ export const courseService = {
         MinPrice: params?.MinPrice,
         MaxPrice: params?.MaxPrice,
         Mode: params?.Mode,
+        LecturerId: params?.LecturerId,
         Keyword: params?.Keyword ?? params?.search,
         PageIndex: params?.page ?? 1,
         PageSize: params?.limit ?? 10,
@@ -130,17 +128,84 @@ export const courseService = {
     return apiClient.get(API_ENDPOINTS.COURSES.PREVIEWS(courseId));
   },
 
-  async create(data: CreateCoursePayload): Promise<Course> {
-    const res = (await apiClient.post(API_ENDPOINTS.COURSES.BASE, data)) as any;
+  async create(data: any): Promise<Course> {
+    const payload = {
+      courseName: data.courseName,
+      description: data.description,
+      basePrice: data.basePrice,
+      imgUrl: data.imgUrl,
+      courseType: data.courseType,
+      maxStudents: data.maxStudents,
+      academicYear: data.academicYear,
+      lecturerId: data.lecturerId,
+      startAt: data.startAt,
+      endAt: data.endAt,
+    };
+
+    const res = (await apiClient.post(API_ENDPOINTS.COURSES.BASE, payload)) as any;
     return normalizeCourse(res);
   },
 
-  async update(courseId: string, data: UpdateCoursePayload): Promise<Course> {
-    const res = (await apiClient.put(API_ENDPOINTS.COURSES.BY_ID(courseId), data)) as any;
+  async update(courseId: string, data: any): Promise<Course> {
+    const payload = {
+      courseName: data.courseName,
+      description: data.description,
+      basePrice: data.basePrice,
+      imgUrl: data.imgUrl,
+      startAt: data.startAt,
+      endAt: data.endAt,
+      maxStudents: data.maxStudents,
+      isActive: data.isActive,
+    };
+
+    const res = (await apiClient.put(API_ENDPOINTS.COURSES.BY_ID(courseId), payload)) as any;
     return normalizeCourse(res);
   },
 
-  remove(courseId: string) {
-    return apiClient.delete(API_ENDPOINTS.COURSES.BY_ID(courseId));
+  async remove(courseId: string): Promise<void> {
+    await apiClient.delete(API_ENDPOINTS.COURSES.BY_ID(courseId));
+  },
+
+  async delete(courseId: string): Promise<void> {
+    return this.remove(courseId);
+  },
+
+  async getTopPopularCourses() {
+    const res = await apiClient.get(API_ENDPOINTS.COURSES.TOP_POPULAR);
+    return (res.data || res) as any[];
+  },
+
+  // Section Management
+  async getSections(courseId: string) {
+    return apiClient.get(API_ENDPOINTS.SECTION.BASE, { params: { courseId } });
+  },
+
+  async createSection(courseId: string, data: any) {
+    return apiClient.post(API_ENDPOINTS.SECTION.BASE, data, { params: { courseId } });
+  },
+
+  async updateSection(sectionId: string, courseId: string, data: any) {
+    return apiClient.put(API_ENDPOINTS.SECTION.BY_ID(sectionId), data, { params: { courseId } });
+  },
+
+  async deleteSection(sectionId: string, courseId: string) {
+    return apiClient.delete(API_ENDPOINTS.SECTION.BY_ID(sectionId), { params: { courseId } });
+  },
+
+  // Lesson Management
+  async getLessons(courseId: string, sectionId: string) {
+    return apiClient.get(API_ENDPOINTS.LESSON.BASE, { params: { courseId, sectionId } });
+  },
+
+  async createLesson(courseId: string, sectionId: string, data: any) {
+    return apiClient.post(API_ENDPOINTS.LESSON.BASE, data, { params: { courseId, sectionId } });
+  },
+
+  async updateLesson(lessonId: string, courseId: string, sectionId: string, data: any) {
+    return apiClient.put(API_ENDPOINTS.LESSON.BY_ID(lessonId), data, { params: { courseId, sectionId } });
+  },
+
+  async deleteLesson(lessonId: string, courseId: string, sectionId: string) {
+    return apiClient.delete(API_ENDPOINTS.LESSON.BY_ID(lessonId), { params: { courseId, sectionId } });
   },
 };

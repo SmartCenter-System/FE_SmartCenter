@@ -128,7 +128,7 @@ export default function StudentDashboardPage() {
   });
 
   // Fetch danh sách khóa học đã đăng ký của học sinh
-  const { data: enrolledCoursesData } = useQuery({
+  const { data: enrolledCoursesData, isLoading: isEnrolledLoading } = useQuery({
     queryKey: ["myEnrollments"],
     queryFn: () => enrollmentService.getMyEnrollmentCourses(),
     staleTime: 1000 * 60 * 5,
@@ -154,6 +154,7 @@ export default function StudentDashboardPage() {
     },
     isError: isDashboardError,
     error: dashboardError,
+    isLoading: isDashboardLoading,
   } = useDashboardData();
 
   if (isDashboardError) {
@@ -209,12 +210,20 @@ export default function StudentDashboardPage() {
               <Sparkles className="h-5 w-5 text-yellow-300" />
               <span className="text-sm font-medium text-white/80">Chào mừng trở lại!</span>
             </div>
-            <h1 className="text-3xl font-bold mb-1">Tiếp tục hành trình học tập 🚀</h1>
-            <p className="text-white/70 max-w-lg text-sm mt-2">
-              Bạn đang học <strong className="text-white">{enrolledCount} khóa học</strong>. Hãy tiếp tục cố gắng và hoàn thành mục tiêu học tập của bạn!
-            </p>
+            {isEnrolledLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-9 w-64 bg-white/20" />
+                <Skeleton className="h-4 w-48 bg-white/20" />
+              </div>
+            ) : (
+              <>
+                <h1 className="text-3xl font-bold mb-1">Tiếp tục hành trình học tập 🚀</h1>
+                <p className="text-white/70 max-w-lg text-sm mt-2">
+                  Bạn đang học <strong className="text-white">{enrolledCount} khóa học</strong>. Hãy tiếp tục cố gắng và hoàn thành mục tiêu học tập của bạn!
+                </p>
+              </>
+            )}
             <div className="mt-5 flex gap-3 flex-wrap">
-              
               <Link to="/courses">
                 <Button size="sm" variant="ghost" className="text-white border-white/30 border hover:bg-white/10">
                   Xem tất cả khóa học
@@ -230,9 +239,24 @@ export default function StudentDashboardPage() {
         {/* ─── Stats ───────────────────────────────────────────────── */}
         <section>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {stats.map((s) => (
-              <StatCard key={s.label} {...s} />
-            ))}
+            {isDashboardLoading ? (
+              [...Array(3)].map((_, i) => (
+                <Card key={i} className="border-none shadow-sm">
+                  <CardContent className="p-6 flex items-start justify-between">
+                    <div className="space-y-2 w-full">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-8 w-16" />
+                      <Skeleton className="h-3 w-32" />
+                    </div>
+                    <Skeleton className="h-10 w-10 rounded-xl" />
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              stats.map((s) => (
+                <StatCard key={s.label} {...s} />
+              ))
+            )}
           </div>
         </section>
 
@@ -244,7 +268,26 @@ export default function StudentDashboardPage() {
               Xem tất cả <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
-          {enrolledCount === 0 ? (
+          {isEnrolledLoading ? (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i} className="border-none shadow-sm overflow-hidden">
+                  <Skeleton className="h-40 w-full" />
+                  <CardContent className="p-4 space-y-3">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/4" />
+                    <div className="space-y-1">
+                      <div className="flex justify-between">
+                        <Skeleton className="h-3 w-10" />
+                        <Skeleton className="h-3 w-6" />
+                      </div>
+                      <Skeleton className="h-1.5 w-full" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : enrolledCount === 0 ? (
             <div className="w-full py-12 flex flex-col items-center justify-center">
               <p className="text-sm text-muted-foreground mb-4 text-center">
                 Bạn chưa mua khóa học nào. Hãy khám phá các khóa học để mua và bắt đầu học.

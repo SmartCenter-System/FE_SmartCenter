@@ -49,4 +49,5 @@ export interface CourseFilterParams extends BaseFilterParams {
   MaxPrice?: number;
   Mode?: CourseType;
   Keyword?: string;
+  LecturerId?: string;
 }

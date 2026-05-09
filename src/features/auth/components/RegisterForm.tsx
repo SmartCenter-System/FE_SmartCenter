@@ -153,14 +153,18 @@ export function RegisterForm() {
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isPending}>
+            <Button 
+              type="submit" 
+              className="h-12 w-full rounded-full bg-primary text-base font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:shadow-primary/40 hover:scale-[1.02] active:scale-95" 
+              disabled={isPending}
+            >
               {isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Đang xử lý...
                 </>
               ) : (
-                "Đăng ký"
+                "Đăng ký ngay"
               )}
             </Button>
           </form>

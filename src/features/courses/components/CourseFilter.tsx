@@ -1,6 +1,12 @@
 import { Input } from "@/shared/components/ui/input";
-import { Button } from "@/shared/components/ui/button";
-import { useState } from "react";
+import { Search, Filter, LayoutGrid, List } from "lucide-react";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/shared/components/ui/select";
 import type { CourseType } from "../type";
 
 interface CourseFilterProps {
@@ -8,106 +14,48 @@ interface CourseFilterProps {
   onSearchChange: (val: string) => void;
   format: CourseType | "ALL";
   onFormatChange: (val: CourseType | "ALL") => void;
-  onApply?: (filters: { categories: string[]; level?: string; prices: string[] }) => void;
 }
 
-const CATEGORIES = [
-  "Toán học",
-  "Ngữ văn",
-  "Vật lý",
-  "Hóa học",
-  "Tiếng Anh",
-  "Lịch sử & Địa lý",
-];
-
-export function CourseFilter({ search, onSearchChange, format, onFormatChange, onApply }: CourseFilterProps) {
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedLevel, setSelectedLevel] = useState<string | undefined>(undefined);
-  const [selectedPrices, setSelectedPrices] = useState<string[]>([]);
-
-  const toggleCategory = (c: string) => {
-    setSelectedCategories((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
-  };
-
-  const togglePrice = (p: string) => {
-    setSelectedPrices((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
-  };
-
-  const apply = () => {
-    if (onApply) onApply({ categories: selectedCategories, level: selectedLevel, prices: selectedPrices });
-  };
-
+export function CourseFilter({ search, onSearchChange, format, onFormatChange }: CourseFilterProps) {
   return (
-    <div className="w-full max-w-xs bg-card p-4 rounded-lg shadow-sm border border-border">
-      <div className="space-y-3">
-        <div>
-          <Input placeholder="Tìm kiếm..." value={search} onChange={(e) => onSearchChange(e.target.value)} />
-        </div>
+    <div className="flex flex-col md:flex-row items-center gap-4 p-5 bg-card border-b">
+      <div className="relative flex-1 w-full">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary font-bold" />
+        <Input 
+          placeholder="Tìm kiếm tên khóa học, mã ID..." 
+          value={search} 
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="pl-10 bg-muted/30 border-none focus-visible:ring-1 focus-visible:ring-primary/30 h-11"
+        />
+      </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-2">Hình thức</label>
-          <select
-            value={String(format)}
-            onChange={(e) => onFormatChange(e.target.value === "ALL" ? "ALL" : (Number(e.target.value) as CourseType))}
-            className="w-full rounded-md border border-border p-2 bg-background"
+      <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="w-full md:w-[200px]">
+          <Select 
+            value={String(format)} 
+            onValueChange={(val) => onFormatChange(val === "ALL" ? "ALL" : (Number(val) as CourseType))}
           >
-            <option value="ALL">Tất cả hình thức</option>
-            <option value="1">Online</option>
-            <option value="2">Offline</option>
-          </select>
+            <SelectTrigger className="bg-muted/30 border-none h-11 focus:ring-1 focus:ring-primary/30">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-primary" />
+                <SelectValue placeholder="Hình thức học" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Tất cả hình thức</SelectItem>
+              <SelectItem value="1">Học Online</SelectItem>
+              <SelectItem value="2">Tại trung tâm</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        <div>
-          <h3 className="text-sm font-semibold mb-3">Danh mục</h3>
-          <div className="flex flex-col gap-2">
-            {CATEGORIES.map((c) => (
-              <label key={c} className="flex items-center gap-2 text-sm text-muted-foreground">
-                <input
-                  type="checkbox"
-                  checked={selectedCategories.includes(c)}
-                  onChange={() => toggleCategory(c)}
-                  className="accent-primary"
-                />
-                {c}
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-semibold mb-3">Cấp độ</h3>
-          <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-            {['Lớp 10', 'Lớp 11', 'Lớp 12'].map((lvl) => (
-              <label key={lvl} className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="level"
-                  checked={selectedLevel === lvl}
-                  onChange={() => setSelectedLevel(lvl)}
-                  className="accent-primary"
-                />
-                <span className="text-sm text-muted-foreground">{lvl}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-semibold mb-3">Học phí</h3>
-          <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-            {['Miễn phí', 'Dưới 500k', 'Trên 500k'].map((p) => (
-              <label key={p} className="flex items-center gap-2">
-                <input type="checkbox" checked={selectedPrices.includes(p)} onChange={() => togglePrice(p)} className="accent-primary" />
-                <span className="text-sm text-muted-foreground">{p}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="pt-2">
-          <Button className="w-full" onClick={apply}>
-            Áp dụng
-          </Button>
+        <div className="flex items-center border rounded-lg p-1 bg-muted/30 h-11">
+          <button className="p-1.5 rounded-md bg-white shadow-sm text-primary">
+            <List className="h-4 w-4" />
+          </button>
+          <button className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors">
+            <LayoutGrid className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </div>

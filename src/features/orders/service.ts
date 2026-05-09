@@ -11,6 +11,9 @@ export const orderService = {
   getById: (orderId: string) =>
     apiClient.get(API_ENDPOINTS.ORDER.BY_ID(orderId)) as unknown as Promise<unknown>,
 
+  getAll: (params?: any) =>
+    apiClient.get(API_ENDPOINTS.ADMIN.ORDERS, { params }) as unknown as Promise<any>,
+
   cancel: (orderId: string) =>
     apiClient.put(API_ENDPOINTS.ORDER.CANCEL(orderId)) as unknown as Promise<void>,
 };

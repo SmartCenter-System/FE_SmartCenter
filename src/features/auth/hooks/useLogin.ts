@@ -7,12 +7,6 @@ import { useAuthStore } from "../store";
 import { jwtDecode } from "jwt-decode";
 import { authService } from "@/features/services";
 
-interface JwtPayload {
-  sub: string;
-  email: string;
-  role: RoleType;
-}
-
 export function useLogin() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -23,27 +17,60 @@ export function useLogin() {
   return useMutation<AuthResponse, Error, LoginRequest>({
     mutationFn: (data) => authService.login(data),
     onSuccess: (res) => {
-     const decoded = jwtDecode<JwtPayload>(res.accessToken);
+      const decoded = jwtDecode<any>(res.accessToken);
+
+      // Lấy role từ JWT, xử lý trường hợp .NET dùng claim URI dài
+      const rawRole =
+        decoded.role ||
+        decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+        decoded.Role ||
+        decoded.ROLE;
+
+      // Mapping role từ Backend (1: Admin, 2: Student, 3: Lecturer, 4: Staff)
+      let userRole: RoleType = "STUDENT";
+      const r = String(rawRole).toUpperCase();
+
+      if (r === "1" || r === "ADMIN") userRole = "ADMIN";
+      else if (r === "2" || r === "STUDENT") userRole = "STUDENT";
+      else if (r === "3" || r === "LECTURER") userRole = "LECTURER";
+      else if (r === "4" || r === "STAFF") userRole = "STAFF";
+
+      // Extract userId (handling .NET claims)
+      const extractedUserId =
+        decoded.sub ||
+        decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ||
+        decoded.nameid ||
+        decoded.Id ||
+        "";
 
       setAuth({
         accessToken: res.accessToken,
         refreshToken: res.refreshToken,
-        role: decoded.role,
-        userId: decoded.sub,
+        role: userRole,
+        userId: extractedUserId,
       });
       toast.success("Đăng nhập thành công!");
-      if (decoded.role === "ADMIN") {
-        navigate("/admin", { replace: true });
-      } else if (decoded.role === "STAFF") {
-        navigate("/staff/enrollments", { replace: true });
+
+      // Chuyển hướng theo role
+      if (from && from !== "/") {
+        navigate(from, { replace: true });
       } else {
-        // STUDENT / LECTURER / GUEST: về dashboard hoặc trang đã lưu (e.g. sau redirect từ PrivateRoute)
-        const destination = from && from !== "/" ? from : "/dashboard";
-        navigate(destination, { replace: true });
+        switch (userRole) {
+          case "ADMIN":
+            navigate("/admin", { replace: true });
+            break;
+          case "STAFF":
+            navigate("/staff", { replace: true });
+            break;
+          case "LECTURER":
+            navigate("/lecturer", { replace: true });
+            break;
+          case "STUDENT":
+          default:
+            navigate("/dashboard", { replace: true });
+            break;
+        }
       }
     },
-    
   });
-
-  
 }
