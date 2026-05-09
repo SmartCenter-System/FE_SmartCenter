@@ -12,7 +12,6 @@ import { Input } from "@/shared/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/shared/components/ui/card";
 import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/store";
-import { useCart } from "@/features/cart/hooks/useCart";
 import InfoStudentForm from "@/features/orders/component/infoStudentForm";
 
 export default function CheckoutPage() {
@@ -142,10 +141,8 @@ export default function CheckoutPage() {
     enabled: !!id,
   });
 
-  const { data: cart, isLoading: isLoadingCart } = useCart();
-
   // ─── Handlers ──────────────────────────────────────────────────
-  if (isLoadingCourse || isLoadingCart) {
+  if (isLoadingCourse) {
     return (
       <div className="bg-muted/30 min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

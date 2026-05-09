@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   ChevronRight,
   ShieldCheck,
-  Trophy,
   Smartphone,
   Lock,
 } from "lucide-react";

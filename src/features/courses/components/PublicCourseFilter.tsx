@@ -30,7 +30,6 @@ export function PublicCourseFilter({
   onReset,
 }: PublicCourseFilterProps) {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedLevel, setSelectedLevel] = useState<string | undefined>(undefined);
   const [selectedPrices, setSelectedPrices] = useState<string[]>([]);
 
   const toggleCategory = (c: string) => {
@@ -51,7 +50,6 @@ export function PublicCourseFilter({
 
   const reset = () => {
     setSelectedCategories([]);
-    setSelectedLevel(undefined);
     setSelectedPrices([]);
     if (onReset) onReset();
   };
