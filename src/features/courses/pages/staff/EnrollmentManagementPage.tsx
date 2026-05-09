@@ -121,9 +121,9 @@ export default function EnrollmentManagementPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-foreground">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Tuyển sinh & Ghi danh</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Tuyển sinh & Ghi danh</h1>
         <p className="text-muted-foreground mt-1">
           Quản lý yêu cầu tư vấn và Ghi nhận học phí tiền mặt trực tiếp.
         </p>
@@ -133,8 +133,8 @@ export default function EnrollmentManagementPage() {
         
         {/* Left Column: Manual Enrollment Form (Thêm học sinh Offline) */}
         <div className="xl:col-span-1 space-y-6">
-          <Card className="border-primary/20 shadow-md">
-            <CardHeader className="bg-primary/5 pb-4">
+          <Card className="border-primary/20 shadow-md dark:border-primary/30">
+            <CardHeader className="bg-primary/5 pb-4 dark:bg-primary/10">
               <div className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-primary" />
                 <CardTitle className="text-xl">Ghi danh Offline</CardTitle>
@@ -277,7 +277,7 @@ export default function EnrollmentManagementPage() {
                               value={lead.status} 
                               onValueChange={(val: LeadStatus) => handleUpdateStatus(lead.id, val)}
                             >
-                              <SelectTrigger className="w-[140px] h-8 text-xs border-dashed focus:ring-0 focus:ring-offset-0">
+                              <SelectTrigger className="w-[140px] h-8 text-xs border-dashed focus:ring-0 focus:ring-offset-0 bg-input/10 text-foreground dark:bg-input/30">
                                 <div className="flex items-center gap-2">
                                   {getStatusIcon(lead.status)}
                                   <SelectValue />
