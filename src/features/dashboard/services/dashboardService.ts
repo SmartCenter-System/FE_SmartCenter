@@ -44,7 +44,7 @@ export const dashboardService = {
       const directStats = await apiClient.get<AdminDashboardData>("/api/admin/dashboard/stats");
       if (directStats?.data) return directStats.data;
     } catch (e) {
-      console.log("Dedicated stats endpoint not found, falling back to aggregation...");
+      // Fallback: Aggregate from services
     }
 
     // 2. Fallback: Aggregate from services

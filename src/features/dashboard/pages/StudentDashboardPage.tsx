@@ -91,8 +91,6 @@ export default function StudentDashboardPage() {
     staleTime: 1000 * 60 * 5,
   });
 
-  console.log("Enrolled Courses Data:", enrolledCoursesData);
-
   const enrollmentItems = Array.isArray(enrolledCoursesData)
     ? enrolledCoursesData
     : Array.isArray((enrolledCoursesData as { items?: unknown[] } | undefined)?.items)

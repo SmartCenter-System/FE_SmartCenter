@@ -147,14 +147,9 @@ export default function CheckoutPage() {
     const checkInterval = 5000;
     const intervalId = setInterval(async () => {
       try {
-        console.log(
-          `[Order Poll] ${new Date().toISOString()} - checking order ${paymentLink.orderCode ?? paymentLink.orderId}`,
-        );
         const resp = (await orderService.getMe()) as any;
-        console.log("[Order Poll] response:", resp);
         const orders = resp?.data ?? resp;
         if (!orders || !Array.isArray(orders)) {
-          console.log("[Order Poll] no orders array in response");
           return;
         }
 
@@ -163,15 +158,11 @@ export default function CheckoutPage() {
         );
 
         if (!match) {
-          console.log("[Order Poll] no matching order yet");
           return;
         }
 
-        console.log("[Order Poll] matched order:", match);
-
         const paid = Boolean(match?.paidAt) || (typeof match?.status === "string" && match.status.toLowerCase() === "paid");
         if (paid && !cancelled) {
-          console.log("[Order Poll] order marked as paid, proceeding...");
           clearInterval(intervalId);
           toast.success("Thanh toán thành công. Đang chuyển tới khóa học...");
           setPaymentLink(null);
@@ -182,8 +173,6 @@ export default function CheckoutPage() {
             match?.courseId ||
             (match?.items && match.items.length > 0 && (match.items[0].courseId || match.items[0].productId)) ||
             id;
-
-          console.log("[Order Poll] navigating to purchased course:", purchasedCourseId, "(order)");
           navigate(`/courses/${purchasedCourseId}`);
         }
       } catch (error) {
