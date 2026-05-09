@@ -15,7 +15,11 @@ export interface RegisterRequest {
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
-  user: User;
+  user?: User;
+  userId?: string;
+  email?: string;
+  fullname?: string;
+  role?: string;
 }
 
 export interface User {
@@ -32,10 +36,21 @@ export interface AuthState {
   refreshToken: string | null;
   role: RoleType | null;
   userId: string | null;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
 }
 
 export interface AuthActions {
-  setAuth: (payload: { accessToken: string; refreshToken: string; role: RoleType | null; userId: string | null }) => void;
+  setAuth: (payload: {
+    accessToken: string;
+    refreshToken: string;
+    role: RoleType | null;
+    userId: string | null;
+    email?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  }) => void;
 
   clearAuth: () => void;
 }

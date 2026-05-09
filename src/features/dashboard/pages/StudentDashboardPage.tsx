@@ -10,9 +10,7 @@ import {
   TrendingUp,
   ChevronRight,
   PlayCircle,
-  Search,
   Sparkles,
-  LayoutDashboard,
   Star,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
