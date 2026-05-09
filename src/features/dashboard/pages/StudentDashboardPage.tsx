@@ -151,11 +151,7 @@ export default function StudentDashboardPage() {
   })) ?? [];
 
   const enrolledCount = enrolledCourses.length;
-  const displayEnrolledCourses = enrolledCount > 0 ? enrolledCourses : [
-    { id: "1", title: "Toán 12 — Chinh phục kỳ thi THPT Quốc Gia", progress: 65, level: "INTERMEDIATE", format: "ONLINE", thumbnail: null },
-    { id: "2", title: "Vật Lý THPT: Từ cơ bản đến nâng cao", progress: 30, level: "BEGINNER", format: "ONLINE", thumbnail: null },
-    { id: "3", title: "Ngữ Văn — Phân tích tác phẩm toàn diện", progress: 90, level: "ALL_LEVELS", format: "OFFLINE", thumbnail: null },
-  ];
+  const displayEnrolledCourses = enrolledCourses;
 
   const {
     data: dashboardData = {
@@ -277,11 +273,25 @@ export default function StudentDashboardPage() {
               Xem tất cả <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {displayEnrolledCourses.map((c) => (
-              <EnrolledCourseCard key={c.id} course={c} progress={c.progress} />
-            ))}
-          </div>
+          {enrolledCount === 0 ? (
+            <div className="w-full py-12 flex flex-col items-center justify-center">
+              <p className="text-sm text-muted-foreground mb-4 text-center">
+                Bạn chưa mua khóa học nào. Hãy khám phá các khóa học để mua và bắt đầu học.
+              </p>
+              <Link to="/courses">
+                <Button size="lg" className="gap-2 px-6 py-3 text-base md:text-lg">
+                  Khám phá khóa học
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {displayEnrolledCourses.map((c) => (
+                <EnrolledCourseCard key={c.id} course={c} progress={c.progress} />
+              ))}
+            </div>
+          )}
         </section>
 
         {/* ─── Suggested Courses ────────────────────────────────────── */}
