@@ -96,7 +96,7 @@ export default function StudentDashboardPage() {
   const enrollmentItems = Array.isArray(enrolledCoursesData)
     ? enrolledCoursesData
     : Array.isArray((enrolledCoursesData as { items?: unknown[] } | undefined)?.items)
-      ? ((enrolledCoursesData as { items: any[] }).items ?? [])
+      ? ((enrolledCoursesData as unknown as { items: any[] }).items ?? [])
       : [];
 
   const enrolledCourses = enrollmentItems.map((item: any, index: number) => ({
