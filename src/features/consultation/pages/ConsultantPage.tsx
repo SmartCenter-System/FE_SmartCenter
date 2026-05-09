@@ -22,9 +22,9 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 
-import { consultationSchema } from "../schema";
-import type { CreateConsultationPayload } from "../type";
-import { useCreateConsultation } from "../hooks/useConsultation";
+import { consultationSchema } from "../schema.ts";
+import type { CreateConsultationPayload } from "../type.ts";
+import { useCreateConsultation } from "../hooks/useConsultation.ts";
 import { courseService } from "@/features/courses/services";
 
 export default function ConsultationForm() {
@@ -77,7 +77,7 @@ export default function ConsultationForm() {
             <div className="relative">
               <div className="absolute -inset-4 rounded-full bg-blue-100/60 blur-2xl" />
               <img
-                src="/images/man-customer-service.png"
+                src="/public/images/man-costumer-service.png"
                 alt="Tư vấn khoá học"
                 className="relative z-10 w-64 max-w-full drop-shadow-lg sm:w-80 md:w-96"
               />

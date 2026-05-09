@@ -139,11 +139,11 @@ export const API_ENDPOINTS = {
   },
 
   /**
-   * ConsultationRequest endpoints (không có /api prefix)
-   * - CREATE: POST /ConsultationRequest/CreateConsultationRequest (multipart/form-data)
+   * ConsultationRequest endpoints
+   * - CREATE: POST /ConsultationRequest/create-consultation-request (multipart/form-data)
    */
   CONSULTATION: {
-    CREATE: "/ConsultationRequest/CreateConsultationRequest",
+    CREATE: "/ConsultationRequest/create-consultation-request",
   },
 
   /**
