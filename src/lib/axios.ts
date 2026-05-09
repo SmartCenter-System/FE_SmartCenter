@@ -60,7 +60,7 @@ apiClient.interceptors.response.use(
             useAuthStore.getState().setAuth({
               accessToken: newAuth.accessToken,
               refreshToken: newAuth.refreshToken,
-              role: useAuthStore.getState().role,
+              role: useAuthStore.getState().role as any,
               userId: useAuthStore.getState().userId,
               email: useAuthStore.getState().email,
               firstName: useAuthStore.getState().firstName,
@@ -101,8 +101,9 @@ apiClient.interceptors.response.use(
     // Xử lý các lỗi khác (400, 403, 500...)
     const message = error.response?.data?.message ?? error.message ?? "Đã có lỗi xảy ra";
     const isLogoutEndpoint = originalRequest.url?.includes("/auth/logout");
+    const isSilent = (originalRequest as any).silent === true;
 
-    if (!isLogoutEndpoint) {
+    if (!isLogoutEndpoint && !isSilent) {
       toast.error(message);
     }
     return Promise.reject(error);

@@ -6,9 +6,10 @@ import {
   XCircle, 
   Clock, 
   CreditCard,
-  UserPlus
+  UserPlus,
+  Loader2
 } from "lucide-react";
-
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -24,101 +25,106 @@ import {
 } from "@/shared/components/ui/select";
 import { toast } from "sonner";
 
-// Mock Types
-type LeadStatus = "PENDING" | "IN_PROGRESS" | "CONVERTED" | "CANCELLED";
-
-interface Lead {
-  id: string;
-  name: string;
-  phone: string;
-  email?: string;
-  courseInterested: string;
-  source: "ZALO" | "MESSENGER" | "WEBSITE";
-  status: LeadStatus;
-  createdAt: string;
-}
-
-// Mock Data
-const MOCK_LEADS: Lead[] = [
-  {
-    id: "lead-1",
-    name: "Phụ huynh bé Linh",
-    phone: "0901234567",
-    courseInterested: "Toán 12 - Luyện thi Đại học",
-    source: "ZALO",
-    status: "PENDING",
-    createdAt: "2024-05-05T08:30:00Z"
-  },
-  {
-    id: "lead-2",
-    name: "Nguyễn Văn Hùng",
-    phone: "0987654321",
-    email: "hung.nguyen@gmail.com",
-    courseInterested: "IELTS 6.5+ (Lớp Tối)",
-    source: "WEBSITE",
-    status: "IN_PROGRESS",
-    createdAt: "2024-05-04T14:15:00Z"
-  },
-  {
-    id: "lead-3",
-    name: "Học sinh Minh Trí",
-    phone: "0911223344",
-    courseInterested: "Vật Lý 12 - Ôn thi THPT",
-    source: "MESSENGER",
-    status: "CONVERTED",
-    createdAt: "2024-05-02T10:00:00Z"
-  }
-];
+import { courseService } from "@/features/courses/services";
+import { userService } from "@/features/users/services";
+import { enrollmentService } from "@/features/courses/enrollmentService";
+import { consultationService, type ConsultationStatus } from "@/features/dashboard/services/consultationService";
 
 export default function EnrollmentManagementPage() {
-  const [leads, setLeads] = useState<Lead[]>(MOCK_LEADS);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   
   // Enrollment Form State
   const [enrollEmail, setEnrollEmail] = useState("");
-  const [enrollCourse, setEnrollCourse] = useState("");
+  const [enrollCourseId, setEnrollCourseId] = useState("");
   const [enrollAmount, setEnrollAmount] = useState("");
-  const [isEnrolling, setIsEnrolling] = useState(false);
+  const [foundStudent, setFoundStudent] = useState<any>(null);
+  const [isSearchingStudent, setIsSearchingStudent] = useState(false);
 
-  // Filter leads
-  const filteredLeads = leads.filter(l => 
-    l.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    l.phone.includes(searchTerm)
-  );
+  // Queries
+  const { data: coursesData } = useQuery({
+    queryKey: ["staff-courses-list"],
+    queryFn: () => courseService.getCourses({ limit: 100 }),
+  });
+  const courses = coursesData?.data || [];
 
-  const getStatusIcon = (status: LeadStatus) => {
-    switch (status) {
-      case "PENDING": return <Clock className="h-4 w-4 text-red-500" />;
-      case "IN_PROGRESS": return <MessageSquare className="h-4 w-4 text-yellow-500" />;
-      case "CONVERTED": return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-      case "CANCELLED": return <XCircle className="h-4 w-4 text-muted-foreground" />;
+  const { data: consultations, isLoading: isLoadingConsultations } = useQuery({
+    queryKey: ["consultations"],
+    queryFn: () => consultationService.getConsultations(),
+  });
+
+  // Mutations
+  const updateConsultationMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string, status: ConsultationStatus }) => 
+      consultationService.updateStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["consultations"] });
+      toast.success("Cập nhật trạng thái yêu cầu thành công!");
     }
-  };
+  });
 
-  const handleUpdateStatus = (id: string, newStatus: LeadStatus) => {
-    // TODO: Gọi API update lead status (useMutation -> patch /leads/:id/status)
-    setLeads(leads.map(l => l.id === id ? { ...l, status: newStatus } : l));
-    toast.success(`Đã cập nhật trạng thái thành công!`);
+  const enrollMutation = useMutation({
+    mutationFn: (data: { studentId: string, courseId: string, amount: number }) => 
+      // Assuming a generic enrollment or staff-specific one. Using 'enroll' as placeholder.
+      enrollmentService.enroll(data.courseId, `STAFF_MANUAL_${Date.now()}`),
+    onSuccess: () => {
+      toast.success("Ghi danh thành công! Học viên đã được thêm vào lớp.");
+      setEnrollEmail("");
+      setEnrollCourseId("");
+      setEnrollAmount("");
+      setFoundStudent(null);
+    },
+    onError: (error: any) => {
+      toast.error(`Lỗi ghi danh: ${error.message}`);
+    }
+  });
+
+  const handleSearchStudent = async () => {
+    if (!enrollEmail) return;
+    setIsSearchingStudent(true);
+    try {
+      const res = await userService.getUsers({ search: enrollEmail, role: "STUDENT" });
+      if (res.data.length > 0) {
+        setFoundStudent(res.data[0]);
+        toast.success(`Tìm thấy học viên: ${res.data[0].fullName}`);
+      } else {
+        setFoundStudent(null);
+        toast.error("Không tìm thấy học viên với email này.");
+      }
+    } catch (error) {
+      toast.error("Lỗi khi tìm kiếm học viên.");
+    } finally {
+      setIsSearchingStudent(false);
+    }
   };
 
   const handleEnrollment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!enrollEmail || !enrollCourse || !enrollAmount) {
-      toast.error("Vui lòng điền đầy đủ thông tin ghi danh!");
+    if (!foundStudent || !enrollCourseId || !enrollAmount) {
+      toast.error("Vui lòng điền đầy đủ thông tin và xác nhận học viên!");
       return;
     }
 
-    setIsEnrolling(true);
-    // TODO: Gọi API tạo đơn hàng & xác nhận thanh toán (useMutation -> post /enrollments)
-    setTimeout(() => {
-      setIsEnrolling(false);
-      toast.success("Ghi danh thành công! Đã thêm học viên vào lớp học.");
-      // Reset form
-      setEnrollEmail("");
-      setEnrollCourse("");
-      setEnrollAmount("");
-    }, 1500);
+    enrollMutation.mutate({
+      studentId: foundStudent.id,
+      courseId: enrollCourseId,
+      amount: Number(enrollAmount)
+    });
   };
+
+  const getStatusIcon = (status: ConsultationStatus) => {
+    switch (status) {
+      case "PENDING": return <Clock className="h-4 w-4 text-amber-500" />;
+      case "CONTACTED": return <MessageSquare className="h-4 w-4 text-blue-500" />;
+      case "COMPLETED": return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      case "REJECTED": return <XCircle className="h-4 w-4 text-red-500" />;
+    }
+  };
+
+  const filteredConsultations = (consultations || []).filter(l => 
+    l.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    l.phone.includes(searchTerm)
+  );
 
   return (
     <div className="space-y-6 text-foreground">
@@ -131,10 +137,10 @@ export default function EnrollmentManagementPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         
-        {/* Left Column: Manual Enrollment Form (Thêm học sinh Offline) */}
+        {/* Left Column: Manual Enrollment Form */}
         <div className="xl:col-span-1 space-y-6">
-          <Card className="border-primary/20 shadow-md dark:border-primary/30">
-            <CardHeader className="bg-primary/5 pb-4 dark:bg-primary/10">
+          <Card className="border-primary/20 shadow-md">
+            <CardHeader className="bg-primary/5 pb-4">
               <div className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-primary" />
                 <CardTitle className="text-xl">Ghi danh Offline</CardTitle>
@@ -154,22 +160,35 @@ export default function EnrollmentManagementPage() {
                       value={enrollEmail}
                       onChange={e => setEnrollEmail(e.target.value)}
                     />
-                    <Button type="button" variant="outline" size="icon" title="Tìm học viên">
-                      <Search className="h-4 w-4" />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon" 
+                      onClick={handleSearchStudent}
+                      disabled={isSearchingStudent}
+                    >
+                      {isSearchingStudent ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                     </Button>
                   </div>
+                  {foundStudent && (
+                    <p className="text-xs text-green-600 font-medium">
+                      Học viên: {foundStudent.fullName}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label>Khóa học / Niên khóa</Label>
-                  <Select value={enrollCourse} onValueChange={setEnrollCourse}>
+                  <Select value={enrollCourseId} onValueChange={setEnrollCourseId}>
                     <SelectTrigger>
                       <SelectValue placeholder="Chọn lớp học..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="c1">Toán 12 - Lứa 2k8 (Offline)</SelectItem>
-                      <SelectItem value="c2">Vật Lý 12 - Lứa 2k8 (Offline)</SelectItem>
-                      <SelectItem value="c3">IELTS 6.5+ (Lớp Tối 2-4-6)</SelectItem>
+                      {courses.map(course => (
+                        <SelectItem key={course.courseId} value={course.courseId}>
+                          {course.courseName} ({course.courseType === 1 ? "Online" : "Offline"})
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -192,21 +211,19 @@ export default function EnrollmentManagementPage() {
                 </div>
 
                 <div className="pt-2">
-                  <Button type="submit" className="w-full" disabled={isEnrolling}>
-                    {isEnrolling ? "Đang xử lý..." : (
-                      <><UserPlus className="h-4 w-4 mr-2" /> Xác nhận ghi danh</>
-                    )}
+                  <Button type="submit" className="w-full" disabled={enrollMutation.isPending}>
+                    {enrollMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
+                    Xác nhận ghi danh
                   </Button>
                 </div>
               </form>
             </CardContent>
           </Card>
 
-          {/* Quick Stats or Tips for Staff */}
           <Card className="bg-muted/30 border-dashed">
             <CardContent className="pt-6">
               <h3 className="font-semibold mb-2 flex items-center gap-2">
-                <Clock className="h-4 w-4" /> Kịch bản tư vấn nhanh
+                <Clock className="h-4 w-4 text-primary" /> Kịch bản tư vấn nhanh
               </h3>
               <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-4">
                 <li>Luôn xin số điện thoại phụ huynh để tiện báo cáo kết quả.</li>
@@ -240,54 +257,54 @@ export default function EnrollmentManagementPage() {
               </div>
             </CardHeader>
             <CardContent className="flex-1">
-              <div className="rounded-md border">
+              <div className="rounded-md border overflow-hidden">
                 <Table>
                   <TableHeader className="bg-muted/50">
                     <TableRow>
                       <TableHead>Khách hàng</TableHead>
-                      <TableHead>Nguồn</TableHead>
                       <TableHead>Khóa học quan tâm</TableHead>
                       <TableHead>Trạng thái</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredLeads.length === 0 ? (
+                    {isLoadingConsultations ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center h-32 text-muted-foreground">
+                        <TableCell colSpan={3} className="text-center h-32">
+                          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                        </TableCell>
+                      </TableRow>
+                    ) : filteredConsultations.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center h-32 text-muted-foreground">
                           Không tìm thấy khách hàng nào.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredLeads.map((lead) => (
+                      filteredConsultations.map((lead) => (
                         <TableRow key={lead.id}>
                           <TableCell>
-                            <div className="font-medium text-sm">{lead.name}</div>
+                            <div className="font-medium text-sm">{lead.customerName}</div>
                             <div className="text-xs text-muted-foreground mt-0.5">{lead.phone}</div>
                           </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs font-normal">
-                              {lead.source}
-                            </Badge>
-                          </TableCell>
                           <TableCell className="text-sm">
-                            {lead.courseInterested}
+                            <Badge variant="outline" className="font-normal">{lead.courseInterest}</Badge>
                           </TableCell>
                           <TableCell>
                             <Select 
                               value={lead.status} 
-                              onValueChange={(val: LeadStatus) => handleUpdateStatus(lead.id, val)}
+                              onValueChange={(val: ConsultationStatus) => updateConsultationMutation.mutate({ id: lead.id, status: val })}
                             >
-                              <SelectTrigger className="w-[140px] h-8 text-xs border-dashed focus:ring-0 focus:ring-offset-0 bg-input/10 text-foreground dark:bg-input/30">
+                              <SelectTrigger className="w-[140px] h-8 text-xs border-dashed focus:ring-0 focus:ring-offset-0 bg-background">
                                 <div className="flex items-center gap-2">
                                   {getStatusIcon(lead.status)}
                                   <SelectValue />
                                 </div>
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="PENDING" className="text-xs text-red-600 font-medium">Chờ xử lý</SelectItem>
-                                <SelectItem value="IN_PROGRESS" className="text-xs text-yellow-600 font-medium">Đang chăm sóc</SelectItem>
-                                <SelectItem value="CONVERTED" className="text-xs text-green-600 font-medium">Đã chốt</SelectItem>
-                                <SelectItem value="CANCELLED" className="text-xs text-muted-foreground font-medium">Hủy bỏ</SelectItem>
+                                <SelectItem value="PENDING" className="text-xs text-amber-600 font-medium">Chờ xử lý</SelectItem>
+                                <SelectItem value="CONTACTED" className="text-xs text-blue-600 font-medium">Đã liên hệ</SelectItem>
+                                <SelectItem value="COMPLETED" className="text-xs text-green-600 font-medium">Thành công</SelectItem>
+                                <SelectItem value="REJECTED" className="text-xs text-red-600 font-medium">Từ chối</SelectItem>
                               </SelectContent>
                             </Select>
                           </TableCell>

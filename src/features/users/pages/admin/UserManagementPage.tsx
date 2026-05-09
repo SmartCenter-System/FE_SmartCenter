@@ -1,17 +1,23 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import { 
   Search,
   Lock, 
   Unlock, 
   MoreHorizontal, 
   ShieldAlert, 
-  UserPlus 
+  UserPlus,
+  RotateCw,
+  Trash2,
+  Loader2,
+  Eye
 } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { 
   Select, 
@@ -33,80 +39,101 @@ import {
   DialogContent,
   DialogDescription,
   DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
 import { Label } from "@/shared/components/ui/label";
 import { toast } from "sonner";
 import { userService, type UserRole, type UserStatus, type User } from "@/features/users/services";
 
+interface CreateUserFormValues {
+  fullName: string;
+  email: string;
+  role: UserRole;
+  password?: string;
+  phone?: string;
+  bio?: string;
+  expertise?: string;
+}
+
 export default function UserManagementPage() {
   const queryClient = useQueryClient();
+  
+  // UI States (Allowed as they don't hold data from API)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isConfirmLockOpen, setIsConfirmLockOpen] = useState(false);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  // Search/Filter States
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState<UserStatus | "ALL">("ALL");
 
-  // Dialog States
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isConfirmLockOpen, setIsConfirmLockOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  // react-hook-form for creation
+  const createForm = useForm<CreateUserFormValues>({
+    defaultValues: {
+      fullName: "",
+      email: "",
+      role: "STAFF",
+      password: "",
+      phone: "",
+      bio: "",
+      expertise: "",
+    }
+  });
 
-  // Form States for Create
-  const [newFullName, setNewFullName] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-  const [newRole, setNewRole] = useState<UserRole>("STAFF");
-
-  // Queries & Mutations
-  const { data, isLoading } = useQuery({
-    queryKey: ["users", { search, roleFilter, statusFilter }],
+  // 1. Fetch Users using useQuery with dynamic filters
+  const { data: usersData, isLoading, isRefetching } = useQuery({
+    queryKey: ["users", search, roleFilter, statusFilter],
     queryFn: () => userService.getUsers({
       search,
       role: roleFilter,
-      status: statusFilter
+      status: statusFilter,
     })
   });
 
+  // 2. Mutations
   const toggleStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string, status: UserStatus }) => userService.toggleUserStatus(id, status),
+    mutationFn: ({ id, status }: { id: string, status: UserStatus }) => 
+      userService.toggleUserStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast.success("Cập nhật trạng thái tài khoản thành công!");
       setIsConfirmLockOpen(false);
+    },
+    onError: () => {
+      toast.error("Không thể cập nhật trạng thái người dùng.");
+    }
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (id: string) => userService.deleteUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast.success("Đã xóa người dùng thành công!");
+      setIsConfirmDeleteOpen(false);
+    },
+    onError: () => {
+      toast.error("Không thể xóa người dùng.");
     }
   });
 
   const createUserMutation = useMutation({
-    mutationFn: () => userService.createInternalUser({ fullName: newFullName, email: newEmail, role: newRole }),
+    mutationFn: (data: CreateUserFormValues) => userService.createInternalUser(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast.success("Tạo tài khoản nội bộ thành công!");
+      toast.success("Đã tạo tài khoản mới thành công!");
       setIsCreateDialogOpen(false);
-      setNewFullName("");
-      setNewEmail("");
+      createForm.reset();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Không thể tạo tài khoản mới.");
     }
   });
 
-  // Helpers
-  const getRoleBadge = (role: UserRole) => {
-    switch (role) {
-      case "ADMIN": return <Badge className="bg-red-500">Admin</Badge>;
-      case "STAFF": return <Badge className="bg-orange-500">Staff</Badge>;
-      case "LECTURER": return <Badge className="bg-purple-500">Lecturer</Badge>;
-      case "STUDENT": return <Badge className="bg-blue-500">Student</Badge>;
-      default: return <Badge variant="outline">{role}</Badge>;
-    }
-  };
-
-  const getStatusBadge = (status: UserStatus) => {
-    return status === "ACTIVE" 
-      ? <Badge variant="default" className="bg-green-500 hover:bg-green-600">Hoạt động</Badge>
-      : <Badge variant="destructive">Đã Khóa</Badge>;
-  };
-
-  // Handlers
-  const handleLockUnlockClick = (user: User) => {
-    setSelectedUser(user);
-    setIsConfirmLockOpen(true);
+  const onSubmitCreate = (data: CreateUserFormValues) => {
+    createUserMutation.mutate(data);
   };
 
   const confirmToggleStatus = () => {
@@ -115,137 +142,180 @@ export default function UserManagementPage() {
     toggleStatusMutation.mutate({ id: selectedUser.id, status: newStatus });
   };
 
-  const handleCreateUser = () => {
-    if (!newFullName || !newEmail) {
-      toast.error("Vui lòng điền đầy đủ Tên và Email!");
-      return;
-    }
-    createUserMutation.mutate();
+  const confirmDelete = () => {
+    if (!selectedUser) return;
+    deleteUserMutation.mutate(selectedUser.id);
   };
 
-  const users = data?.data || [];
+  const statusBadge = (status: UserStatus) => {
+    return status === "ACTIVE" 
+      ? <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-200 transition-colors border-none">Đang hoạt động</Badge>
+      : <Badge variant="secondary" className="bg-red-100 text-red-700 hover:bg-red-200 transition-colors border-none">Bị khóa</Badge>;
+  };
+
+  const roleBadge = (role: UserRole) => {
+    switch (role) {
+      case "ADMIN": return <Badge className="bg-purple-600 border-none">Admin</Badge>;
+      case "LECTURER": return <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50">Giảng viên</Badge>;
+      case "STAFF": return <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Nhân viên</Badge>;
+      default: return <Badge variant="outline" className="text-gray-600 border-gray-200">Học sinh</Badge>;
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Header section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Quản lý Người dùng</h1>
-          <p className="text-muted-foreground mt-1">
-            Quản trị viên, Nhân viên, Giảng viên và Học viên hệ thống.
-          </p>
+          <p className="text-muted-foreground mt-1">Danh sách tất cả tài khoản trong hệ thống và các công cụ quản trị.</p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)} className="flex items-center gap-2">
-          <UserPlus className="h-4 w-4" /> Thêm tài khoản nội bộ
-        </Button>
-      </div>
-
-      <div className="bg-card rounded-xl border p-4 shadow-sm">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Tìm kiếm theo Tên hoặc Email..." 
-              className="pl-9 bg-background"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-wrap gap-4">
-            <div className="w-[180px]">
-              <Select value={roleFilter} onValueChange={(val: any) => setRoleFilter(val)}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="Vai trò" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">Tất cả vai trò</SelectItem>
-                  <SelectItem value="ADMIN">Admin</SelectItem>
-                  <SelectItem value="STAFF">Staff</SelectItem>
-                  <SelectItem value="LECTURER">Lecturer</SelectItem>
-                  <SelectItem value="STUDENT">Student</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-[180px]">
-              <Select value={statusFilter} onValueChange={(val: any) => setStatusFilter(val)}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="Trạng thái" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-                  <SelectItem value="ACTIVE">Hoạt động</SelectItem>
-                  <SelectItem value="LOCKED">Đã Khóa</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => queryClient.invalidateQueries({ queryKey: ["users"] })} 
+            className="rounded-xl border-2 hover:bg-muted transition-all"
+          >
+            <RotateCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
+            Làm mới
+          </Button>
+          <Button 
+            onClick={() => setIsCreateDialogOpen(true)} 
+            className="rounded-xl bg-primary hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Tạo tài khoản
+          </Button>
         </div>
       </div>
 
-      <div className="rounded-md border bg-card shadow-sm">
+      {/* Filters Card */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-background p-4 rounded-2xl border-2 border-muted/50 shadow-sm">
+        <div className="relative md:col-span-2">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="Tìm kiếm theo tên hoặc email..." 
+            className="pl-10 h-11 rounded-xl border-none bg-muted/30 focus-visible:ring-primary transition-all" 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select value={roleFilter} onValueChange={(val) => setRoleFilter(val as UserRole | "ALL")}>
+          <SelectTrigger className="h-11 rounded-xl border-none bg-muted/30">
+            <SelectValue placeholder="Tất cả vai trò" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl">
+            <SelectItem value="ALL">Tất cả vai trò</SelectItem>
+            <SelectItem value="STUDENT">Học sinh</SelectItem>
+            <SelectItem value="LECTURER">Giảng viên</SelectItem>
+            <SelectItem value="STAFF">Nhân viên</SelectItem>
+            <SelectItem value="ADMIN">Admin</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as UserStatus | "ALL")}>
+          <SelectTrigger className="h-11 rounded-xl border-none bg-muted/30">
+            <SelectValue placeholder="Tất cả trạng thái" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl">
+            <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
+            <SelectItem value="ACTIVE">Đang hoạt động</SelectItem>
+            <SelectItem value="LOCKED">Bị khóa</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Users Table */}
+      <div className="rounded-2xl border-2 border-muted/50 overflow-hidden bg-background shadow-xl shadow-primary/5 transition-all hover:border-primary/20">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tài khoản</TableHead>
-              <TableHead>Vai trò</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead className="hidden md:table-cell">Ngày tham gia</TableHead>
-              <TableHead className="text-right">Thao tác</TableHead>
+          <TableHeader className="bg-muted/50">
+            <TableRow className="hover:bg-transparent border-none">
+              <TableHead className="w-[300px] font-bold">Thành viên</TableHead>
+              <TableHead className="font-bold">Vai trò</TableHead>
+              <TableHead className="font-bold">Trạng thái</TableHead>
+              <TableHead className="font-bold">Ngày tạo</TableHead>
+              <TableHead className="text-right font-bold pr-6">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
+              [...Array(5)].map((_, i) => (
+                <TableRow key={i} className="animate-pulse border-muted/30">
+                  <TableCell><div className="h-12 w-full bg-muted rounded-lg" /></TableCell>
+                  <TableCell><div className="h-6 w-20 bg-muted rounded-full" /></TableCell>
+                  <TableCell><div className="h-6 w-24 bg-muted rounded-full" /></TableCell>
+                  <TableCell><div className="h-4 w-24 bg-muted rounded-lg" /></TableCell>
+                  <TableCell><div className="h-8 w-8 bg-muted rounded-full ml-auto" /></TableCell>
+                </TableRow>
+              ))
+            ) : usersData?.data?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center h-32 text-muted-foreground">
-                  Đang tải dữ liệu...
-                </TableCell>
-              </TableRow>
-            ) : users.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center h-32 text-muted-foreground">
-                  Không tìm thấy người dùng nào phù hợp.
+                <TableCell colSpan={5} className="h-64 text-center">
+                  <div className="flex flex-col items-center justify-center text-muted-foreground gap-2">
+                    <ShieldAlert className="h-12 w-12 opacity-20" />
+                    <p className="text-lg font-medium">Không tìm thấy người dùng nào</p>
+                    <p className="text-sm">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
-              users.map((user) => (
-                <TableRow key={user.id}>
+              usersData?.data?.map((user: User) => (
+                <TableRow key={user.id} className="group hover:bg-muted/30 transition-all border-muted/30">
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <img 
-                        src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=random`} 
-                        alt={user.fullName}
-                        className="h-10 w-10 rounded-full object-cover"
-                      />
+                      <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
+                        <AvatarImage src={user.avatar} />
+                        <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                          {user.fullName.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
                       <div className="flex flex-col">
-                        <span className="font-semibold text-sm">{user.fullName}</span>
-                        <span className="text-muted-foreground text-xs">{user.email}</span>
+                        <span className="font-bold text-foreground group-hover:text-primary transition-colors">{user.fullName}</span>
+                        <span className="text-xs text-muted-foreground">{user.email}</span>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>{getRoleBadge(user.role)}</TableCell>
-                  <TableCell>{getStatusBadge(user.status)}</TableCell>
-                  <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                    {new Date(user.createdAt).toLocaleDateString("vi-VN")}
+                  <TableCell>{roleBadge(user.role)}</TableCell>
+                  <TableCell>{statusBadge(user.status)}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {new Date(user.createdAt).toLocaleDateString('vi-VN')}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right pr-6">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Hành động</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => {}}>Xem chi tiết</DropdownMenuItem>
-                        <DropdownMenuSeparator />
+                      <DropdownMenuContent align="end" className="w-56 rounded-xl p-2 shadow-2xl border-muted/50">
+                        <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1.5 uppercase font-bold tracking-wider">Tài khoản</DropdownMenuLabel>
                         <DropdownMenuItem 
-                          className={user.status === "ACTIVE" ? "text-red-600 focus:text-red-600 focus:bg-red-50" : "text-green-600 focus:text-green-600 focus:bg-green-50"}
-                          onClick={() => handleLockUnlockClick(user)}
+                          className="rounded-lg gap-2 cursor-pointer focus:bg-primary/10 focus:text-primary"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsDetailOpen(true);
+                          }}
                         >
-                          {user.status === "ACTIVE" ? (
-                            <><Lock className="mr-2 h-4 w-4" /> Khóa tài khoản</>
-                          ) : (
-                            <><Unlock className="mr-2 h-4 w-4" /> Mở khóa tài khoản</>
-                          )}
+                          <Eye className="h-4 w-4" /> Xem chi tiết
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="bg-muted/50" />
+                        <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1.5 uppercase font-bold tracking-wider">Hành động</DropdownMenuLabel>
+                        <DropdownMenuItem 
+                          className={`rounded-lg gap-2 cursor-pointer focus:bg-primary/10 focus:text-primary ${user.status === "ACTIVE" ? "text-red-600 focus:text-red-600" : "text-green-600 focus:text-green-600"}`}
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsConfirmLockOpen(true);
+                          }}
+                        >
+                          {user.status === "ACTIVE" ? <><Lock className="h-4 w-4" /> Khóa tài khoản</> : <><Unlock className="h-4 w-4" /> Mở khóa tài khoản</>}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="rounded-lg gap-2 text-red-600 cursor-pointer focus:bg-red-50 focus:text-red-600"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsConfirmDeleteOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" /> Xóa tài khoản
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -257,94 +327,206 @@ export default function UserManagementPage() {
         </Table>
       </div>
 
-      {/* Dialog Thêm Tài Khoản Nội Bộ */}
+      {/* Create Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Tạo tài khoản nội bộ</DialogTitle>
-            <DialogDescription>
-              Tạo tài khoản cho Giảng viên hoặc Nhân viên tư vấn mới. Hệ thống sẽ gửi email chứa mật khẩu đăng nhập tạm thời.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">Họ và Tên</Label>
-              <Input 
-                id="name" 
-                className="col-span-3" 
-                value={newFullName} 
-                onChange={e => setNewFullName(e.target.value)}
-                placeholder="Nguyễn Văn A" 
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">Email</Label>
-              <Input 
-                id="email" 
-                type="email"
-                className="col-span-3" 
-                value={newEmail} 
-                onChange={e => setNewEmail(e.target.value)}
-                placeholder="email@smartcenter.edu.vn" 
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Vai trò</Label>
-              <div className="col-span-3">
-                <Select value={newRole} onValueChange={(v: UserRole) => setNewRole(v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn vai trò" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="STAFF">Nhân viên (Staff)</SelectItem>
-                    <SelectItem value="LECTURER">Giảng viên (Lecturer)</SelectItem>
-                    <SelectItem value="ADMIN">Quản trị viên (Admin)</SelectItem>
-                  </SelectContent>
-                </Select>
+        <DialogContent className="sm:max-w-[500px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
+          <div className="bg-primary/10 px-6 py-8">
+            <DialogTitle className="text-2xl font-bold text-primary">Tạo tài khoản mới</DialogTitle>
+            <DialogDescription className="text-primary/70 mt-1">Cấp tài khoản nội bộ cho Giảng viên hoặc Nhân viên.</DialogDescription>
+          </div>
+          <form onSubmit={createForm.handleSubmit(onSubmitCreate)}>
+            <div className="grid gap-5 p-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName" className="font-bold ml-1">Họ và tên</Label>
+                  <Input 
+                    id="fullName" 
+                    {...createForm.register("fullName")}
+                    placeholder="Nguyễn Văn A" 
+                    className="rounded-xl border-2 focus-visible:ring-primary h-11"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role" className="font-bold ml-1">Vai trò</Label>
+                  <Select 
+                    value={createForm.watch("role")} 
+                    onValueChange={(val) => createForm.setValue("role", val as UserRole)}
+                  >
+                    <SelectTrigger className="rounded-xl border-2 h-11">
+                      <SelectValue placeholder="Chọn vai trò" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="STAFF">Nhân viên</SelectItem>
+                      <SelectItem value="LECTURER">Giảng viên</SelectItem>
+                      <SelectItem value="ADMIN">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="font-bold ml-1">Email</Label>
+                <Input 
+                  id="email" 
+                  {...createForm.register("email")}
+                  type="email" 
+                  placeholder="name@example.com" 
+                  className="rounded-xl border-2 focus-visible:ring-primary h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="font-bold ml-1">Mật khẩu ban đầu</Label>
+                <Input 
+                  id="password" 
+                  {...createForm.register("password")}
+                  type="password" 
+                  placeholder="••••••••" 
+                  className="rounded-xl border-2 focus-visible:ring-primary h-11"
+                />
+                <p className="text-[10px] text-muted-foreground ml-1">* Mật khẩu mặc định nếu để trống: 123456aA@</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="font-bold ml-1">Số điện thoại</Label>
+                <Input 
+                  id="phone" 
+                  {...createForm.register("phone")}
+                  placeholder="0123 456 789" 
+                  className="rounded-xl border-2 h-11"
+                />
               </div>
             </div>
+            <DialogFooter className="p-6 bg-muted/30">
+              <Button type="button" variant="ghost" onClick={() => setIsCreateDialogOpen(false)} className="rounded-xl">Hủy</Button>
+              <Button 
+                type="submit" 
+                disabled={createUserMutation.isPending}
+                className="rounded-xl px-8 bg-primary hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
+              >
+                {createUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Xác nhận tạo
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lock Confirmation Dialog */}
+      <Dialog open={isConfirmLockOpen} onOpenChange={setIsConfirmLockOpen}>
+        <DialogContent className="sm:max-w-[420px] rounded-3xl p-6 border-none shadow-2xl">
+          <div className="flex flex-col items-center text-center gap-4">
+            <div className={`p-4 rounded-full ${selectedUser?.status === "ACTIVE" ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+              {selectedUser?.status === "ACTIVE" ? <Lock className="h-8 w-8" /> : <Unlock className="h-8 w-8" />}
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-bold">
+                {selectedUser?.status === "ACTIVE" ? "Khóa tài khoản?" : "Mở khóa tài khoản?"}
+              </DialogTitle>
+              <DialogDescription className="mt-2">
+                Bạn đang chuẩn bị {selectedUser?.status === "ACTIVE" ? "khóa" : "mở khóa"} tài khoản của <b>{selectedUser?.fullName}</b>.
+                {selectedUser?.status === "ACTIVE" && " Người dùng này sẽ không thể đăng nhập vào hệ thống."}
+              </DialogDescription>
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Hủy</Button>
-            <Button onClick={handleCreateUser} disabled={createUserMutation.isPending}>
-              {createUserMutation.isPending ? "Đang xử lý..." : "Tạo tài khoản"}
+          <DialogFooter className="grid grid-cols-2 gap-3 mt-6">
+            <Button variant="outline" onClick={() => setIsConfirmLockOpen(false)} className="rounded-xl border-2">Quay lại</Button>
+            <Button 
+              variant={selectedUser?.status === "ACTIVE" ? "destructive" : "default"} 
+              onClick={confirmToggleStatus}
+              disabled={toggleStatusMutation.isPending}
+              className="rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all"
+            >
+              {toggleStatusMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Xác nhận
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Xác nhận Khóa Tài khoản */}
-      <Dialog open={isConfirmLockOpen} onOpenChange={setIsConfirmLockOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <ShieldAlert className="h-5 w-5" /> 
-              {selectedUser?.status === "ACTIVE" ? "Cảnh báo Khóa tài khoản" : "Xác nhận Mở khóa"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            {selectedUser?.status === "ACTIVE" ? (
-              <p>
-                Bạn có chắc chắn muốn khóa tài khoản <strong>{selectedUser?.email}</strong>? 
-                Người dùng này sẽ bị đăng xuất ngay lập tức và không thể truy cập vào hệ thống.
-              </p>
-            ) : (
-              <p>
-                Xác nhận mở khóa cho tài khoản <strong>{selectedUser?.email}</strong>?
-                Người dùng sẽ có thể đăng nhập lại bình thường.
-              </p>
-            )}
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isConfirmDeleteOpen} onOpenChange={setIsConfirmDeleteOpen}>
+        <DialogContent className="sm:max-w-[420px] rounded-3xl p-6 border-none shadow-2xl">
+          <div className="flex flex-col items-center text-center gap-4">
+            <div className="p-4 rounded-full bg-red-100 text-red-600">
+              <ShieldAlert className="h-8 w-8" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-bold">Xóa tài khoản vĩnh viễn?</DialogTitle>
+              <DialogDescription className="mt-2">
+                Hành động này <b>không thể hoàn tác</b>. Mọi dữ liệu liên quan đến <b>{selectedUser?.fullName}</b> sẽ bị xóa khỏi hệ thống.
+              </DialogDescription>
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsConfirmLockOpen(false)}>Hủy bỏ</Button>
+          <DialogFooter className="grid grid-cols-2 gap-3 mt-6">
+            <Button variant="outline" onClick={() => setIsConfirmDeleteOpen(false)} className="rounded-xl border-2">Quay lại</Button>
             <Button 
-              variant={selectedUser?.status === "ACTIVE" ? "destructive" : "default"} 
-              onClick={confirmToggleStatus}
-              disabled={toggleStatusMutation.isPending}
+              variant="destructive" 
+              onClick={confirmDelete}
+              disabled={deleteUserMutation.isPending}
+              className="rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all"
             >
-              {toggleStatusMutation.isPending ? "Đang xử lý..." : "Xác nhận"}
+              {deleteUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Xác nhận xóa
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail Dialog */}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="sm:max-w-[500px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
+          <div className="relative h-32 bg-gradient-to-r from-primary to-primary-foreground">
+            <div className="absolute -bottom-12 left-8 p-1 bg-background rounded-full">
+              <Avatar className="h-24 w-24 border-4 border-background">
+                <AvatarImage src={selectedUser?.avatar} />
+                <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl">
+                  {selectedUser?.fullName.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          </div>
+          <div className="px-8 pt-16 pb-8 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-2xl font-bold">{selectedUser?.fullName}</h3>
+                <p className="text-muted-foreground">{selectedUser?.email}</p>
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                {selectedUser && roleBadge(selectedUser.role)}
+                {selectedUser && statusBadge(selectedUser.status)}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-4 text-sm bg-muted/30 p-4 rounded-2xl">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">ID:</span>
+                <span className="font-mono">{selectedUser?.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Số điện thoại:</span>
+                <span>{selectedUser?.phone || "Chưa cập nhật"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Chuyên môn:</span>
+                <span>{selectedUser?.expertise || "Chưa cập nhật"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Ngày tham gia:</span>
+                <span>{selectedUser && new Date(selectedUser.createdAt).toLocaleDateString('vi-VN')}</span>
+              </div>
+            </div>
+
+            {selectedUser?.bio && (
+              <div className="space-y-2">
+                <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Giới thiệu</h4>
+                <p className="text-sm italic text-foreground/80 leading-relaxed bg-muted/20 p-4 rounded-xl">
+                  "{selectedUser.bio}"
+                </p>
+              </div>
+            )}
+
+            <Button className="w-full rounded-xl h-11 border-2" variant="outline" onClick={() => setIsDetailOpen(false)}>
+              Đóng chi tiết
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

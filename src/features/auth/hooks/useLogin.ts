@@ -34,9 +34,11 @@ function pickString(source: Record<string, unknown> | undefined, keys: string[])
 function normalizeRole(value?: string | null): RoleType | null {
   if (!value) return null;
   const upper = value.toUpperCase();
-  if (upper === "ADMIN" || upper === "STUDENT" || upper === "LECTURER" || upper === "STAFF" || upper === "GUEST") {
-    return upper;
-  }
+  if (upper === "ADMIN" || upper === "1") return "ADMIN";
+  if (upper === "STUDENT" || upper === "2") return "STUDENT";
+  if (upper === "LECTURER" || upper === "3") return "LECTURER";
+  if (upper === "STAFF" || upper === "4") return "STAFF";
+  if (upper === "GUEST") return "GUEST";
   return null;
 }
 
@@ -83,10 +85,13 @@ export function useLogin() {
       const decodedRole =
         decoded.role ??
         (decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] as RoleType | undefined);
+      
       const role =
         normalizeRole(pickString(payloadRecord, ["role", "Role"])) ??
         normalizeRole(pickString(userRecord, ["role", "Role"])) ??
-        normalizeRole(decodedRole);
+        normalizeRole(decodedRole) ??
+        "STUDENT";
+
       const fullName =
         pickString(payloadRecord, ["fullname", "fullName", "FullName"]) ??
         [
@@ -95,22 +100,25 @@ export function useLogin() {
         ]
           .filter(Boolean)
           .join(" ");
+      
       const splitName = splitFullName(fullName);
+
+      const userId = 
+        pickString(payloadRecord, ["userId", "UserId", "studentId", "StudentId"]) ??
+        pickString(userRecord, ["userId", "UserId", "studentId", "StudentId"]) ??
+        decoded.UserId ??
+        decoded.studentId ??
+        decoded.sub ??
+        decoded.userId ??
+        decoded.nameid ??
+        decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ??
+        "";
 
       setAuth({
         accessToken,
         refreshToken,
         role,
-        userId:
-          pickString(payloadRecord, ["userId", "UserId", "studentId", "StudentId"]) ??
-          pickString(userRecord, ["userId", "UserId", "studentId", "StudentId"]) ??
-          decoded.UserId ??
-          decoded.studentId ??
-          decoded.sub ??
-          decoded.userId ??
-          decoded.nameid ??
-          decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ??
-          null,
+        userId,
         email:
           pickString(payloadRecord, ["email", "Email"]) ??
           pickString(userRecord, ["email", "Email"]) ??
@@ -124,19 +132,29 @@ export function useLogin() {
           pickString(userRecord, ["lastName", "LastName"]) ??
           splitName.lastName,
       });
+
       toast.success("Đăng nhập thành công!");
-      if (role === "ADMIN") {
-        navigate("/admin", { replace: true });
-      } else if (role === "STAFF") {
-        navigate("/staff/enrollments", { replace: true });
+
+      // Chuyển hướng
+      if (from && from !== "/") {
+        navigate(from, { replace: true });
       } else {
-        // STUDENT / LECTURER / GUEST: về dashboard hoặc trang đã lưu (e.g. sau redirect từ PrivateRoute)
-        const destination = from && from !== "/" ? from : "/dashboard";
-        navigate(destination, { replace: true });
+        switch (role) {
+          case "ADMIN":
+            navigate("/admin", { replace: true });
+            break;
+          case "STAFF":
+            navigate("/staff", { replace: true });
+            break;
+          case "LECTURER":
+            navigate("/lecturer", { replace: true });
+            break;
+          case "STUDENT":
+          default:
+            navigate("/dashboard", { replace: true });
+            break;
+        }
       }
     },
-    
   });
-
-  
 }

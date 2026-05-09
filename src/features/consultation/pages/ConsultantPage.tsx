@@ -22,9 +22,9 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 
-import { consultationSchema } from "../schema.ts";
-import type { CreateConsultationPayload } from "../type.ts";
-import { useCreateConsultation } from "../hooks/useConsultation.ts";
+import { consultationSchema } from "../schema";
+import type { CreateConsultationPayload } from "../type";
+import { useCreateConsultation } from "../hooks/useConsultation";
 import { courseService } from "@/features/courses/services";
 
 export default function ConsultationForm() {
@@ -69,15 +69,15 @@ export default function ConsultationForm() {
   };
 
   return (
-    <section className="w-full bg-gradient-to-b from-slate-50 to-white py-16 md:py-24">
+    <section className="w-full bg-gradient-to-b from-background to-muted/20 py-16 md:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center gap-8 lg:flex-row lg:gap-16">
           {/* ─── Hình minh hoạ ─── */}
           <div className="flex w-full justify-center lg:w-5/12">
             <div className="relative">
-              <div className="absolute -inset-4 rounded-full bg-blue-100/60 blur-2xl" />
+              <div className="absolute -inset-4 rounded-full bg-primary/10 blur-2xl" />
               <img
-                src="/public/images/man-costumer-service.png"
+                src="/images/man-costumer-service.png"
                 alt="Tư vấn khoá học"
                 className="relative z-10 w-64 max-w-full drop-shadow-lg sm:w-80 md:w-96"
               />
@@ -86,12 +86,12 @@ export default function ConsultationForm() {
 
           {/* ─── Form tư vấn ─── */}
           <div className="w-full lg:w-7/12">
-            <div className="rounded-2xl bg-white p-6 shadow-lg ring-1 ring-gray-100 sm:p-8">
+            <div className="rounded-2xl bg-card p-6 shadow-lg ring-1 ring-border sm:p-8">
               {/* Header */}
               <div className="mb-6 text-center">
-                <div className="mb-3 inline-flex items-center justify-center rounded-xl bg-[#0E3BAF]/10 p-2.5">
+                <div className="mb-3 inline-flex items-center justify-center rounded-xl bg-primary/10 p-2.5">
                   <svg
-                    className="h-6 w-6 text-[#0E3BAF]"
+                    className="h-6 w-6 text-primary"
                     fill="none"
                     viewBox="0 0 24 24"
                     strokeWidth={2}
@@ -104,7 +104,7 @@ export default function ConsultationForm() {
                     />
                   </svg>
                 </div>
-                <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                <h2 className="text-xl font-bold text-foreground sm:text-2xl">
                   Tư vấn khoá học
                 </h2>
               </div>
@@ -191,7 +191,7 @@ export default function ConsultationForm() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {courses?.items?.map((course) => (
+                            {courses?.items?.map((course: any) => (
                               <SelectItem key={course.id} value={course.id}>
                                 {course.title}
                               </SelectItem>
@@ -226,7 +226,7 @@ export default function ConsultationForm() {
                   <Button
                     type="submit"
                     disabled={isPending}
-                    className="h-11 w-full bg-[#0E3BAF] text-base font-semibold text-white hover:bg-[#0E3BAF]/90"
+                    className="h-12 w-full bg-primary text-base font-bold text-primary-foreground rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:scale-[1.02] active:scale-95"
                   >
                     {isPending ? (
                       <span className="flex items-center gap-2">

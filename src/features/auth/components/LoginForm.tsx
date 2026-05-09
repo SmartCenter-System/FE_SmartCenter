@@ -107,12 +107,12 @@ export function LoginForm() {
 
             <Button
               type="submit"
-              className="h-11 w-full rounded-lg bg-primary text-sm font-semibold text-primary-foreground shadow-[0_8px_16px_rgba(0,0,0,0.16)] transition-colors"
+              className="h-12 w-full rounded-full bg-primary text-base font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:shadow-primary/40 hover:scale-[1.02] active:scale-95"
               disabled={isPending}
             >
               {isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Đang xử lý...
                 </>
               ) : (
@@ -122,14 +122,14 @@ export function LoginForm() {
 
             <div className="flex items-center gap-3 py-1">
               <div className="h-px flex-1 bg-slate-200" />
-              <span className="text-xs font-medium text-slate-400">OR</span>
+              <span className="text-xs font-medium text-slate-400">HOẶC</span>
               <div className="h-px flex-1 bg-slate-200" />
             </div>
 
             <Button
               type="button"
               variant="outline"
-              className="h-11 w-full rounded-lg border-input bg-background text-sm font-medium text-foreground shadow-none hover:bg-muted"
+              className="h-12 w-full rounded-full border-input bg-background text-sm font-bold text-foreground shadow-none hover:bg-muted transition-all hover:scale-[1.02] active:scale-95"
             >
               <svg viewBox="0 0 48 48" aria-hidden="true" className="mr-3 h-5 w-5">
                 <path
