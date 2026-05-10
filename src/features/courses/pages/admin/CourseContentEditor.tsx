@@ -32,6 +32,7 @@ import {
   useCreateLesson,
   useUpdateLesson,
   useDeleteLesson,
+  useLessons,
 } from "@/features/courses/hooks/useCourseContent";
 
 // types
@@ -40,9 +41,12 @@ type LessonType = "VIDEO" | "DOCUMENT" | "QUIZ";
 interface Lesson {
   id: string;
   title: string;
-  type: LessonType;
+  description?: string;
   videoUrl?: string;
-  duration?: string;
+  order: number;
+  isPreview: boolean;
+  duration: number;
+  type?: LessonType; // Inferred or optional
 }
 
 interface Section {
@@ -83,13 +87,7 @@ export default function CourseContentEditor() {
     (s: any) => ({
       id: s.id || s.sectionId,
       title: s.title,
-      lessons: (s.lessons || []).map((l: any) => ({
-        id: l.id,
-        title: l.title,
-        type: (l.type || "VIDEO") as LessonType,
-        videoUrl: l.videoUrl || l.contentUrl || "",
-        description: l.description || "",
-      })),
+      lessons: [], // Lessons will be fetched dynamically per section
     }),
   );
 
@@ -112,9 +110,9 @@ export default function CourseContentEditor() {
     setActiveSection(section);
     setActiveLesson(lesson);
     setEditTitle(lesson.title);
-    setEditType(lesson.type);
-    setEditUrl(lesson.videoUrl || "");
     setEditDescription(lesson.description || "");
+    setEditType(lesson.type || "VIDEO");
+    setEditUrl(lesson.videoUrl || "");
   };
 
   const handleSelectSection = (section: Section) => {
@@ -201,6 +199,57 @@ export default function CourseContentEditor() {
     }
   };
 
+  // Sub-component for rendering lessons of a section
+  const LessonList = ({ section }: { section: Section }) => {
+    const { data: lessons, isLoading } = useLessons(courseId!, section.id);
+
+    if (isLoading)
+      return (
+        <div className="py-4 text-center">
+          <Loader2 className="h-4 w-4 animate-spin inline mr-2 text-primary/60" />
+          <span className="text-xs text-muted-foreground">Đang tải bài giảng...</span>
+        </div>
+      );
+
+    const items = Array.isArray(lessons) ? lessons : [];
+
+    if (items.length === 0)
+      return (
+        <div className="text-xs text-muted-foreground text-center py-4 border border-dashed rounded mt-2">
+          Chưa có bài giảng nào
+        </div>
+      );
+
+    return (
+      <ul className="space-y-1 mt-2">
+        {items.map((lesson: any) => {
+          // Infer type if missing
+          const lessonType = lesson.type || (lesson.videoUrl ? "VIDEO" : "DOCUMENT");
+          
+          return (
+            <li key={lesson.id}>
+              <button
+                onClick={() => handleSelectLesson(section, { ...lesson, type: lessonType })}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm transition-colors text-left
+                  ${
+                    activeLesson?.id === lesson.id
+                      ? "bg-primary/10 text-primary font-medium border border-primary/20"
+                      : "hover:bg-muted text-foreground"
+                  }
+                `}
+              >
+                <div className="flex items-center gap-3 overflow-hidden">
+                  {getIconForType(lessonType as LessonType)}
+                  <span className="truncate">{lesson.title}</span>
+                </div>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
+
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto pb-10">
       {/* Header */}
@@ -270,33 +319,7 @@ export default function CourseContentEditor() {
                     </AccordionTrigger>
 
                     <AccordionContent className="pt-0 pb-2 px-2 bg-muted/10">
-                      {section.lessons.length === 0 ? (
-                        <div className="text-xs text-muted-foreground text-center py-4 border border-dashed rounded mt-2">
-                          Chưa có bài giảng nào
-                        </div>
-                      ) : (
-                        <ul className="space-y-1 mt-2">
-                          {section.lessons.map((lesson) => (
-                            <li key={lesson.id}>
-                              <button
-                                onClick={() => handleSelectLesson(section, lesson)}
-                                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm transition-colors text-left
-                                  ${
-                                    activeLesson?.id === lesson.id
-                                      ? "bg-primary/10 text-primary font-medium border border-primary/20"
-                                      : "hover:bg-muted text-foreground"
-                                  }
-                                `}
-                              >
-                                <div className="flex items-center gap-3 overflow-hidden">
-                                  {getIconForType(lesson.type)}
-                                  <span className="truncate">{lesson.title}</span>
-                                </div>
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                      <LessonList section={section} />
                     </AccordionContent>
                   </AccordionItem>
                 ))}

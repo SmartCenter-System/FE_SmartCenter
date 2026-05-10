@@ -211,4 +211,8 @@ export const courseService = {
   async deleteLesson(lessonId: string, courseId: string, sectionId: string) {
     return apiClient.delete(API_ENDPOINTS.LESSON.BY_ID(lessonId), { params: { courseId, sectionId } });
   },
+
+  async getDashboardData() {
+    return apiClient.get(API_ENDPOINTS.COURSES.DASHBOARD);
+  },
 };

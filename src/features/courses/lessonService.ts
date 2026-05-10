@@ -31,9 +31,16 @@ function normalizeLessonResponse(response: any): Lesson[] {
 
 export const lessonService = {
   async getAll(courseId: string, sectionId: string): Promise<Lesson[]> {
-    const res = await apiClient.get<any>(API_ENDPOINTS.LESSON.BASE, { params: { courseId, sectionId } });
-    const data = res.data;
-    return Array.isArray(data) ? data : data?.items || [];
+    try {
+      const res = await apiClient.get<any>(API_ENDPOINTS.LESSON.BASE, { 
+        params: { courseId, sectionId } 
+      });
+      console.log(`[lessonService] Lessons for section ${sectionId}:`, res);
+      return normalizeLessonResponse(res);
+    } catch (error) {
+      console.error(`[lessonService] Error fetching lessons for section ${sectionId}:`, error);
+      return [];
+    }
   },
 
   async create(courseId: string, sectionId: string, data: { title: string; description?: string; videoUrl?: string; order?: number; isPreview?: boolean; duration?: number }): Promise<Lesson> {

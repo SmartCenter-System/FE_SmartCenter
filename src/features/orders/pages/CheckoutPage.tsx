@@ -466,7 +466,7 @@ export default function CheckoutPage() {
                         variant="outline"
                         onClick={() => setPaymentLink(null)}
                       >
-                        Tạo link mới
+                        Tạo mã QR mới
                       </Button>
                     </div>
                   )}

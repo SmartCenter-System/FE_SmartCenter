@@ -5,6 +5,7 @@ import type { PublicCourseQueryParams } from "../type";
 export interface PublicCourseFilterState {
   keyword: string;
   mode?: number;
+  categoryId?: string;
   minPrice?: number;
   maxPrice?: number;
 }

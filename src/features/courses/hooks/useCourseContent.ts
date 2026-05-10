@@ -99,3 +99,11 @@ export function useDeleteLesson() {
     },
   });
 }
+
+export function useLessons(courseId: string, sectionId: string) {
+  return useQuery({
+    queryKey: COURSE_CONTENT_KEYS.lessons(courseId, sectionId),
+    queryFn: () => courseService.getLessons(courseId, sectionId),
+    enabled: !!courseId && !!sectionId,
+  });
+}
