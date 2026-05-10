@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
 import { lessonService } from "@/features/courses/lessonService";
 import { enrollmentService } from "@/features/courses/enrollmentService";
+import { LessonDocuments } from "@/features/document/components/LessonDocuments";
 import { useAuthStore } from "@/features/auth/store";
 import { getYouTubeEmbedUrl, isYouTubeUrl } from "@/lib/utils";
 import { Button } from "@/shared/components/ui/button";
