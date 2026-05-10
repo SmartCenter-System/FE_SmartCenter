@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   ChevronRight,
   ShieldCheck,
-  Trophy,
   Smartphone,
   Lock,
 } from "lucide-react";
@@ -28,13 +27,16 @@ import type { Enrollment } from "@/features/courses/enrollmentService";
 export default function CourseDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const isValidCourseId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(id ?? ""),
+  );
 
   const accessToken = useAuthStore((state) => state.accessToken);
 
   const { data: courseData, isLoading } = useQuery<Course>({
     queryKey: ["course", id],
     queryFn: () => courseService.getById(id as string),
-    enabled: !!id,
+    enabled: !!id && isValidCourseId,
   });
 
   const { data: enrollmentData } = useQuery<{ items: Enrollment[]; total: number }>({
@@ -43,6 +45,7 @@ export default function CourseDetailPage() {
     enabled: !!accessToken,
     staleTime: 1000 * 60 * 5,
     retry: false,
+    refetchOnMount: "always",
   });
   const enrollments = enrollmentData?.items;
 
@@ -147,9 +150,12 @@ export default function CourseDetailPage() {
   }, [courseData, sectionLessonsData]);
 
   const isPurchased = useMemo(() => {
-    if (!enrollments || !courseData) return false;
-    return enrollments.some((item) => item.courseId === courseData.courseId);
-  }, [courseData, enrollments]);
+    if (!enrollments) return false;
+    const currentCourseId = String(courseData?.courseId ?? id ?? "").trim().toLowerCase();
+    if (!currentCourseId) return false;
+
+    return enrollments.some((item) => String(item.courseId ?? "").trim().toLowerCase() === currentCourseId);
+  }, [courseData?.courseId, enrollments, id]);
 
   const allLessons = useMemo(() => sections.flatMap((section) => section.lessons), [sections]);
 
@@ -158,9 +164,19 @@ export default function CourseDetailPage() {
     [allLessons, isPurchased],
   );
 
+  const studyNowLessonId = useMemo(() => {
+    if (selectedLesson?.id) return selectedLesson.id;
+    if (allLessons.length > 0) return allLessons[0].id;
+    return undefined;
+  }, [allLessons, selectedLesson?.id]);
+
   const handleLessonClick = (lesson: CourseLesson) => {
+    const currentSectionId = sections.find((section) => section.lessons.some((item) => item.id === lesson.id))?.id;
+
     if (lesson.isPreview || isPurchased) {
-      navigate(`/courses/${course?.courseId ?? ""}/study/${lesson.id}`);
+      navigate(
+        `/courses/${course?.courseId ?? ""}/study/${lesson.id}${currentSectionId ? `?sectionId=${currentSectionId}` : ""}`,
+      );
       return;
     }
 
@@ -218,6 +234,17 @@ export default function CourseDetailPage() {
               </Card>
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isValidCourseId) {
+    return (
+      <div className="bg-background min-h-screen flex items-center justify-center px-4">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">Liên kết khóa học không hợp lệ.</p>
+          <Button onClick={() => navigate("/courses")}>Quay lại danh sách khóa học</Button>
         </div>
       </div>
     );
@@ -469,23 +496,45 @@ export default function CourseDetailPage() {
                 </div>
 
                 <CardContent className="p-6">
-                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-6">
-                    <div className="text-4xl font-extrabold text-foreground">{formatPrice(course.basePrice)}</div>
-                  </div>
+                  {isPurchased ? (
+                    <div className="mb-6 space-y-3">
+                      <Button
+                        className="w-full text-lg h-12 shadow-md"
+                        onClick={() => {
+                          if (studyNowLessonId) {
+                            const currentSectionId = sections.find((section) =>
+                              section.lessons.some((item) => item.id === studyNowLessonId),
+                            )?.id;
+                            navigate(
+                              `/courses/${course.courseId}/study/${studyNowLessonId}${currentSectionId ? `?sectionId=${currentSectionId}` : ""}`,
+                            );
+                          }
+                        }}
+                        disabled={!studyNowLessonId}
+                      >
+                        Vào học ngay
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-3 mb-6">
+                        <div className="text-center">
+                          <div className="text-4xl font-bold text-foreground">{formatPrice(course.basePrice)}</div>
+                        </div>
+                        <Button
+                          className="w-full text-lg h-12 shadow-md"
+                          onClick={() => navigate(`/checkout/${course.courseId}`)}
+                        >
+                          Mua khoá học ngay
+                        </Button>
+                        <Button variant="outline" className="w-full text-lg h-12 border-primary/20 hover:bg-primary/5">
+                          Thêm vào giỏ hàng
+                        </Button>
+                      </div>
 
-                  <div className="space-y-3 mb-6">
-                    <Button
-                      className="w-full text-lg h-12 shadow-md"
-                      onClick={() => navigate(`/checkout/${course.courseId}`)}
-                    >
-                      Đăng ký học ngay
-                    </Button>
-                    <Button variant="outline" className="w-full text-lg h-12 border-primary/20 hover:bg-primary/5">
-                      Thêm vào giỏ hàng
-                    </Button>
-                  </div>
-
-                  <p className="text-center text-sm text-muted-foreground mb-6">Đảm bảo hoàn tiền trong 30 ngày</p>
+                      <p className="text-center text-sm text-muted-foreground mb-6">Đảm bảo hoàn tiền trong 30 ngày</p>
+                    </>
+                  )}
 
                   <div className="space-y-4 text-sm">
                     <h4 className="font-semibold text-foreground">Khóa học này bao gồm:</h4>
@@ -515,17 +564,20 @@ export default function CourseDetailPage() {
       </div>
 
       {/* Mobile Sticky Buy Button */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] z-50 flex items-center justify-between gap-4">
-        <div>
-          <div className="text-2xl font-bold">{formatPrice(course.basePrice)}</div>
+      {!isPurchased && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] z-50 flex items-center justify-between gap-4">
+          <div className="leading-tight">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Giá khóa học</div>
+            <div className="text-2xl font-bold">{formatPrice(course.basePrice)}</div>
+          </div>
+          <Button
+            className="flex-1 max-w-xs h-12 text-base shadow-md"
+            onClick={() => navigate(`/checkout/${course.courseId}`)}
+          >
+            Đăng ký ngay
+          </Button>
         </div>
-        <Button
-          className="flex-1 max-w-xs h-12 text-lg shadow-md"
-          onClick={() => navigate(`/checkout/${course.courseId}`)}
-        >
-          Đăng ký ngay
-        </Button>
-      </div>
+      )}
     </div>
   );
 }

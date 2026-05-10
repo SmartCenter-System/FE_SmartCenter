@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
 import { lessonService } from "@/features/courses/lessonService";
@@ -16,13 +16,18 @@ import type { Enrollment } from "@/features/courses/enrollmentService";
 
 export default function CourseStudyingPage() {
   const { id, lessonId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const accessToken = useAuthStore((state) => state.accessToken);
+  const sectionId = searchParams.get("sectionId") ?? undefined;
+  const isValidCourseId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(id ?? ""),
+  );
 
   const { data: courseData, isLoading } = useQuery<Course>({
     queryKey: ["course", id],
     queryFn: () => courseService.getById(id as string),
-    enabled: !!id,
+    enabled: !!id && isValidCourseId,
   });
 
   const { data: enrollmentData } = useQuery<{ items: Enrollment[]; total: number }>({
@@ -31,19 +36,30 @@ export default function CourseStudyingPage() {
     enabled: !!accessToken,
     staleTime: 1000 * 60 * 5,
     retry: false,
+    refetchOnMount: "always",
   });
 
   const enrollments = enrollmentData?.items;
 
-  const { data: sectionLessonsData } = useQuery<{ id: string; title: string; lessons: { id: string; title: string; description?: string; videoUrl?: string; order?: number; isPreview?: boolean; duration?: number; }[]; }[]>({
-    queryKey: ["courseSectionLessons", courseData?.courseId],
+  const { data: sectionLessonsData } = useQuery<
+    { id: string; title: string; lessons: { id: string; title: string; description?: string; videoUrl?: string; order?: number; isPreview?: boolean; duration?: number }[] }[]
+  >({
+    queryKey: ["courseSectionLessons", courseData?.courseId, sectionId],
     queryFn: async () => {
       if (!courseData || !Array.isArray(courseData.sections)) {
         return [];
       }
 
+      const sectionsToLoad = sectionId
+        ? courseData.sections.filter((section) => String(section.id) === String(sectionId))
+        : courseData.sections;
+
+      if (sectionsToLoad.length === 0) {
+        return [];
+      }
+
       return Promise.all(
-        courseData.sections.map(async (section) => {
+        sectionsToLoad.map(async (section) => {
           const rawLessons = await lessonService.getAll(courseData.courseId, section.id);
           return {
             ...section,
@@ -93,16 +109,34 @@ export default function CourseStudyingPage() {
   }, [allLessons, lessonId, id, navigate, isPurchased]);
 
   const isPurchased = useMemo(() => {
-    if (!courseData || !enrollments) return false;
-    return enrollments.some((item) => item.courseId === courseData.courseId);
-  }, [courseData, enrollments]);
+    if (!enrollments) return false;
+    const currentCourseId = String(courseData?.courseId ?? id ?? "").trim().toLowerCase();
+    if (!currentCourseId) return false;
+
+    return enrollments.some((item) => String(item.courseId ?? "").trim().toLowerCase() === currentCourseId);
+  }, [courseData?.courseId, enrollments, id]);
 
   const canView = Boolean(lesson && (lesson.isPreview || isPurchased));
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
+  };
 
   if (isLoading) {
     return (
       <div className="bg-background min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Đang tải nội dung học...</p>
+      </div>
+    );
+  }
+
+  if (!isValidCourseId) {
+    return (
+      <div className="bg-background min-h-screen flex items-center justify-center px-4">
+        <div className="max-w-xl text-center">
+          <p className="text-xl font-semibold mb-4">Liên kết khóa học không hợp lệ.</p>
+          <Button onClick={() => navigate("/courses")}>Quay lại danh sách khóa học</Button>
+        </div>
       </div>
     );
   }
@@ -159,6 +193,9 @@ export default function CourseStudyingPage() {
                     <div>
                       <p className="text-xl font-semibold">Bài học bị khoá</p>
                       <p className="text-sm text-slate-300">Bạn cần mua khóa học để mở toàn bộ nội dung.</p>
+                      <p className="mt-2 text-sm font-medium text-amber-300">
+                        Giá khóa học: {formatPrice(courseData.basePrice)}
+                      </p>
                     </div>
                     <Button onClick={() => navigate(`/checkout/${id}`)}>Mua khóa học</Button>
                   </div>
@@ -167,13 +204,13 @@ export default function CourseStudyingPage() {
             </Card>
 
             <Card className="border-border shadow-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold">Mô tả bài học</h2>
-                  <Badge variant="secondary" className="rounded-full">
-                    {lesson.isPreview ? "Bài học miễn phí" : "Nội dung học tập"}
-                  </Badge>
-                </div>
+              <CardContent>
+                <h2 className="text-xl font-semibold mb-3">Mô tả bài học</h2>
+                <p className="text-sm text-muted-foreground">
+                  {lesson.isPreview
+                    ? "Đây là bài xem trước. Bạn có thể truy cập ngay cả khi chưa mua khóa học."
+                    : "Bạn đã mở khoá bài học này."}
+                </p>
                 {courseData.description ? (
                   <p className="text-sm text-foreground/80 leading-relaxed">{courseData.description}</p>
                 ) : (
@@ -208,14 +245,18 @@ export default function CourseStudyingPage() {
                               } ${allowed ? "cursor-pointer hover:bg-primary/10" : "opacity-60 cursor-not-allowed"}`}
                               onClick={() => {
                                 if (allowed) {
-                                  navigate(`/courses/${id}/study/${item.id}`);
+                                  navigate(
+                                    `/courses/${id}/study/${item.id}${sectionId ? `?sectionId=${sectionId}` : ""}`,
+                                  );
                                 }
                               }}
                             >
                               <span>{item.title}</span>
-                              <span className="text-[11px] rounded-full px-2 py-1 font-semibold text-muted-foreground bg-muted border border-border/50">
-                                {item.isPreview ? "Xem trước" : allowed ? "Mở khóa" : "Khoá"}
-                              </span>
+                              {!isPurchased ? (
+                                <span className="text-[11px] rounded-full px-2 py-1 font-semibold text-muted-foreground bg-muted border border-border/50">
+                                  {item.isPreview ? "Xem trước" : "Khoá"}
+                                </span>
+                              ) : null}
                             </li>
                           );
                         })}
@@ -228,11 +269,14 @@ export default function CourseStudyingPage() {
           </aside>
         </div>
 
-        <div className="mt-8 text-sm text-muted-foreground">
-          <p>
-            Nếu bạn chưa mua khóa học, chỉ những bài xem trước mới có thể truy cập được. Để mở khóa thêm bài học, vui lòng đăng ký khóa học.
-          </p>
-        </div>
+        {!isPurchased ? (
+          <div className="mt-8 text-sm text-muted-foreground">
+            <p>
+              Nếu bạn chưa mua khóa học, chỉ những bài xem trước mới có thể truy cập được. Giá khóa học hiện tại là {formatPrice(courseData.basePrice)}.
+              Để mở khóa thêm bài học, vui lòng đăng ký khóa học.
+            </p>
+          </div>
+        ) : null}
       </div>
     </div>
   );

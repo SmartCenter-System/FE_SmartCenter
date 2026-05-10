@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import {
 	ArrowRight,
 	Check,
@@ -57,6 +56,7 @@ function createPaginationItems(totalPages: number, currentPage: number): Array<n
 }
 
 export default function ExploreCoursePage() {
+	const navigate = useNavigate();
 	const [searchInput, setSearchInput] = useState("");
 	const [mode, setMode] = useState<number | undefined>(undefined);
 	const [minPriceInput, setMinPriceInput] = useState("");
@@ -115,6 +115,11 @@ export default function ExploreCoursePage() {
 	const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		applyFilters();
+	};
+
+	const handleOpenCourse = (courseId: string) => {
+		if (!courseId) return;
+		navigate(`/courses/${encodeURIComponent(courseId)}`);
 	};
 
 	return (
@@ -286,7 +291,16 @@ export default function ExploreCoursePage() {
 											return (
 												<article
 													key={course.id}
-													className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg"
+													onClick={() => handleOpenCourse(course.id)}
+													onKeyDown={(e) => {
+														if (e.key === "Enter" || e.key === " ") {
+															e.preventDefault();
+															handleOpenCourse(course.id);
+														}
+													}}
+													role="button"
+													tabIndex={0}
+													className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg cursor-pointer"
 												>
 													<div className="relative bg-gradient-to-br from-indigo-50 to-cyan-50 p-5">
 														<span className="inline-flex items-center gap-2 rounded-full bg-indigo-700 px-3 py-1 text-xs font-semibold text-white shadow-sm">
@@ -312,7 +326,7 @@ export default function ExploreCoursePage() {
 																<p className="text-xs uppercase tracking-wide text-slate-400">Học phí</p>
 																<p className="text-xl font-bold tracking-tight text-indigo-700">{formatPrice(course.basePrice)}</p>
 															</div>
-															<Link to={`/courses/${course.id}`} className="inline-flex items-center gap-2 rounded-xl bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-yellow-400 hover:text-blue-950">
+															<button className="inline-flex items-center gap-2 rounded-xl bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-yellow-400 hover:text-blue-950">
 																Xem chi tiết
 																<ArrowRight className="h-4 w-4" />
 															</Link>
