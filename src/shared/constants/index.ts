@@ -53,7 +53,7 @@ export const API_ENDPOINTS = {
   },
 
   /**
-   * Section endpoints
+   * Section endpoints (No /api prefix in spec)
    */
   SECTION: {
     BASE: "/Section",
@@ -61,7 +61,7 @@ export const API_ENDPOINTS = {
   },
 
   /**
-   * Lesson endpoints
+   * Lesson endpoints (No /api prefix in spec)
    */
   LESSON: {
     BASE: "/Lesson",
@@ -86,7 +86,7 @@ export const API_ENDPOINTS = {
   },
 
   /**
-   * ExamPaper endpoints
+   * ExamPaper endpoints (No /api prefix in spec)
    */
   EXAM_PAPER: {
     BASE: "/ExamPaper",
@@ -106,7 +106,7 @@ export const API_ENDPOINTS = {
   },
 
   /**
-   * GradeExam endpoints
+   * GradeExam endpoints (No /api prefix in spec)
    */
   GRADE_EXAM: {
     BASE: "/GradeExam",
@@ -178,6 +178,6 @@ export const API_ENDPOINTS = {
    */
   PROGRESS: {
     COMPLETE: "/api/progress/complete",
-    BY_COURSE: (courseId: string) => `/api/progress/course/${courseId}`,
+    BY_COURSE: (courseId: string) => `/api/Progress/${courseId}`,
   },
 };

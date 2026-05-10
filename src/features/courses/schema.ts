@@ -32,17 +32,28 @@ export const courseSchema = z.object({
 });
 
 export const createCourseSchema = z.object({
-  courseName: z.string().min(1, "Tên khóa học không được để trống"),
-  description: z.string().min(1, "Mô tả không được để trống"),
+  courseName: z.string().trim().min(1, "Tên khóa học không được để trống").max(200, "Tên khóa học quá dài"),
+  description: z.string().trim().min(1, "Mô tả không được để trống"),
   basePrice: z.number().min(0, "Giá bán không được âm"),
-  imgUrl: z.string().url("URL ảnh không hợp lệ hoặc chưa tải ảnh lên"),
+  imgUrl: z.string().url("URL ảnh không hợp lệ").or(z.string().length(0)).optional(),
   courseType: courseTypeSchema.default(1),
-  startAt: z.string().optional(),
-  endAt: z.string().optional(),
+  startAt: z.string().min(1, "Vui lòng chọn ngày bắt đầu"),
+  endAt: z.string().min(1, "Vui lòng chọn ngày kết thúc"),
   maxStudents: z.preprocess((val) => (val === "" ? undefined : Number(val)), z.number().min(0, "Số lượng học viên không được âm").optional()),
-  academicYear: z.number().optional(),
+  academicYear: z.number().min(2020, "Năm học không hợp lệ").optional(),
   lecturerId: z.string().min(1, "Vui lòng chọn giảng viên"),
 }).refine(
+  (data) => {
+    if (data.startAt && data.endAt) {
+      return new Date(data.endAt) > new Date(data.startAt);
+    }
+    return true;
+  },
+  {
+    message: "Ngày kết thúc phải sau ngày bắt đầu",
+    path: ["endAt"],
+  }
+).refine(
   (data) => {
     if (data.courseType === 2) {
       const students = data.maxStudents ?? 0;

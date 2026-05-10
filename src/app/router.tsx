@@ -13,7 +13,6 @@ import ResetPasswordPage from "@/features/auth/pages/ResetPasswordPage";
 import HomePage from "@/features/landing/pages/HomePage";
 import ExploreCoursePage from "@/features/courses/pages/ExploreCoursePage";
 import LandingLayout from "@/features/landing/pages/LandingLayout";
-import CoursesPage from "@/features/courses/pages/CoursesPage";
 import CourseDetailPage from "@/features/courses/pages/CourseDetailPage";
 import CourseStudyingPage from "@/features/courses/pages/CourseStudyingPage";
 import CheckoutPage from "@/features/orders/pages/CheckoutPage";
@@ -24,8 +23,10 @@ import StudentDashboardPage from "@/features/dashboard/pages/StudentDashboardPag
 import AdminDashboardPage from "@/features/dashboard/pages/AdminDashboardPage";
 import StaffDashboardPage from "@/features/dashboard/pages/StaffDashboardPage";
 import LecturerDashboardPage from "@/features/dashboard/pages/LecturerDashboardPage";
-import StaffConsultationManagementPage from "@/features/dashboard/pages/StaffConsultationManagementPage";
 import LecturerCourseManagementPage from "@/features/dashboard/pages/LecturerCourseManagementPage";
+import LecturerStudentProgressPage from "@/features/dashboard/pages/LecturerStudentProgressPage";
+import LecturerGradingPage from "@/features/dashboard/pages/LecturerGradingPage";
+import StaffConsultationManagementPage from "@/features/dashboard/pages/StaffConsultationManagementPage";
 import DashboardRedirect from "@/shared/components/common/DashboardRedirect";
 
 // ─── Admin Panel ──────────────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ import SettingsPage from "@/features/settings/pages/SettingsPage";
 
 // ─── User Profile ────────────────────────────────────────────────────────────
 import ProfileUserPage from "@/features/users/pages/user/ProfileUserPage";
+import MyCoursesPage from "@/features/courses/pages/MyCoursesPage";
 
 // ─── Staff Panel ──────────────────────────────────────────────────────────────
 import StaffLayout from "@/shared/layouts/StaffLayout";
@@ -56,11 +58,11 @@ const router = createBrowserRouter([
       { path: "register", element: <RegisterPage /> },
       { path: "forgot-password", element: <ForgotPasswordPage /> },
       { path: "reset-password", element: <ResetPasswordPage /> },
-      { path: "courses", element: <CoursesPage /> },
+      { path: "courses", element: <ExploreCoursePage /> },
       { path: "courses/:id", element: <CourseDetailPage /> },
       { path: "courses/:id/study/:lessonId", element: <CourseStudyingPage /> },
       { path: "contact", element: <ConsultationPage /> },
-      { path: "consultation", element: <ConsultationPage /> }, // Keep both for safety
+      { path: "consultation", element: <ConsultationPage /> },
     ],
   },
 
@@ -91,6 +93,10 @@ const router = createBrowserRouter([
               {
                 path: "/dashboard/student",
                 element: <StudentDashboardPage />,
+              },
+              {
+                path: "/dashboard/my-courses",
+                element: <MyCoursesPage />,
               },
               {
                 path: "/dashboard/settings",
@@ -131,15 +137,6 @@ const router = createBrowserRouter([
     ],
   },
 
-  {
-    element: <LandingLayout />,
-    children: [
-      {
-        path: "/explore-course",
-        element: <ExploreCoursePage />,
-      },
-    ],
-  },
   // ─── Protected: chỉ STAFF (và ADMIN) ─────────────────────────────
   {
     element: <RoleGuard allowedRoles={["STAFF", "ADMIN"]} />,
@@ -169,6 +166,9 @@ const router = createBrowserRouter([
           { index: true, element: <LecturerDashboardPage /> },
           { path: "dashboard", element: <LecturerDashboardPage /> },
           { path: "courses", element: <LecturerCourseManagementPage /> },
+          { path: "courses/:id/content", element: <CourseContentEditor /> },
+          { path: "courses/:id/students", element: <LecturerStudentProgressPage /> },
+          { path: "exams/:examId/grade/:studentId", element: <LecturerGradingPage /> },
           { path: "settings", element: <SettingsPage /> },
           // Thêm các route cho giảng viên sau này
         ],

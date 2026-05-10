@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/store";
 import { useCart } from "@/features/cart/hooks/useCart";
 import InfoStudentForm from "@/features/orders/component/infoStudentForm";
+import { enrollmentService } from "@/features/courses/enrollmentService";
 
 export default function CheckoutPage() {
   const { id } = useParams();
@@ -193,7 +194,18 @@ export default function CheckoutPage() {
     enabled: !!id && isValidCourseId,
   });
 
-  const { isLoading: isLoadingCart } = useCart();
+  const { data: enrollmentData } = useQuery({
+    queryKey: ["myEnrollments"],
+    queryFn: () => enrollmentService.getMyEnrollments(),
+    enabled: !!accessToken,
+  });
+
+  const isAlreadyOwned = useMemo(() => {
+    if (!enrollmentData?.items || !id) return false;
+    return enrollmentData.items.some((item) => item.courseId === id);
+  }, [enrollmentData, id]);
+
+  const { data: cart, isLoading: isLoadingCart } = useCart();
 
   // ─── Handlers ──────────────────────────────────────────────────
   if (isLoadingCourse || isLoadingCart) {
@@ -391,13 +403,15 @@ export default function CheckoutPage() {
                       <Button
                         className="w-full h-12 text-lg shadow-md hover:shadow-lg transition-all"
                         onClick={() => handleCheckout()}
-                        disabled={isLoadingPayment}
+                        disabled={isLoadingPayment || isAlreadyOwned}
                       >
                         {isLoadingPayment ? (
                           <>
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                             Đang tạo link thanh toán...
                           </>
+                        ) : isAlreadyOwned ? (
+                          "Bạn đã sở hữu khóa học này"
                         ) : (
                           "Tiến hành thanh toán"
                         )}

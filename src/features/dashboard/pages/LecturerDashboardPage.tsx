@@ -17,23 +17,52 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { courseService } from "@/features/courses/services";
+import { dashboardService } from "@/features/dashboard/services/dashboardService";
 import { useAuthStore } from "@/features/auth/store";
 
 export default function LecturerDashboardPage() {
   const { userId } = useAuthStore();
-  const { data: coursesData, isLoading } = useQuery({
+  
+  const { data: coursesData, isLoading: isLoadingCourses } = useQuery({
     queryKey: ["lecturer-dashboard-courses", userId],
     queryFn: () => courseService.getCourses({ LecturerId: userId || undefined, limit: 10 }),
     enabled: !!userId,
   });
 
+  const { data: statsData, isLoading: isLoadingStats } = useQuery({
+    queryKey: ["lecturer-dashboard-stats", userId],
+    queryFn: () => dashboardService.getLecturerStats(userId || ""),
+    enabled: !!userId,
+  });
+
   const courses = coursesData?.data || [];
+  const isLoading = isLoadingCourses || isLoadingStats;
   
   const stats = [
-    { label: "Tổng học viên", value: "0", icon: Users, color: "text-blue-600 bg-blue-50" },
-    { label: "Khóa học của tôi", value: courses.length.toString(), icon: BookOpen, color: "text-purple-600 bg-purple-50" },
-    { label: "Đánh giá TB", value: "4.9", icon: Star, color: "text-amber-600 bg-amber-50" },
-    { label: "Tin nhắn mới", value: "0", icon: MessageCircle, color: "text-green-600 bg-green-50" },
+    { 
+      label: "Tổng học viên", 
+      value: statsData?.totalStudents.toString() || "0", 
+      icon: Users, 
+      color: "text-blue-600 bg-blue-50" 
+    },
+    { 
+      label: "Khóa học của tôi", 
+      value: statsData?.activeCourses.toString() || courses.length.toString(), 
+      icon: BookOpen, 
+      color: "text-purple-600 bg-purple-50" 
+    },
+    { 
+      label: "Đánh giá TB", 
+      value: statsData?.averageRating ? statsData.averageRating.toFixed(1) : "N/A", 
+      icon: Star, 
+      color: "text-amber-600 bg-amber-50" 
+    },
+    { 
+      label: "Tin nhắn mới", 
+      value: statsData?.newMessages.toString() || "0", 
+      icon: MessageCircle, 
+      color: "text-green-600 bg-green-50" 
+    },
   ];
 
   return (
@@ -114,8 +143,8 @@ export default function LecturerDashboardPage() {
                       <div>
                         <h4 className="font-bold text-sm leading-tight">{course.courseName}</h4>
                         <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1"><Users className="h-3 w-3" /> 0 học viên</span>
-                          <span className="flex items-center gap-1"><Star className="h-3 w-3 text-amber-500 fill-amber-500" /> 5.0</span>
+                          <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {(course as any).enrolledCount || 0} học viên</span>
+                          <span className="flex items-center gap-1"><Star className="h-3 w-3 text-amber-500 fill-amber-500" /> {(course as any).averageRating || "N/A"}</span>
                           <Badge variant={course.isActive ? "default" : "secondary"} className="text-[9px] h-4">
                             {course.isActive ? "Đang mở" : "Đang đóng"}
                           </Badge>
