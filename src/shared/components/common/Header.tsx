@@ -59,7 +59,8 @@ export default function Header({ variant = "fixed", tone = "solid" }: HeaderProp
         ? "fixed left-0 top-0 z-50 w-full bg-background/95 backdrop-blur-sm border-b border-border/50 shadow-sm"
         : "fixed left-0 top-0 z-50 w-full bg-transparent";
 
-  const { accessToken, role } = useAuthStore();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const role = useAuthStore((state) => state.role);
   const { mutate: logout } = useLogout();
 
   const handleLogout = () => {

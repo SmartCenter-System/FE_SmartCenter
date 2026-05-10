@@ -4,11 +4,11 @@ import { API_ENDPOINTS } from "@/shared/constants";
 
 export const authService = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials) as unknown as AuthResponse;
+    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials, { silent: true } as any) as unknown as AuthResponse;
   },
 
   async register(data: RegisterRequest): Promise<AuthResponse> {
-    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, data) as unknown as AuthResponse;
+    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, data, { silent: true } as any) as unknown as AuthResponse;
   },
 
   async logout(): Promise<void> {
@@ -18,7 +18,8 @@ export const authService = {
   async verifyEmail(code: number): Promise<void> {
     return apiClient.get(API_ENDPOINTS.AUTH.VERIFY_EMAIL, {
       params: { code },
-    }) as unknown as void;
+      silent: true,
+    } as any) as unknown as void;
   },
 
   async forgotPassword(email: string): Promise<void> {
