@@ -36,6 +36,8 @@ export interface UpdateProfileRequest {
   city?: string;
   zaloLink?: string;
   imgUrl?: string;
+  bio?: string;
+  expertise?: string;
 }
 
 export interface User {
@@ -73,13 +75,44 @@ const REVERSE_ROLE_MAP: Record<number, UserRole> = {
   4: "STAFF",
 };
 
+const normalizeUser = (u: any): User => {
+  // Chuẩn hóa Status
+  const rawStatus = u.status ?? u.Status ?? u.isActive ?? u.IsActive;
+  let normalizedStatus: UserStatus = "LOCKED";
+  if (rawStatus === 1 || rawStatus === "1" || rawStatus === true || rawStatus === "ACTIVE" || rawStatus === "Active") {
+    normalizedStatus = "ACTIVE";
+  }
+
+  // Chuẩn hóa Role
+  const rawRole = u.role ?? u.Role;
+  let normalizedRole: UserRole = "STUDENT";
+  if (typeof rawRole === "number") {
+    normalizedRole = REVERSE_ROLE_MAP[rawRole] || "STUDENT";
+  } else if (typeof rawRole === "string") {
+    normalizedRole = rawRole.toUpperCase() as UserRole;
+  }
+
+  return {
+    id: u.id || u.Id || "",
+    fullName: u.fullName || u.FullName || u.userName || "N/A",
+    email: u.email || u.Email || "",
+    role: normalizedRole,
+    status: normalizedStatus,
+    avatar: u.avatar || u.Avatar || u.imgUrl || null,
+    phone: u.phone || u.Phone || "",
+    bio: u.bio || u.Bio || "",
+    expertise: u.expertise || u.Expertise || "",
+    createdAt: u.createdAt || u.CreatedAt || new Date().toISOString(),
+  };
+};
+
 export const userService = {
   // Lấy danh sách người dùng
   async getUsers(params?: UserFilterParams): Promise<{ data: User[]; total: number }> {
     const roleValue = params?.role && params.role !== "ALL" ? ROLE_MAP[params.role] : undefined;
     const statusValue = params?.status === "ACTIVE" ? 1 : params?.status === "LOCKED" ? 2 : undefined;
 
-    const res = (await apiClient.get(API_ENDPOINTS.ADMIN.USERS, {
+    const res = await apiClient.get<any>(API_ENDPOINTS.ADMIN.USERS, {
       params: {
         Search: params?.search,
         Role: roleValue,
@@ -87,78 +120,20 @@ export const userService = {
         PageIndex: params?.page ?? 1,
         PageSize: params?.limit ?? 100,
       },
-    })) as any;
-
-    // Chuẩn hóa dữ liệu từ Backend .NET
-    const rawData = res?.items || res?.data || (Array.isArray(res) ? res : []);
-    const data = rawData.map((u: any) => {
-      // Chuẩn hóa Status
-      const rawStatus = u.status ?? u.Status ?? u.isActive ?? u.IsActive;
-      let normalizedStatus: UserStatus = "LOCKED";
-      if (rawStatus === 1 || rawStatus === "1" || rawStatus === true || rawStatus === "ACTIVE" || rawStatus === "Active") {
-        normalizedStatus = "ACTIVE";
-      }
-
-      // Chuẩn hóa Role
-      const rawRole = u.role ?? u.Role;
-      let normalizedRole: UserRole = "STUDENT";
-      if (typeof rawRole === "number") {
-        normalizedRole = REVERSE_ROLE_MAP[rawRole] || "STUDENT";
-      } else if (typeof rawRole === "string") {
-        normalizedRole = rawRole.toUpperCase() as UserRole;
-      }
-
-      return {
-        id: u.id || u.Id || "",
-        fullName: u.fullName || u.FullName || u.userName || "N/A",
-        email: u.email || u.Email || "",
-        role: normalizedRole,
-        status: normalizedStatus,
-        avatar: u.avatar || u.Avatar || u.imgUrl || null,
-        phone: u.phone || u.Phone || "",
-        bio: u.bio || u.Bio || "",
-        expertise: u.expertise || u.Expertise || "",
-        createdAt: u.createdAt || u.CreatedAt || new Date().toISOString(),
-      };
     });
+
+    const rawData = res?.items || (Array.isArray(res) ? res : []);
+    const data = rawData.map(normalizeUser);
 
     return {
       data,
-      total: Number(res?.totalCount ?? res?.total ?? data.length),
+      total: Number(res?.totalCount || data.length),
     };
   },
 
   async getById(id: string): Promise<User> {
-    const res = (await apiClient.get(`${API_ENDPOINTS.ADMIN.USERS}/${id}`)) as any;
-    const u = res.data || res;
-    
-    // Reuse normalization logic
-    const rawStatus = u.status ?? u.Status ?? u.isActive ?? u.IsActive;
-    let normalizedStatus: UserStatus = "LOCKED";
-    if (rawStatus === 1 || rawStatus === "1" || rawStatus === true || rawStatus === "ACTIVE" || rawStatus === "Active") {
-      normalizedStatus = "ACTIVE";
-    }
-
-    const rawRole = u.role ?? u.Role;
-    let normalizedRole: UserRole = "STUDENT";
-    if (typeof rawRole === "number") {
-      normalizedRole = REVERSE_ROLE_MAP[rawRole] || "STUDENT";
-    } else if (typeof rawRole === "string") {
-      normalizedRole = rawRole.toUpperCase() as UserRole;
-    }
-
-    return {
-      id: u.id || u.Id || "",
-      fullName: u.fullName || u.FullName || u.userName || "N/A",
-      email: u.email || u.Email || "",
-      role: normalizedRole,
-      status: normalizedStatus,
-      avatar: u.avatar || u.Avatar || u.imgUrl || null,
-      phone: u.phone || u.Phone || "",
-      bio: u.bio || u.Bio || "",
-      expertise: u.expertise || u.Expertise || "",
-      createdAt: u.createdAt || u.CreatedAt || new Date().toISOString(),
-    };
+    const res = await apiClient.get<any>(`${API_ENDPOINTS.ADMIN.USERS}/${id}`);
+    return normalizeUser(res);
   },
 
   // Thay đổi trạng thái tài khoản
@@ -198,50 +173,20 @@ export const userService = {
     let endpoint = API_ENDPOINTS.AUTH.REGISTER;
     if (data.role === "LECTURER") {
       endpoint = API_ENDPOINTS.AUTH.REGISTER_LECTURER;
-      (payload as any).expertise = data.expertise || "";
-      (payload as any).bio = data.bio || "";
     }
 
-    const res = (await apiClient.post(endpoint, payload)) as any;
+    const res = await apiClient.post<any>(endpoint, { request: payload });
     return res;
   },
 
   // Profile methods
   async getProfile(): Promise<User> {
-    const res = (await apiClient.get(API_ENDPOINTS.USER.PROFILE)) as any;
-    const u = res.data || res;
-    
-    // Reuse normalization logic
-    const rawStatus = u.status ?? u.Status ?? u.isActive ?? u.IsActive;
-    let normalizedStatus: UserStatus = "LOCKED";
-    if (rawStatus === 1 || rawStatus === "1" || rawStatus === true || rawStatus === "ACTIVE" || rawStatus === "Active") {
-      normalizedStatus = "ACTIVE";
-    }
-
-    const rawRole = u.role ?? u.Role;
-    let normalizedRole: UserRole = "STUDENT";
-    if (typeof rawRole === "number") {
-      normalizedRole = REVERSE_ROLE_MAP[rawRole] || "STUDENT";
-    } else if (typeof rawRole === "string") {
-      normalizedRole = rawRole.toUpperCase() as UserRole;
-    }
-
-    return {
-      id: u.id || u.Id || "",
-      fullName: u.fullName || u.FullName || u.userName || "N/A",
-      email: u.email || u.Email || "",
-      role: normalizedRole,
-      status: normalizedStatus,
-      avatar: u.avatar || u.Avatar || u.imgUrl || null,
-      phone: u.phone || u.Phone || "",
-      bio: u.bio || u.Bio || "",
-      expertise: u.expertise || u.Expertise || "",
-      createdAt: u.createdAt || u.CreatedAt || new Date().toISOString(),
-    };
+    const res = await apiClient.get<any>(API_ENDPOINTS.USER.PROFILE);
+    return normalizeUser(res);
   },
 
-  async updateProfile(data: any): Promise<void> {
-    await apiClient.post(API_ENDPOINTS.USER.UPDATE, data);
+  async updateProfile(data: UpdateProfileRequest): Promise<void> {
+    await apiClient.post(API_ENDPOINTS.USER.UPDATE_PROFILE, data);
   },
 
   // Xóa người dùng

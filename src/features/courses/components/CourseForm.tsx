@@ -11,6 +11,7 @@ import { createCourseSchema } from "../schema";
 import type { CreateCoursePayload } from "../type";
 import { courseService } from "../services";
 import { userService } from "@/features/users/services";
+import { useAuthStore } from "@/features/auth/store";
 
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -33,6 +34,9 @@ export function CourseForm({ initialData, courseId, onSuccess, redirectPath }: C
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  const { userId, role } = useAuthStore();
+  const isLecturer = role === "LECTURER";
+
   const form = useForm<CreateCoursePayload>({
     resolver: zodResolver(createCourseSchema) as any,
     mode: "onChange",
@@ -46,7 +50,7 @@ export function CourseForm({ initialData, courseId, onSuccess, redirectPath }: C
       endAt: "",
       maxStudents: 30,
       academicYear: new Date().getFullYear(),
-      lecturerId: "",
+      lecturerId: isLecturer ? userId || "" : "",
     },
   });
 
@@ -80,7 +84,7 @@ export function CourseForm({ initialData, courseId, onSuccess, redirectPath }: C
     },
     onSuccess: async (res: any) => {
       const finalCourseId = courseId || res.courseId || res.id;
-      
+
       // If there's a new file, upload it AFTER the DB has recorded the course
       if (selectedFile && finalCourseId) {
         setIsUploading(true);
@@ -88,7 +92,7 @@ export function CourseForm({ initialData, courseId, onSuccess, redirectPath }: C
           const formData = new FormData();
           formData.append("file", selectedFile);
           formData.append("upload_preset", import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || "smart_center");
-          
+
           const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
           const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
             method: "POST",
@@ -98,9 +102,9 @@ export function CourseForm({ initialData, courseId, onSuccess, redirectPath }: C
           if (uploadRes.ok) {
             const uploadData = await uploadRes.json();
             // Update the course with the new image URL
-            await courseService.update(finalCourseId, { 
+            await courseService.update(finalCourseId, {
               ...form.getValues(),
-              imgUrl: uploadData.secure_url 
+              imgUrl: uploadData.secure_url,
             });
           }
         } catch (error) {
@@ -115,20 +119,24 @@ export function CourseForm({ initialData, courseId, onSuccess, redirectPath }: C
       queryClient.invalidateQueries({ queryKey: ["admin-course", finalCourseId] });
       queryClient.invalidateQueries({ queryKey: ["courses"] });
       queryClient.invalidateQueries({ queryKey: ["lecturer-courses"] });
-      
+
       toast.success(courseId ? "Cập nhật khóa học thành công!" : "Tạo khóa học thành công!");
       if (onSuccess) onSuccess();
       if (redirectPath) navigate(redirectPath);
-      else if (!onSuccess) navigate("/admin/courses");
+      else if (!onSuccess) {
+        if (isLecturer) navigate("/lecturer/courses");
+        else navigate("/admin/courses");
+      }
     },
     onError: (error: any) => {
       toast.error(`Lỗi: ${error.message || "Không thể lưu khóa học"}`);
     },
   });
-  
+
   const { data: lecturerData, isLoading: isLoadingLecturers } = useQuery({
     queryKey: ["lecturers"],
     queryFn: () => userService.getUsers({ role: "LECTURER", limit: 100 }),
+    enabled: !isLecturer,
   });
   const lecturers = lecturerData?.data || [];
 
@@ -143,20 +151,31 @@ export function CourseForm({ initialData, courseId, onSuccess, redirectPath }: C
   };
 
   const onSubmit = (data: CreateCoursePayload) => {
-    const payload: any = {
-      ...data,
-      maxStudents: data.maxStudents || 0,
-      academicYear: data.academicYear || new Date().getFullYear(),
-      isActive: true,
-    };
+    try {
+      const payload: any = {
+        ...data,
+        maxStudents: data.maxStudents || 0,
+        academicYear: data.academicYear || new Date().getFullYear(),
+        isActive: true,
+      };
 
-    if (data.startAt) payload.startAt = new Date(data.startAt).toISOString();
-    else delete payload.startAt;
+      if (data.startAt && data.startAt.trim() !== "") {
+        payload.startAt = new Date(data.startAt).toISOString();
+      } else {
+        delete payload.startAt;
+      }
 
-    if (data.endAt) payload.endAt = new Date(data.endAt).toISOString();
-    else delete payload.endAt;
+      if (data.endAt && data.endAt.trim() !== "") {
+        payload.endAt = new Date(data.endAt).toISOString();
+      } else {
+        delete payload.endAt;
+      }
 
-    mutation.mutate(payload);
+      mutation.mutate(payload);
+    } catch (error) {
+      console.error("Form submission error:", error);
+      toast.error("Đã có lỗi xảy ra khi chuẩn bị dữ liệu. Vui lòng kiểm tra lại ngày tháng.");
+    }
   };
 
   const onInvalid = () => {
@@ -178,18 +197,62 @@ export function CourseForm({ initialData, courseId, onSuccess, redirectPath }: C
             </AlertDescription>
           </Alert>
         )}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2 space-y-6">
-            <Card>
-              <CardContent className="pt-6 space-y-4">
+        <div className="max-w-[800px] mx-auto">
+          <Card className="border-none shadow-none bg-transparent">
+            <CardContent className="p-0 space-y-8">
+              {/* Media Section */}
+              <FormField
+                control={form.control}
+                name="imgUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-bold text-foreground/80">Ảnh bìa khóa học</FormLabel>
+                    <div className="border-2 border-dashed border-border rounded-3xl p-2 text-center hover:bg-muted/50 transition-all group overflow-hidden bg-muted/10">
+                      {field.value ? (
+                        <div className="relative aspect-[21/9] w-full">
+                          <img src={previewUrl || field.value} alt="Thumbnail" className="w-full h-full object-cover rounded-2xl" />
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-2xl backdrop-blur-[2px]">
+                            <label className="cursor-pointer text-white flex flex-col items-center gap-2 text-sm font-bold">
+                              <UploadCloud className="h-8 w-8 animate-bounce" />
+                              Thay đổi ảnh bìa
+                              <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                            </label>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer flex flex-col items-center justify-center aspect-[21/9] w-full gap-3 text-muted-foreground">
+                          {isUploading ? (
+                            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                          ) : (
+                            <>
+                              <div className="p-4 rounded-full bg-primary/10 text-primary">
+                                <ImageIcon className="h-10 w-10" />
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-sm font-bold text-foreground">Click để tải ảnh lên</p>
+                                <p className="text-xs italic">Kích thước gợi ý: 1200x500px</p>
+                              </div>
+                            </>
+                          )}
+                          <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                        </label>
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Information Section */}
+              <div className="space-y-6">
                 <FormField
                   control={form.control}
                   name="courseName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tên khóa học</FormLabel>
+                      <FormLabel className="text-base font-bold text-foreground/80">Tên khóa học</FormLabel>
                       <FormControl>
-                        <Input placeholder="Nhập tên khóa học..." {...field} />
+                        <Input placeholder="Ví dụ: Lập trình ReactJS từ cơ bản đến nâng cao" className="h-12 text-lg font-medium rounded-xl border-muted-foreground/20 focus:border-primary transition-all" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -201,11 +264,11 @@ export function CourseForm({ initialData, courseId, onSuccess, redirectPath }: C
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Mô tả chi tiết</FormLabel>
+                      <FormLabel className="text-base font-bold text-foreground/80">Mô tả chi tiết</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Mô tả nội dung khóa học..."
-                          className="min-h-[120px]"
+                          placeholder="Mô tả tóm tắt về mục tiêu và nội dung chính của khóa học..."
+                          className="min-h-[120px] resize-none rounded-xl border-muted-foreground/20 focus:border-primary transition-all text-base leading-relaxed"
                           {...field}
                           value={field.value || ""}
                         />
@@ -215,16 +278,17 @@ export function CourseForm({ initialData, courseId, onSuccess, redirectPath }: C
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
                     name="basePrice"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Giá bán (VNĐ)</FormLabel>
+                        <FormLabel className="text-base font-bold text-foreground/80">Giá bán (VNĐ)</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
+                            className="h-12 font-black text-xl text-primary rounded-xl border-muted-foreground/20 focus:border-primary"
                             value={field.value ?? 0}
                             onChange={(e) => field.onChange(Number(e.target.value))}
                           />
@@ -239,10 +303,11 @@ export function CourseForm({ initialData, courseId, onSuccess, redirectPath }: C
                     name="maxStudents"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Số học viên tối đa</FormLabel>
+                        <FormLabel className="text-base font-bold text-foreground/80">Số học viên tối đa</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
+                            className="h-12 font-bold text-lg rounded-xl border-muted-foreground/20 focus:border-primary"
                             value={field.value ?? 0}
                             onChange={(e) => field.onChange(Number(e.target.value))}
                           />
@@ -252,152 +317,147 @@ export function CourseForm({ initialData, courseId, onSuccess, redirectPath }: C
                     )}
                   />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
 
-          <div className="space-y-6">
-            <Card>
-              <CardContent className="pt-6 space-y-4">
-                <FormField
-                  control={form.control}
-                  name="imgUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ảnh bìa khóa học</FormLabel>
-                      <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:bg-muted/50 transition-colors">
-                        {field.value ? (
-                          <div className="relative group">
-                            <img src={previewUrl || field.value} alt="Thumbnail" className="w-full h-32 object-cover rounded-md" />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-md">
-                              <label className="cursor-pointer text-white flex items-center gap-2 text-sm font-medium">
-                                <UploadCloud className="h-4 w-4" />
-                                Thay đổi
-                                <input
-                                  type="file"
-                                  className="hidden"
-                                  accept="image/*"
-                                  onChange={handleFileChange}
-                                />
-                              </label>
-                            </div>
-                          </div>
-                        ) : (
-                          <label className="cursor-pointer flex flex-col items-center justify-center h-32 gap-2 text-muted-foreground">
-                            {isUploading ? (
-                              <Loader2 className="h-8 w-8 animate-spin" />
-                            ) : (
-                              <>
-                                <ImageIcon className="h-8 w-8" />
-                                <span className="text-sm">Click để tải ảnh lên</span>
-                              </>
-                            )}
-                            <input
-                              type="file"
-                              className="hidden"
-                              accept="image/*"
-                              onChange={handleFileChange}
-                            />
-                          </label>
-                        )}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="courseType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-bold text-foreground/80">Hình thức đào tạo</FormLabel>
+                        <Select
+                          onValueChange={(value) => field.onChange(Number(value) as 1 | 2)}
+                          value={String(field.value ?? 1)}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="h-12 rounded-xl border-muted-foreground/20 focus:border-primary">
+                              <SelectValue placeholder="Chọn hình thức" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="1">Học Online</SelectItem>
+                            <SelectItem value="2">Học Offline</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="courseType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Hình thức</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(Number(value) as 1 | 2)}
-                        value={String(field.value ?? 1)}
-                      >
+                  <FormField
+                    control={form.control}
+                    name="academicYear"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-bold text-foreground/80">Năm học</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Chọn hình thức" />
-                          </SelectTrigger>
+                          <Input
+                            type="number"
+                            className="h-12 font-medium rounded-xl border-muted-foreground/20 focus:border-primary"
+                            value={field.value ?? new Date().getFullYear()}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="1">Học Online</SelectItem>
-                          <SelectItem value="2">Học Offline tại trung tâm</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-                <FormField
-                  control={form.control}
-                  name="lecturerId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Giảng viên phụ trách</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value || ""}
-                        disabled={isLoadingLecturers}
-                      >
+                <div className="grid grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="startAt"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-bold text-foreground/80">Ngày bắt đầu</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={isLoadingLecturers ? "Đang tải..." : "Chọn giảng viên"} />
-                          </SelectTrigger>
+                          <Input
+                            type="date"
+                            className="h-12 font-medium rounded-xl border-muted-foreground/20 focus:border-primary"
+                            {...field}
+                            value={field.value || ""}
+                          />
                         </FormControl>
-                        <SelectContent>
-                          {lecturers.map((lecturer) => (
-                            <SelectItem key={lecturer.id} value={lecturer.id}>
-                              {lecturer.fullName} ({lecturer.email})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="academicYear"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Năm học</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          value={field.value ?? new Date().getFullYear()}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-          </div>
+                  <FormField
+                    control={form.control}
+                    name="endAt"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-bold text-foreground/80">Ngày kết thúc</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            className="h-12 font-medium rounded-xl border-muted-foreground/20 focus:border-primary"
+                            {...field}
+                            value={field.value || ""}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {!isLecturer && (
+                  <FormField
+                    control={form.control}
+                    name="lecturerId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-bold text-foreground/80">Giảng viên hướng dẫn</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""} disabled={isLoadingLecturers}>
+                          <FormControl>
+                            <SelectTrigger className="h-12 rounded-xl border-muted-foreground/20 focus:border-primary">
+                              <SelectValue placeholder={isLoadingLecturers ? "Đang tải danh sách..." : "Chọn giảng viên"} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {lecturers.map((lecturer) => (
+                              <SelectItem key={lecturer.id} value={lecturer.id}>
+                                {lecturer.fullName} ({lecturer.email})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="flex flex-col items-center gap-3 pt-8 border-t border-border/50">
+        <div className="flex flex-col items-center gap-4 pt-8 mt-8 border-t border-border/50">
           <Button 
             type="submit" 
             disabled={mutation.isPending || isUploading}
-            className="w-full h-12 rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:scale-[1.01] active:scale-95 font-bold text-base"
+            className="w-full h-14 rounded-2xl shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all hover:scale-[1.02] active:scale-95 font-black text-xl bg-gradient-to-r from-primary to-primary/80"
           >
-            {mutation.isPending && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-            {courseId ? "Lưu thay đổi" : "Tạo khóa học mới"}
+            {mutation.isPending && <Loader2 className="mr-3 h-6 w-6 animate-spin" />}
+            {courseId ? "CẬP NHẬT THÔNG TIN" : "XÁC NHẬN TẠO KHÓA HỌC"}
           </Button>
           <Button 
             type="button" 
             variant="ghost" 
-            className="text-muted-foreground hover:text-foreground"
-            onClick={() => (redirectPath ? navigate(redirectPath) : navigate("/admin/courses"))}
+            className="text-muted-foreground hover:text-foreground font-bold"
+            onClick={() => {
+              if (redirectPath) navigate(redirectPath);
+              else if (onSuccess) onSuccess();
+              else {
+                if (isLecturer) navigate("/lecturer/courses");
+                else navigate("/admin/courses");
+              }
+            }}
           >
-            Hủy bỏ và quay lại
+            Hủy và quay lại
           </Button>
         </div>
       </form>

@@ -9,6 +9,8 @@ import { getYouTubeEmbedUrl, isYouTubeUrl } from "@/lib/utils";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { ChevronLeft, Lock } from "lucide-react";
+import { Badge } from "@/shared/components/ui/badge";
+import { CommentSection } from "../components/CommentSection";
 import type { Course } from "@/features/courses/type";
 import type { Enrollment } from "@/features/courses/enrollmentService";
 
@@ -94,11 +96,6 @@ export default function CourseStudyingPage() {
     [sections],
   );
 
-  const lesson = useMemo(
-    () => allLessons.find((item: any) => item.id === lessonId),
-    [allLessons, lessonId],
-  );
-
   const isPurchased = useMemo(() => {
     if (!enrollments) return false;
     const currentCourseId = String(courseData?.courseId ?? id ?? "").trim().toLowerCase();
@@ -106,6 +103,18 @@ export default function CourseStudyingPage() {
 
     return enrollments.some((item) => String(item.courseId ?? "").trim().toLowerCase() === currentCourseId);
   }, [courseData?.courseId, enrollments, id]);
+
+  const lesson = useMemo(() => {
+    if (!lessonId && allLessons.length > 0) {
+      // Find first accessible lesson
+      const firstAccessible = allLessons.find((l: any) => l.isPreview || isPurchased) || allLessons[0];
+      if (firstAccessible) {
+        navigate(`/courses/${id}/study/${firstAccessible.id}`, { replace: true });
+        return firstAccessible;
+      }
+    }
+    return allLessons.find((item: any) => item.id === lessonId);
+  }, [allLessons, lessonId, id, navigate, isPurchased]);
 
   const canView = Boolean(lesson && (lesson.isPreview || isPurchased));
 
@@ -198,17 +207,22 @@ export default function CourseStudyingPage() {
               <CardContent>
                 <h2 className="text-xl font-semibold mb-3">Mô tả bài học</h2>
                 <p className="text-sm text-muted-foreground">
-                  {isPurchased
-                    ? "Bạn đã mở khoá toàn bộ nội dung bài học này."
-                    : lesson.isPreview
-                      ? "Đây là bài xem trước. Bạn có thể truy cập ngay cả khi chưa mua khóa học."
-                      : "Bài học này sẽ mở khi bạn mua khóa học."}
+                  {lesson.isPreview
+                    ? "Đây là bài xem trước. Bạn có thể truy cập ngay cả khi chưa mua khóa học."
+                    : "Bạn đã mở khoá bài học này."}
                 </p>
                 {courseData.description ? (
-                  <p className="mt-4 text-sm text-foreground/80">{courseData.description}</p>
-                ) : null}
+                  <p className="text-sm text-foreground/80 leading-relaxed">{courseData.description}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">Chưa có mô tả chi tiết cho bài học này.</p>
+                )}
               </CardContent>
             </Card>
+
+            {/* Discussion Section */}
+            <div className="mt-10 pt-10 border-t">
+              <CommentSection lessonId={lesson.id} />
+            </div>
           </section>
 
           <aside className="space-y-6">

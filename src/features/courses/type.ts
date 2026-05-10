@@ -1,5 +1,5 @@
 import * as z from "zod";
-import type { BaseFilterParams } from "@/shared/types";
+import type { BaseFilterParams, PaginatedList } from "@/shared/types";
 import { 
   courseSchema, 
   createCourseSchema, 
@@ -15,10 +15,14 @@ export type UpdateCoursePayload = z.infer<typeof updateCourseSchema>;
 
 export interface PublicCourseItem {
   id: string;
-  title: string;
-  mode: number;
-  price: number;
-  availableSlots: number;
+  courseName: string;
+  courseType: number;
+  basePrice: number;
+  maxStudents: number;
+  imgUrl?: string;
+  description?: string;
+  categoryId?: string;
+  lecturerName?: string;
 }
 
 export interface PublicCourseQueryParams {
@@ -32,15 +36,7 @@ export interface PublicCourseQueryParams {
   PageSize?: number;
 }
 
-export interface PublicCourseListResult {
-  items: PublicCourseItem[];
-  pageIndex: number;
-  pageSize: number;
-  totalCount: number;
-  totalPages: number;
-  hasPreviousPage: boolean;
-  hasNextPage: boolean;
-}
+export type PublicCourseListResult = PaginatedList<PublicCourseItem>;
 
 export interface CourseFilterParams extends BaseFilterParams {
   CategoryId?: string;

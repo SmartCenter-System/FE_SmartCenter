@@ -8,6 +8,6 @@ export const profileService = {
   },
 
   async updateProfile(data: UpdateProfileRequest): Promise<UserProfile> {
-    return apiClient.put(API_ENDPOINTS.USER.UPDATE_PROFILE, data) as unknown as UserProfile;
+    return apiClient.post(API_ENDPOINTS.USER.UPDATE_PROFILE, data) as unknown as UserProfile;
   },
 };
