@@ -8,6 +8,7 @@ import NotFoundPage from "@/shared/pages/error/NotFoundPage";
 import UnauthorizedPage from "@/shared/pages/error/UnauthorizedPage";
 import ForgotPasswordPage from "@/features/auth/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/features/auth/pages/ResetPasswordPage";
+import VerifyEmailPage from "@/features/auth/pages/VerifyEmailPage";
 
 // ─── Landing / Public Pages ───────────────────────────────────────────────────
 import HomePage from "@/features/landing/pages/HomePage";
@@ -58,6 +59,7 @@ const router = createBrowserRouter([
       { path: "register", element: <RegisterPage /> },
       { path: "forgot-password", element: <ForgotPasswordPage /> },
       { path: "reset-password", element: <ResetPasswordPage /> },
+      { path: "verify-email", element: <VerifyEmailPage /> },
       { path: "courses", element: <ExploreCoursePage /> },
       { path: "courses/:id", element: <CourseDetailPage /> },
       { path: "courses/:id/study/:lessonId", element: <CourseStudyingPage /> },

@@ -106,22 +106,20 @@ apiClient.interceptors.response.use(
     const responseData = error.response?.data;
 
     if (responseData) {
-      // Trường hợp 1: Có message trực tiếp
       if (responseData.message) {
         message = responseData.message;
-      }
-      // Trường hợp 2: Lỗi Validation của .NET (Object errors)
-      else if (responseData.errors) {
+      } else if (responseData.errors) {
         const errorList = Object.values(responseData.errors).flat();
         message = errorList.length > 0 ? String(errorList[0]) : "Dữ liệu không hợp lệ";
-      }
-      // Trường hợp 3: String error trực tiếp
-      else if (typeof responseData === "string") {
+      } else if (typeof responseData === "string" && !responseData.includes("<!DOCTYPE")) {
         message = responseData;
       }
     } else if (error.request) {
       message = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra internet.";
     }
+
+    // Gán message đã được xử lý vào error object để hooks có thể sử dụng mà không bị lỗi status code
+    (error as any).userMessage = message;
 
     const isLogoutEndpoint = originalRequest.url?.includes("/auth/logout");
     const isSilent = (originalRequest as any).silent === true;

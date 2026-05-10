@@ -6,7 +6,7 @@ import { authService } from "@/features/services";
 
 export function useLogout() {
   const navigate = useNavigate();
-  const { clearAuth } = useAuthStore();
+  const clearAuth = useAuthStore((state) => state.clearAuth);
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, void>({

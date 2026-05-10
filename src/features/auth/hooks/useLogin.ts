@@ -62,7 +62,7 @@ function splitFullName(fullname?: string | null) {
 export function useLogin() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setAuth } = useAuthStore();
+  const setAuth = useAuthStore((state) => state.setAuth);
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? "/";
 
@@ -155,6 +155,9 @@ export function useLogin() {
             break;
         }
       }
+    },
+    onError: (error: any) => {
+      toast.error(error.userMessage || "Đăng nhập thất bại");
     },
   });
 }
