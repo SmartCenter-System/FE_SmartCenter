@@ -93,6 +93,9 @@ export default function CourseContentEditor() {
     }),
   );
 
+  const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
+  const [activeSection, setActiveSection] = useState<Section | null>(null);
+
   const { data: exams } = useExams(courseId!);
   const currentLessonExam = (exams as any[])?.find((e) => e.lessonId === activeLesson?.id);
   const createExamMutation = useCreateExam();
@@ -104,9 +107,6 @@ export default function CourseContentEditor() {
   const createLessonMutation = useCreateLesson();
   const updateLessonMutation = useUpdateLesson();
   const deleteLessonMutation = useDeleteLesson();
-
-  const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
-  const [activeSection, setActiveSection] = useState<Section | null>(null);
 
   const handleSelectLesson = (section: Section, lesson: Lesson) => {
     setActiveSection(section);

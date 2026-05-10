@@ -96,18 +96,6 @@ export default function CourseStudyingPage() {
     [sections],
   );
 
-  const lesson = useMemo(() => {
-    if (!lessonId && allLessons.length > 0) {
-      // Find first accessible lesson
-      const firstAccessible = allLessons.find(l => l.isPreview || isPurchased) || allLessons[0];
-      if (firstAccessible) {
-        navigate(`/courses/${id}/study/${firstAccessible.id}`, { replace: true });
-        return firstAccessible;
-      }
-    }
-    return allLessons.find((item: any) => item.id === lessonId);
-  }, [allLessons, lessonId, id, navigate, isPurchased]);
-
   const isPurchased = useMemo(() => {
     if (!enrollments) return false;
     const currentCourseId = String(courseData?.courseId ?? id ?? "").trim().toLowerCase();
@@ -115,6 +103,18 @@ export default function CourseStudyingPage() {
 
     return enrollments.some((item) => String(item.courseId ?? "").trim().toLowerCase() === currentCourseId);
   }, [courseData?.courseId, enrollments, id]);
+
+  const lesson = useMemo(() => {
+    if (!lessonId && allLessons.length > 0) {
+      // Find first accessible lesson
+      const firstAccessible = allLessons.find((l: any) => l.isPreview || isPurchased) || allLessons[0];
+      if (firstAccessible) {
+        navigate(`/courses/${id}/study/${firstAccessible.id}`, { replace: true });
+        return firstAccessible;
+      }
+    }
+    return allLessons.find((item: any) => item.id === lessonId);
+  }, [allLessons, lessonId, id, navigate, isPurchased]);
 
   const canView = Boolean(lesson && (lesson.isPreview || isPurchased));
 
