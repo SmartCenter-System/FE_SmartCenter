@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Check, Filter, Search, Users, Wifi, Building2, Loader2, CircleX, Link } from "lucide-react";
 import Header from "@/shared/components/common/Header";
+import { useCategories } from "../hooks/useCategories";
 import {
   useApplyPublicCourseFiltersMutation,
   usePublicCourses,
@@ -52,12 +53,15 @@ export default function ExploreCoursePage() {
   const [mode, setMode] = useState<number | undefined>(undefined);
   const [minPriceInput, setMinPriceInput] = useState("");
   const [maxPriceInput, setMaxPriceInput] = useState("");
+  const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [pageIndex, setPageIndex] = useState(1);
   const [filters, setFilters] = useState<PublicCourseFilterState>({ keyword: "" });
 
+  const { data: categories } = useCategories();
+
   const queryParams = useMemo(
     () => ({
-      Keyword: filters.keyword || undefined,
+      CategoryId: filters.categoryId,
       Mode: filters.mode,
       MinPrice: filters.minPrice,
       MaxPrice: filters.maxPrice,
@@ -75,9 +79,10 @@ export default function ExploreCoursePage() {
   });
 
   const courses = data?.items ?? [];
-  const totalPages = data?.totalPages ?? 1;
-  const canGoPrevious = (data?.hasPreviousPage ?? false) && pageIndex > 1;
-  const canGoNext = (data?.hasNextPage ?? false) && pageIndex < totalPages;
+  const totalCount = data?.total ?? 0;
+  const totalPages = Math.ceil(totalCount / DEFAULT_PAGE_SIZE) || 1;
+  const canGoPrevious = pageIndex > 1;
+  const canGoNext = pageIndex < totalPages;
 
   const paginationItems = useMemo(() => createPaginationItems(totalPages, pageIndex), [pageIndex, totalPages]);
 
@@ -88,6 +93,7 @@ export default function ExploreCoursePage() {
     applyFilterMutation({
       keyword: searchInput.trim(),
       mode,
+      categoryId,
       minPrice: Number.isFinite(minPrice) ? minPrice : undefined,
       maxPrice: Number.isFinite(maxPrice) ? maxPrice : undefined,
     });
@@ -96,9 +102,10 @@ export default function ExploreCoursePage() {
   const resetFilters = () => {
     setSearchInput("");
     setMode(undefined);
+    setCategoryId(undefined);
     setMinPriceInput("");
     setMaxPriceInput("");
-    applyFilterMutation({ keyword: "", mode: undefined, minPrice: undefined, maxPrice: undefined });
+    applyFilterMutation({ keyword: "", mode: undefined, categoryId: undefined, minPrice: undefined, maxPrice: undefined });
   };
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -158,6 +165,34 @@ export default function ExploreCoursePage() {
                       />
                       <span>Offline</span>
                     </label>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="text-sm font-semibold text-foreground">Danh mục</div>
+                  <div className="space-y-2">
+                    <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                      <input
+                        type="radio"
+                        name="category"
+                        checked={categoryId === undefined}
+                        onChange={() => setCategoryId(undefined)}
+                        className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Tất cả</span>
+                    </label>
+                    {categories?.map((cat) => (
+                      <label key={cat.id} className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                        <input
+                          type="radio"
+                          name="category"
+                          checked={categoryId === cat.id}
+                          onChange={() => setCategoryId(cat.id)}
+                          className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span>{cat.name}</span>
+                      </label>
+                    ))}
                   </div>
                 </div>
 
@@ -236,7 +271,7 @@ export default function ExploreCoursePage() {
               <div className="flex items-center justify-between text-sm text-slate-500">
                 <div>
                   Hiển thị <span className="font-semibold text-slate-700">{courses.length}</span> khóa học trên tổng{" "}
-                  <span className="font-semibold text-slate-700">{data?.totalCount ?? 0}</span>
+                  <span className="font-semibold text-slate-700">{totalCount}</span>
                 </div>
                 {isFetching && !isLoading ? (
                   <div className="inline-flex items-center gap-2 text-indigo-700">
@@ -276,16 +311,16 @@ export default function ExploreCoursePage() {
 
                 {!isLoading && !isError
                   ? courses.map((course: PublicCourseItem) => {
-                      const ModeIcon = getModeIcon(course.courseType);
+                      const ModeIcon = getModeIcon(course.mode);
 
                       return (
                         <article
                           key={course.id}
-                          onClick={() => handleOpenCourse(course.id)}
+                          onClick={() => navigate(`/courses/${course.id}`)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              handleOpenCourse(course.id);
+                              navigate(`/courses/${course.id}`);
                             }
                           }}
                           role="button"
@@ -295,30 +330,26 @@ export default function ExploreCoursePage() {
                           <div className="relative bg-gradient-to-br from-indigo-50 to-cyan-50 p-5">
                             <span className="inline-flex items-center gap-2 rounded-full bg-indigo-700 px-3 py-1 text-xs font-semibold text-white shadow-sm">
                               <ModeIcon className="h-3.5 w-3.5" />
-                              {getModeLabel(course.courseType)}
+                              {getModeLabel(course.mode)}
                             </span>
                             <h3 className="mt-4 min-h-14 text-base font-semibold leading-7 text-slate-800">
-                              {course.courseName}
+                              {course.title}
                             </h3>
-                          </div>
-
-                          <div className="space-y-4 p-5">
-                            <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                              <div className="flex items-center gap-2">
-                                <Users className="h-4 w-4" />
-                                <span>Số học viên tối đa</span>
+                            <div className="mt-6 flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 text-sm font-medium text-slate-600">
+                                <Users className="h-4 w-4 text-slate-400" />
+                                <span>{course.availableSlots} chỗ</span>
                               </div>
-                              <span className="font-semibold text-slate-800">{course.maxStudents}</span>
-                            </div>
-
-                            <div className="flex items-end justify-between gap-4">
-                              <div>
-                                <p className="text-xs uppercase tracking-wide text-slate-400">Học phí</p>
-                                <p className="text-xl font-bold tracking-tight text-indigo-700">
-                                  {formatPrice(course.basePrice)}
+                              <div className="text-right">
+                                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Học phí</p>
+                                <p className="text-lg font-bold text-indigo-700">
+                                  {formatPrice(course.price)}
                                 </p>
                               </div>
-                              <button className="inline-flex items-center gap-2 rounded-xl bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-yellow-400 hover:text-blue-950">
+                            </div>
+
+                            <div className="mt-4">
+                              <button className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-yellow-400 hover:text-blue-950">
                                 Xem chi tiết
                                 <ArrowRight className="h-4 w-4" />
                               </button>

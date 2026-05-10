@@ -15,14 +15,13 @@ export type UpdateCoursePayload = z.infer<typeof updateCourseSchema>;
 
 export interface PublicCourseItem {
   id: string;
-  courseName: string;
-  courseType: number;
-  basePrice: number;
-  maxStudents: number;
-  imgUrl?: string;
-  description?: string;
-  categoryId?: string;
-  lecturerName?: string;
+  title: string;
+  mode: number;
+  price: number;
+  availableSlots: number;
+  imgUrl: string | null;
+  cateId: string;
+  cateName: string;
 }
 
 export interface PublicCourseQueryParams {
@@ -36,7 +35,10 @@ export interface PublicCourseQueryParams {
   PageSize?: number;
 }
 
-export type PublicCourseListResult = PaginatedList<PublicCourseItem>;
+export interface PublicCourseListResult {
+  items: PublicCourseItem[];
+  total: number;
+}
 
 export interface CourseFilterParams extends BaseFilterParams {
   CategoryId?: string;

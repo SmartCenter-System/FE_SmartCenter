@@ -44,3 +44,10 @@ export const authService = {
     return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.REFRESH, { refreshToken }) as unknown as AuthResponse;
   },
 };
+
+export const categoryService = {
+  async getAll() {
+    const response = await apiClient.get<any>(API_ENDPOINTS.CATEGORY.GET_ALL);
+    return (response.items || response) as Array<{ id: string; name: string }>;
+  },
+};
