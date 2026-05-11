@@ -89,16 +89,14 @@ export default function CourseDetailPage() {
         return [];
       }
 
-      // Tối ưu hóa: Nếu courseData đã có sẵn bài học và đã mua, hoặc chỉ cần lấy preview
+      // Tối ưu hóa: Nếu CHƯA MUA và courseData đã có sẵn bài học, dùng luôn để hiện tiêu đề cho nhanh
       const hasLessons = courseData.sections.some(s => Array.isArray(s.lessons) && s.lessons.length > 0);
-      
-      // Nếu đã có sẵn dữ liệu và đã mua, hoặc chưa mua nhưng chỉ cần tiêu đề/preview
-      if (hasLessons) {
+      if (!isPurchased && hasLessons) {
         return courseData.sections.map(section => ({
           ...section,
           lessons: (Array.isArray(section.lessons) ? section.lessons : []).map(lesson => {
             // Nếu chưa mua, chỉ giữ lại videoUrl của bài Preview
-            if (!isPurchased && !lesson.isPreview) {
+            if (!lesson.isPreview) {
               return { ...lesson, videoUrl: undefined };
             }
             return lesson;
@@ -106,13 +104,14 @@ export default function CourseDetailPage() {
         }));
       }
 
+      // Nếu ĐÃ MUA: Bắt buộc phải gọi API lẻ để lấy đầy đủ Link Video và tài liệu (vì API getById thường ẩn các thông tin này)
       const sectionResults = await Promise.all(
         courseData.sections.map(async (section) => {
           const rawLessons = await lessonService.getAll(courseData.courseId, section.id);
           return {
             ...section,
             lessons: (Array.isArray(rawLessons) ? rawLessons : []).map(lesson => {
-              // Bảo mật: Nếu chưa mua, xóa videoUrl của các bài không phải Preview
+              // Bảo mật: Nếu chưa mua (phòng hờ), xóa videoUrl của các bài không phải Preview
               if (!isPurchased && !lesson.isPreview) {
                 return { ...lesson, videoUrl: undefined };
               }
