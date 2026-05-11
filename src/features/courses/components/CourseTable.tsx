@@ -113,10 +113,10 @@ export function CourseTable({ courses, isLoading, onDeleteSuccess }: CourseTable
                         </div>
                       )}
                     </div>
-                    <div className="flex flex-col min-w-0 max-w-[200px] lg:max-w-[300px]">
-                      <span className="font-bold text-sm text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                    <div className="flex flex-col min-w-0 max-w-[400px] lg:max-w-[550px]">
+                      <h3 className="font-bold text-sm leading-tight line-clamp-2 min-h-[2.5rem] group-hover:text-primary transition-colors pt-1">
                         {course.courseName}
-                      </span>
+                      </h3>
                       <span className="text-[10px] text-muted-foreground font-mono bg-muted/50 px-1.5 py-0.5 rounded w-fit mt-1">
                         ID: {course.courseId.slice(0, 8)}
                       </span>

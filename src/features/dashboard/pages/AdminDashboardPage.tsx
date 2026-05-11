@@ -21,33 +21,33 @@ export default function AdminDashboardPage() {
   const stats = [
     {
       label: "Tổng học viên",
-      value: apiData ? (apiData.totalStudents || 0).toLocaleString() : "2,543",
+      value: apiData ? (apiData.totalStudents || 0).toLocaleString() : "0",
       icon: Users,
-      change: "+12.5%",
+      change: "Học viên",
       color: "text-blue-600 bg-blue-100",
       trend: "up",
     },
     {
       label: "Doanh thu tháng",
-      value: apiData ? `${((apiData.monthlyRevenue || 0) / 1000000).toFixed(1)}M` : "450.2M",
+      value: apiData ? (apiData.monthlyRevenue || 0).toLocaleString("vi-VN") + "đ" : "0đ",
       icon: DollarSign,
-      change: "+8.2%",
+      change: "Doanh thu",
       color: "text-green-600 bg-green-100",
       trend: "up",
     },
     {
       label: "Khóa học đang mở",
-      value: apiData ? (apiData.activeCourses || 0).toString() : "48",
+      value: apiData ? (apiData.activeCourses || 0).toString() : "0",
       icon: BookOpen,
-      change: "+2",
+      change: "Khóa học",
       color: "text-purple-600 bg-purple-100",
       trend: "up",
     },
     {
       label: "Yêu cầu tư vấn",
-      value: apiData ? (apiData.pendingConsultations || 0).toString() : "14",
+      value: apiData ? (apiData.pendingConsultations || 0).toString() : "0",
       icon: Clock,
-      change: "-3",
+      change: "Đang chờ",
       color: "text-orange-600 bg-orange-100",
       trend: "down",
     },
@@ -59,11 +59,7 @@ export default function AdminDashboardPage() {
     course: order.courseName,
     amount: new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(order.amount),
     status: order.status.toUpperCase(),
-  })) || [
-    { id: "ORD-001", student: "Nguyễn Văn A", course: "Toán 12 - Ôn thi", amount: "1.200.000đ", status: "SUCCESS" },
-    { id: "ORD-002", student: "Trần Thị B", course: "IELTS 6.5+", amount: "4.500.000đ", status: "PENDING" },
-    { id: "ORD-003", student: "Lê Văn C", course: "Vật lý 12", amount: "1.100.000đ", status: "SUCCESS" },
-  ];
+  })) || [];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -103,28 +99,30 @@ export default function AdminDashboardPage() {
                 </Card>
               ))
           : stats.map((stat, i) => (
-              <Card key={i} className="border-none shadow-sm hover:shadow-lg transition-all duration-300 group">
+              <Card key={i} className="border-none shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group rounded-[32px] bg-background border border-border/50">
                 <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className={`p-3 rounded-2xl ${stat.color} transition-transform group-hover:scale-110`}>
-                      <stat.icon className="h-6 w-6" />
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                      <div className={`p-3 rounded-2xl ${stat.color} transition-transform group-hover:scale-110`}>
+                        <stat.icon className="h-6 w-6" />
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] font-black uppercase tracking-wider border-none ${stat.trend === "up" ? "text-green-600 bg-green-50" : "text-red-600 bg-red-50"}`}
+                      >
+                        {stat.trend === "up" ? (
+                          <ArrowUpRight className="h-3 w-3 mr-1" />
+                        ) : (
+                          <Clock className="h-3 w-3 mr-1" />
+                        )}
+                        {stat.change}
+                      </Badge>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={`text-xs font-bold border-none ${stat.trend === "up" ? "text-green-600 bg-green-50" : "text-red-600 bg-red-50"}`}
-                    >
-                      {stat.trend === "up" ? (
-                        <ArrowUpRight className="h-3 w-3 mr-1" />
-                      ) : (
-                        <Clock className="h-3 w-3 mr-1" />
-                      )}
-                      {stat.change}
-                    </Badge>
-                  </div>
-                  <div className="mt-5">
-                    <p className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">{stat.label}</p>
-                    <div className="flex items-baseline gap-2 mt-1">
-                      <h3 className="text-3xl font-black">{stat.value}</h3>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mb-1">{stat.label}</p>
+                      <h3 className="text-3xl font-black tracking-tight whitespace-nowrap overflow-visible">
+                        {stat.value}
+                      </h3>
                     </div>
                   </div>
                 </CardContent>
@@ -159,7 +157,11 @@ export default function AdminDashboardPage() {
                         </div>
                       </div>
                     ))
-                : recentOrders.map((order, i) => (
+                : recentOrders.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-muted-foreground italic text-sm">
+                       Chưa có giao dịch nào được ghi nhận.
+                    </div>
+                  ) : recentOrders.map((order, i) => (
                     <div
                       key={i}
                       className="flex items-center justify-between p-4 rounded-xl border border-border/50 hover:bg-muted/30 transition-colors cursor-pointer"
@@ -176,10 +178,10 @@ export default function AdminDashboardPage() {
                       <div className="text-right">
                         <p className="font-bold text-sm">{order.amount}</p>
                         <Badge
-                          variant={order.status === "SUCCESS" ? "default" : "secondary"}
+                          variant={["SUCCESS", "PAID"].includes(order.status) ? "default" : "secondary"}
                           className="text-[10px] h-5"
                         >
-                          {order.status}
+                          {order.status === "PAID" ? "THÀNH CÔNG" : order.status}
                         </Badge>
                       </div>
                     </div>

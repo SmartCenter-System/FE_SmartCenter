@@ -22,15 +22,20 @@ interface ProfileFormValues {
   expertise: string;
 }
 
+import { useAuthStore } from "@/features/auth/store";
+
 export default function ProfileSettings() {
   const { userId } = useParams();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { userId: authUserId } = useAuthStore();
+  
   // 1. Fetch Profile using useQuery
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
-    queryKey: ["user-profile", userId],
+    queryKey: ["users", "profile", userId || authUserId],
     queryFn: () => userId ? userService.getById(userId) : userService.getProfile(),
+    enabled: !!userId || !!authUserId,
   });
 
   // 2. Setup Form with react-hook-form

@@ -15,43 +15,45 @@ import { Badge } from "@/shared/components/ui/badge";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { consultationService } from "../services/consultationService";
+import { consultationService } from "@/features/consultation/service";
 
 export default function StaffDashboardPage() {
   const { data: consultations, isLoading } = useQuery({
-    queryKey: ["consultations"],
+    queryKey: ["consultations", "list"],
     queryFn: () => consultationService.getConsultations(),
   });
+  
+  const leads = consultations?.items || [];
   
   const stats = [
     { 
       label: "Leads mới", 
-      value: consultations?.filter(c => c.status === "PENDING").length.toString() || "0", 
+      value: leads.filter((c: any) => c.status === "PENDING").length.toString() || "0", 
       icon: MessageSquare, 
       color: "text-blue-600 bg-blue-50 border-blue-100" 
     },
     { 
-      label: "Đã liên hệ", 
-      value: consultations?.filter(c => c.status === "CONTACTED").length.toString() || "0", 
+      label: "Đã xử lý", 
+      value: leads.filter((c: any) => c.status === "PROCESSED").length.toString() || "0", 
       icon: PhoneCall, 
-      color: "text-orange-600 bg-orange-50 border-orange-100" 
-    },
-    { 
-      label: "Thành công", 
-      value: consultations?.filter(c => c.status === "COMPLETED").length.toString() || "0", 
-      icon: UserPlus, 
       color: "text-green-600 bg-green-50 border-green-100" 
     },
     { 
+      label: "Đã hủy", 
+      value: leads.filter((c: any) => c.status === "CANCELLED").length.toString() || "0", 
+      icon: UserPlus, 
+      color: "text-red-600 bg-red-50 border-red-100" 
+    },
+    { 
       label: "Tổng yêu cầu", 
-      value: consultations?.length.toString() || "0", 
+      value: leads.length.toString() || "0", 
       icon: Calendar, 
       color: "text-purple-600 bg-purple-50 border-purple-100" 
     },
   ];
 
-  const pendingLeads = (consultations || [])
-    .filter(c => c.status === "PENDING")
+  const pendingLeads = leads
+    .filter((c: any) => c.status === "PENDING")
     .slice(0, 5);
 
   return (
@@ -124,16 +126,16 @@ export default function StaffDashboardPage() {
                   Không có yêu cầu mới nào.
                 </div>
               ) : (
-                pendingLeads.map((lead, i) => (
+                (consultations?.items || []).filter((l: any) => l.status === "PENDING").map((lead: any, i: number) => (
                   <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-border/50 hover:bg-muted/30 transition-colors cursor-pointer">
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 rounded-full bg-primary/5 flex items-center justify-center font-bold text-primary text-xs">
-                        {lead.customerName.charAt(0)}
+                        {lead.fullName.charAt(0)}
                       </div>
                       <div>
-                        <p className="font-semibold text-sm">{lead.customerName}</p>
+                        <p className="font-semibold text-sm">{lead.fullName}</p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Badge variant="outline" className="text-[10px] h-4 px-1">{lead.courseInterest}</Badge>
+                          <Badge variant="outline" className="text-[10px] h-4 px-1">{lead.courseName}</Badge>
                           <span>{lead.phone}</span>
                         </div>
                       </div>

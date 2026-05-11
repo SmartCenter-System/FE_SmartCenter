@@ -1,6 +1,7 @@
 import { apiClient } from "@/lib/axios";
 import type { AuthResponse, LoginRequest, RegisterRequest } from "./auth/type";
 import { API_ENDPOINTS } from "@/shared/constants";
+import { useAuthStore } from "./auth/store";
 
 export const authService = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
@@ -12,7 +13,8 @@ export const authService = {
   },
 
   async logout(): Promise<void> {
-    return apiClient.post(API_ENDPOINTS.AUTH.LOGOUT) as unknown as void;
+    const refreshToken = useAuthStore.getState().refreshToken;
+    return apiClient.post(API_ENDPOINTS.AUTH.LOGOUT, { refreshToken }) as unknown as void;
   },
 
   async verifyEmail(code: number): Promise<void> {

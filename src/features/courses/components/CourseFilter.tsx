@@ -14,9 +14,18 @@ interface CourseFilterProps {
   onSearchChange: (val: string) => void;
   format: CourseType | "ALL";
   onFormatChange: (val: CourseType | "ALL") => void;
+  viewMode: "table" | "grid";
+  onViewModeChange: (mode: "table" | "grid") => void;
 }
 
-export function CourseFilter({ search, onSearchChange, format, onFormatChange }: CourseFilterProps) {
+export function CourseFilter({ 
+  search, 
+  onSearchChange, 
+  format, 
+  onFormatChange,
+  viewMode,
+  onViewModeChange
+}: CourseFilterProps) {
   return (
     <div className="flex flex-col md:flex-row items-center gap-4 p-5 bg-card border-b">
       <div className="relative flex-1 w-full">
@@ -50,10 +59,16 @@ export function CourseFilter({ search, onSearchChange, format, onFormatChange }:
         </div>
 
         <div className="flex items-center border rounded-lg p-1 bg-muted/30 h-11">
-          <button className="p-1.5 rounded-md bg-white shadow-sm text-primary">
+          <button 
+            onClick={() => onViewModeChange("table")}
+            className={`p-1.5 rounded-md transition-all ${viewMode === "table" ? "bg-white shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"}`}
+          >
             <List className="h-4 w-4" />
           </button>
-          <button className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors">
+          <button 
+            onClick={() => onViewModeChange("grid")}
+            className={`p-1.5 rounded-md transition-all ${viewMode === "grid" ? "bg-white shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"}`}
+          >
             <LayoutGrid className="h-4 w-4" />
           </button>
         </div>

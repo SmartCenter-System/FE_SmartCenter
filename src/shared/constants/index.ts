@@ -135,7 +135,9 @@ export const API_ENDPOINTS = {
    * ConsultationRequest endpoints
    */
   CONSULTATION: {
+    BASE: "/ConsultationRequest",
     CREATE: "/ConsultationRequest/create-consultation-request",
+    STATUS: (id: string) => `/ConsultationRequest/${id}/status`,
   },
 
   /**

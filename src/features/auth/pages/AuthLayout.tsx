@@ -20,7 +20,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
             sm:px-6
             lg:px-24
           "
-        >
+        >   
           {/* 
             max-w-[500px]
             => làm form rộng hơn

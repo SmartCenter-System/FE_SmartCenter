@@ -32,7 +32,6 @@ export default function LecturerGradingPage() {
     queryKey: ["exam-submission", examId, studentId],
     queryFn: async () => {
       // Mocking submission details for demo
-      // In real app: return apiClient.get(`/GradeExam/details`, { params: { examId, studentId } });
       return {
         studentName: "Nguyễn Văn A",
         examTitle: "Bài kiểm tra cuối chương 1",
@@ -43,7 +42,8 @@ export default function LecturerGradingPage() {
           { question: "Essay: Ưu điểm của Hooks?", studentAnswer: "Hooks giúp tái sử dụng logic mà không cần class...", isCorrect: null, score: null },
         ]
       };
-    }
+    },
+    enabled: !!examId && !!studentId,
   });
 
   const gradeMutation = useGradeExam();

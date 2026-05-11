@@ -91,8 +91,8 @@ export const courseService = {
     });
 
     return {
-      data: response.items.map(normalizeCourse),
-      total: response.totalCount,
+      data: response.items?.map(normalizeCourse) || [],
+      total: response.totalCount ?? response.total ?? response.items?.length ?? 0,
     };
   },
 
