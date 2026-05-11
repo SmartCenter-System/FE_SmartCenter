@@ -67,19 +67,42 @@ export default function CourseDetailPage() {
     lessons: CourseLesson[];
   };
 
+  const isPurchased = useMemo(() => {
+    if (!enrollments) return false;
+    const currentCourseId = String(courseData?.courseId ?? id ?? "")
+      .trim()
+      .toLowerCase();
+    if (!currentCourseId) return false;
+
+    return enrollments.some(
+      (item) =>
+        String(item.courseId ?? "")
+          .trim()
+          .toLowerCase() === currentCourseId,
+    );
+  }, [courseData?.courseId, enrollments, id]);
+
   const { data: sectionLessonsData } = useQuery<CourseSection[]>({
-    queryKey: ["courses", "content", id],
+    queryKey: ["courses", "content", id, isPurchased], // Thêm isPurchased vào key để tự động fetch lại khi mua xong
     queryFn: async () => {
       if (!courseData || !Array.isArray(courseData.sections)) {
         return [];
       }
 
-      // Tối ưu hóa: Nếu courseData đã có sẵn bài học, dùng luôn
+      // Tối ưu hóa: Nếu courseData đã có sẵn bài học và đã mua, hoặc chỉ cần lấy preview
       const hasLessons = courseData.sections.some(s => Array.isArray(s.lessons) && s.lessons.length > 0);
+      
+      // Nếu đã có sẵn dữ liệu và đã mua, hoặc chưa mua nhưng chỉ cần tiêu đề/preview
       if (hasLessons) {
         return courseData.sections.map(section => ({
           ...section,
-          lessons: Array.isArray(section.lessons) ? section.lessons : []
+          lessons: (Array.isArray(section.lessons) ? section.lessons : []).map(lesson => {
+            // Nếu chưa mua, chỉ giữ lại videoUrl của bài Preview
+            if (!isPurchased && !lesson.isPreview) {
+              return { ...lesson, videoUrl: undefined };
+            }
+            return lesson;
+          })
         }));
       }
 
@@ -88,7 +111,13 @@ export default function CourseDetailPage() {
           const rawLessons = await lessonService.getAll(courseData.courseId, section.id);
           return {
             ...section,
-            lessons: Array.isArray(rawLessons) ? rawLessons : [],
+            lessons: (Array.isArray(rawLessons) ? rawLessons : []).map(lesson => {
+              // Bảo mật: Nếu chưa mua, xóa videoUrl của các bài không phải Preview
+              if (!isPurchased && !lesson.isPreview) {
+                return { ...lesson, videoUrl: undefined };
+              }
+              return lesson;
+            }),
           };
         }),
       );
@@ -155,21 +184,6 @@ export default function CourseDetailPage() {
       }))
     );
   }, [courseData, sectionLessonsData]);
-
-  const isPurchased = useMemo(() => {
-    if (!enrollments) return false;
-    const currentCourseId = String(courseData?.courseId ?? id ?? "")
-      .trim()
-      .toLowerCase();
-    if (!currentCourseId) return false;
-
-    return enrollments.some(
-      (item) =>
-        String(item.courseId ?? "")
-          .trim()
-          .toLowerCase() === currentCourseId,
-    );
-  }, [courseData?.courseId, enrollments, id]);
 
   const allLessons = useMemo(() => sections.flatMap((section) => section.lessons), [sections]);
 
