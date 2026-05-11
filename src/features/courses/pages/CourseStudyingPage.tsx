@@ -45,26 +45,26 @@ export default function CourseStudyingPage() {
   const { data: sectionLessonsData } = useQuery<
     { id: string; title: string; lessons: { id: string; title: string; description?: string; videoUrl?: string; order?: number; isPreview?: boolean; duration?: number }[] }[]
   >({
-    queryKey: ["courses", "study-content", courseData?.courseId],
+    queryKey: ["courses", "content", id],
     queryFn: async () => {
       if (!courseData || !Array.isArray(courseData.sections)) return [];
 
+      // Tối ưu hóa: Nếu courseData đã có sẵn bài học trong các section, dùng luôn để tránh gọi N API
+      const hasLessons = courseData.sections.some(s => Array.isArray(s.lessons) && s.lessons.length > 0);
+      if (hasLessons) {
+        return courseData.sections.map(section => ({
+          ...section,
+          lessons: Array.isArray(section.lessons) ? section.lessons : []
+        }));
+      }
+
+      // Fallback: Nếu không có sẵn mới gọi API cho từng section
       return Promise.all(
         courseData.sections.map(async (section) => {
           const rawLessons = await lessonService.getAll(courseData.courseId, section.id);
           return {
             ...section,
-            lessons: Array.isArray(rawLessons)
-              ? rawLessons.map((lesson) => ({
-                  id: String(lesson.id),
-                  title: lesson.title,
-                  description: lesson.description,
-                  videoUrl: lesson.videoUrl,
-                  order: lesson.order,
-                  isPreview: Boolean(lesson.isPreview),
-                  duration: lesson.duration,
-                }))
-              : [],
+            lessons: Array.isArray(rawLessons) ? rawLessons : [],
           };
         }),
       );
