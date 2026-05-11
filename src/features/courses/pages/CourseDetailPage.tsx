@@ -34,18 +34,18 @@ export default function CourseDetailPage() {
   const accessToken = useAuthStore((state) => state.accessToken);
 
   const { data: courseData, isLoading } = useQuery<Course>({
-    queryKey: ["course", id],
+    queryKey: ["courses", "detail", id],
     queryFn: () => courseService.getById(id as string),
     enabled: !!id && isValidCourseId,
+    staleTime: 1000 * 60 * 10,
   });
 
   const { data: enrollmentData } = useQuery<{ items: Enrollment[]; total: number }>({
-    queryKey: ["myEnrollments"],
+    queryKey: ["enrollments", "me"],
     queryFn: () => enrollmentService.getMyEnrollments(),
     enabled: !!accessToken,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 30,
     retry: false,
-    refetchOnMount: "always",
   });
   const enrollments = enrollmentData?.items;
 
@@ -67,26 +67,56 @@ export default function CourseDetailPage() {
     lessons: CourseLesson[];
   };
 
+  const isPurchased = useMemo(() => {
+    if (!enrollments) return false;
+    const currentCourseId = String(courseData?.courseId ?? id ?? "")
+      .trim()
+      .toLowerCase();
+    if (!currentCourseId) return false;
+
+    return enrollments.some(
+      (item) =>
+        String(item.courseId ?? "")
+          .trim()
+          .toLowerCase() === currentCourseId,
+    );
+  }, [courseData?.courseId, enrollments, id]);
+
   const { data: sectionLessonsData } = useQuery<CourseSection[]>({
-    queryKey: ["courseSectionLessons", courseData?.courseId],
+    queryKey: ["courses", "content", id, isPurchased], // Thêm isPurchased vào key để tự động fetch lại khi mua xong
     queryFn: async () => {
       if (!courseData || !Array.isArray(courseData.sections)) {
         return [];
       }
 
+      // Tối ưu hóa: Nếu CHƯA MUA và courseData đã có sẵn bài học, dùng luôn để hiện tiêu đề cho nhanh
+      const hasLessons = courseData.sections.some(s => Array.isArray(s.lessons) && s.lessons.length > 0);
+      if (!isPurchased && hasLessons) {
+        return courseData.sections.map(section => ({
+          ...section,
+          lessons: (Array.isArray(section.lessons) ? section.lessons : []).map(lesson => {
+            // Nếu chưa mua, chỉ giữ lại videoUrl của bài Preview
+            if (!lesson.isPreview) {
+              return { ...lesson, videoUrl: undefined };
+            }
+            return lesson;
+          })
+        }));
+      }
+
+      // Nếu ĐÃ MUA: Bắt buộc phải gọi API lẻ để lấy đầy đủ Link Video và tài liệu (vì API getById thường ẩn các thông tin này)
       const sectionResults = await Promise.all(
         courseData.sections.map(async (section) => {
           const rawLessons = await lessonService.getAll(courseData.courseId, section.id);
           return {
             ...section,
-            lessons: Array.isArray(rawLessons)
-              ? rawLessons.map((lesson) => ({
-                  id: String(lesson.id),
-                  title: lesson.title,
-                  isPreview: Boolean(lesson.isPreview),
-                  videoUrl: lesson.videoUrl,
-                }))
-              : [],
+            lessons: (Array.isArray(rawLessons) ? rawLessons : []).map(lesson => {
+              // Bảo mật: Nếu chưa mua (phòng hờ), xóa videoUrl của các bài không phải Preview
+              if (!isPurchased && !lesson.isPreview) {
+                return { ...lesson, videoUrl: undefined };
+              }
+              return lesson;
+            }),
           };
         }),
       );
@@ -94,7 +124,7 @@ export default function CourseDetailPage() {
       return sectionResults;
     },
     enabled: !!courseData?.courseId && Array.isArray(courseData?.sections) && courseData.sections.length > 0,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 15,
     retry: false,
   });
 
@@ -153,21 +183,6 @@ export default function CourseDetailPage() {
       }))
     );
   }, [courseData, sectionLessonsData]);
-
-  const isPurchased = useMemo(() => {
-    if (!enrollments) return false;
-    const currentCourseId = String(courseData?.courseId ?? id ?? "")
-      .trim()
-      .toLowerCase();
-    if (!currentCourseId) return false;
-
-    return enrollments.some(
-      (item) =>
-        String(item.courseId ?? "")
-          .trim()
-          .toLowerCase() === currentCourseId,
-    );
-  }, [courseData?.courseId, enrollments, id]);
 
   const allLessons = useMemo(() => sections.flatMap((section) => section.lessons), [sections]);
 

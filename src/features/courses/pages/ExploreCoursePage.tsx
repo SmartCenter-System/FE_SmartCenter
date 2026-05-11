@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, Check, Filter, Search, Users, Wifi, Building2, Loader2, CircleX, Link } from "lucide-react";
 import Header from "@/shared/components/common/Header";
 import { useCategories } from "../hooks/useCategories";
@@ -49,15 +49,42 @@ function createPaginationItems(totalPages: number, currentPage: number): Array<n
 
 export default function ExploreCoursePage() {
   const navigate = useNavigate();
-  const [searchInput, setSearchInput] = useState("");
-  const [mode, setMode] = useState<number | undefined>(undefined);
-  const [minPriceInput, setMinPriceInput] = useState("");
-  const [maxPriceInput, setMaxPriceInput] = useState("");
-  const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const initialKeyword = searchParams.get("keyword") || "";
+  const initialMode = searchParams.get("mode") ? Number(searchParams.get("mode")) : undefined;
+  const initialCategoryId = searchParams.get("categoryId") || undefined;
+  const initialMinPrice = searchParams.get("minPrice") || "";
+  const initialMaxPrice = searchParams.get("maxPrice") || "";
+
+  const [searchInput, setSearchInput] = useState(initialKeyword);
+  const [mode, setMode] = useState<number | undefined>(initialMode);
+  const [minPriceInput, setMinPriceInput] = useState(initialMinPrice);
+  const [maxPriceInput, setMaxPriceInput] = useState(initialMaxPrice);
+  const [categoryId, setCategoryId] = useState<string | undefined>(initialCategoryId);
   const [pageIndex, setPageIndex] = useState(1);
-  const [filters, setFilters] = useState<PublicCourseFilterState>({ keyword: "" });
+  const [filters, setFilters] = useState<PublicCourseFilterState>({ 
+    keyword: initialKeyword,
+    mode: initialMode,
+    categoryId: initialCategoryId,
+    minPrice: initialMinPrice ? Number(initialMinPrice) : undefined,
+    maxPrice: initialMaxPrice ? Number(initialMaxPrice) : undefined
+  });
 
   const { data: categories } = useCategories();
+
+  // Cập nhật URL khi bộ lọc thay đổi
+  useEffect(() => {
+    const params: any = {};
+    if (filters.keyword) params.keyword = filters.keyword;
+    if (filters.mode) params.mode = String(filters.mode);
+    if (filters.categoryId) params.categoryId = filters.categoryId;
+    if (filters.minPrice) params.minPrice = String(filters.minPrice);
+    if (filters.maxPrice) params.maxPrice = String(filters.maxPrice);
+    if (pageIndex > 1) params.page = String(pageIndex);
+    
+    setSearchParams(params, { replace: true });
+  }, [filters, pageIndex, setSearchParams]);
 
   const queryParams = useMemo(
     () => ({
@@ -99,6 +126,28 @@ export default function ExploreCoursePage() {
     });
   };
 
+  const handleModeChange = (newMode: number | undefined) => {
+    setMode(newMode);
+    applyFilterMutation({
+      keyword: searchInput.trim(),
+      mode: newMode,
+      categoryId,
+      minPrice: minPriceInput === "" ? undefined : Number(minPriceInput),
+      maxPrice: maxPriceInput === "" ? undefined : Number(maxPriceInput),
+    });
+  };
+
+  const handleCategoryChange = (newCatId: string | undefined) => {
+    setCategoryId(newCatId);
+    applyFilterMutation({
+      keyword: searchInput.trim(),
+      mode,
+      categoryId: newCatId,
+      minPrice: minPriceInput === "" ? undefined : Number(minPriceInput),
+      maxPrice: maxPriceInput === "" ? undefined : Number(maxPriceInput),
+    });
+  };
+
   const resetFilters = () => {
     setSearchInput("");
     setMode(undefined);
@@ -135,32 +184,44 @@ export default function ExploreCoursePage() {
                 <div className="space-y-3">
                   <div className="text-sm font-semibold text-foreground">Hình thức học</div>
                   <div className="space-y-2">
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                    <label 
+                      htmlFor="mode-all"
+                      className="flex cursor-pointer items-center gap-2 text-sm text-slate-600"
+                    >
                       <input
+                        id="mode-all"
                         type="radio"
                         name="mode"
-                        checked={mode === undefined}
-                        onChange={() => setMode(undefined)}
+                        checked={mode === undefined || mode === null}
+                        onChange={() => handleModeChange(undefined)}
                         className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
                       <span>Tất cả</span>
                     </label>
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                    <label 
+                      htmlFor="mode-online"
+                      className="flex cursor-pointer items-center gap-2 text-sm text-slate-600"
+                    >
                       <input
+                        id="mode-online"
                         type="radio"
                         name="mode"
                         checked={mode === 1}
-                        onChange={() => setMode(1)}
+                        onChange={() => handleModeChange(1)}
                         className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
                       <span>Online</span>
                     </label>
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                    <label 
+                      htmlFor="mode-offline"
+                      className="flex cursor-pointer items-center gap-2 text-sm text-slate-600"
+                    >
                       <input
+                        id="mode-offline"
                         type="radio"
                         name="mode"
                         checked={mode === 2}
-                        onChange={() => setMode(2)}
+                        onChange={() => handleModeChange(2)}
                         className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
                       <span>Offline</span>
@@ -171,23 +232,32 @@ export default function ExploreCoursePage() {
                 <div className="space-y-3">
                   <div className="text-sm font-semibold text-foreground">Danh mục</div>
                   <div className="space-y-2">
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                    <label 
+                      htmlFor="cat-all"
+                      className="flex cursor-pointer items-center gap-2 text-sm text-slate-600"
+                    >
                       <input
+                        id="cat-all"
                         type="radio"
                         name="category"
-                        checked={categoryId === undefined}
-                        onChange={() => setCategoryId(undefined)}
+                        checked={categoryId === undefined || categoryId === null || categoryId === ""}
+                        onChange={() => handleCategoryChange(undefined)}
                         className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
                       <span>Tất cả</span>
                     </label>
                     {categories?.map((cat) => (
-                      <label key={cat.id} className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                      <label 
+                        key={cat.id} 
+                        htmlFor={`cat-${cat.id}`}
+                        className="flex cursor-pointer items-center gap-2 text-sm text-slate-600"
+                      >
                         <input
+                          id={`cat-${cat.id}`}
                           type="radio"
                           name="category"
-                          checked={categoryId === cat.id}
-                          onChange={() => setCategoryId(cat.id)}
+                          checked={categoryId === String(cat.id)}
+                          onChange={() => handleCategoryChange(String(cat.id))}
                           className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                         />
                         <span>{cat.name}</span>
