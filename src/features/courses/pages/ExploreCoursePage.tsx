@@ -58,32 +58,69 @@ export default function ExploreCoursePage() {
   const initialMinPrice = searchParams.get("minPrice") || "";
   const initialMaxPrice = searchParams.get("maxPrice") || "";
 
-  const [searchInput, setSearchInput] = useState(initialKeyword);
-  const [minPriceInput, setMinPriceInput] = useState(initialMinPrice);
-  const [maxPriceInput, setMaxPriceInput] = useState(initialMaxPrice);
+  const [searchInput, setSearchInput] = useState("");
+  const [minPriceInput, setMinPriceInput] = useState("");
+  const [maxPriceInput, setMaxPriceInput] = useState("");
   const [pageIndex, setPageIndex] = useState(1);
   const [filters, setFilters] = useState<PublicCourseFilterState>({ 
-    keyword: initialKeyword,
-    mode: initialMode,
-    categoryId: initialCategoryId,
-    minPrice: initialMinPrice ? Number(initialMinPrice) : undefined,
-    maxPrice: initialMaxPrice ? Number(initialMaxPrice) : undefined
+    keyword: "",
+    mode: undefined,
+    categoryId: undefined,
+    minPrice: undefined,
+    maxPrice: undefined
   });
 
   const { data: categories } = useCategories();
 
-  // Cập nhật URL khi bộ lọc thay đổi
+  // Đồng bộ URL khi bộ lọc thay đổi (State -> URL)
   useEffect(() => {
     const params: any = {};
     if (filters.keyword) params.keyword = filters.keyword;
     if (filters.mode) params.mode = String(filters.mode);
-    if (filters.categoryId) params.categoryId = filters.categoryId;
+    if (filters.categoryId && filters.categoryId !== "undefined") params.categoryId = filters.categoryId;
     if (filters.minPrice) params.minPrice = String(filters.minPrice);
     if (filters.maxPrice) params.maxPrice = String(filters.maxPrice);
     if (pageIndex > 1) params.page = String(pageIndex);
     
     setSearchParams(params, { replace: true });
   }, [filters, pageIndex, setSearchParams]);
+
+  // Đồng bộ State khi URL thay đổi (URL -> State) - Giúp xử lý nút Back/Forward và khởi tạo
+  useEffect(() => {
+    const keyword = searchParams.get("keyword") || "";
+    const modeParam = searchParams.get("mode");
+    const mode = modeParam ? Number(modeParam) : undefined;
+    const rawCatId = searchParams.get("categoryId");
+    const categoryId = (rawCatId && rawCatId !== "undefined" && rawCatId !== "null") ? rawCatId : undefined;
+    const minPrice = searchParams.get("minPrice") || "";
+    const maxPrice = searchParams.get("maxPrice") || "";
+    const page = Number(searchParams.get("page") || "1");
+
+    // Chỉ cập nhật nếu có sự thay đổi thực sự để tránh vòng lặp
+    setFilters(prev => {
+      if (
+        prev.keyword === keyword &&
+        prev.mode === mode &&
+        prev.categoryId === categoryId &&
+        String(prev.minPrice ?? "") === minPrice &&
+        String(prev.maxPrice ?? "") === maxPrice
+      ) {
+        return prev;
+      }
+      return {
+        keyword,
+        mode,
+        categoryId,
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined
+      };
+    });
+
+    setPageIndex(prev => prev === page ? prev : page);
+    setSearchInput(prev => prev === keyword ? prev : keyword);
+    setMinPriceInput(prev => prev === minPrice ? prev : minPrice);
+    setMaxPriceInput(prev => prev === maxPrice ? prev : maxPrice);
+  }, [searchParams]);
 
   const queryParams = useMemo(
     () => ({
@@ -123,7 +160,6 @@ export default function ExploreCoursePage() {
   const handleModeChange = (newMode: number | undefined) => {
     setFilters(prev => ({
       ...prev,
-      keyword: searchInput.trim(),
       mode: newMode,
     }));
     setPageIndex(1);
@@ -134,7 +170,6 @@ export default function ExploreCoursePage() {
     
     setFilters(prev => ({
       ...prev,
-      keyword: searchInput.trim(),
       categoryId: validId,
     }));
     setPageIndex(1);
