@@ -50,6 +50,12 @@ export const authService = {
 export const categoryService = {
   async getAll() {
     const response = await apiClient.get<any>(API_ENDPOINTS.CATEGORY.GET_ALL);
-    return ((response as any).items || response) as Array<{ id: string; name: string }>;
+    const rawItems = (response as any).items || response;
+    
+    // Chuẩn hóa dữ liệu trả về để Frontend luôn có id và name
+    return (Array.isArray(rawItems) ? rawItems : []).map((cat: any) => ({
+      id: String(cat?.id ?? cat?.categoryId ?? ""),
+      name: String(cat?.name ?? cat?.categoryName ?? "Chưa đặt tên"),
+    }));
   },
 };
