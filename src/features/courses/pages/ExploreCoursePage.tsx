@@ -184,18 +184,26 @@ export default function ExploreCoursePage() {
                 <div className="space-y-3">
                   <div className="text-sm font-semibold text-foreground">Hình thức học</div>
                   <div className="space-y-2">
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                    <label 
+                      htmlFor="mode-all"
+                      className="flex cursor-pointer items-center gap-2 text-sm text-slate-600"
+                    >
                       <input
+                        id="mode-all"
                         type="radio"
                         name="mode"
-                        checked={mode === undefined}
+                        checked={mode === undefined || mode === null}
                         onChange={() => handleModeChange(undefined)}
                         className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
                       <span>Tất cả</span>
                     </label>
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                    <label 
+                      htmlFor="mode-online"
+                      className="flex cursor-pointer items-center gap-2 text-sm text-slate-600"
+                    >
                       <input
+                        id="mode-online"
                         type="radio"
                         name="mode"
                         checked={mode === 1}
@@ -204,8 +212,12 @@ export default function ExploreCoursePage() {
                       />
                       <span>Online</span>
                     </label>
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                    <label 
+                      htmlFor="mode-offline"
+                      className="flex cursor-pointer items-center gap-2 text-sm text-slate-600"
+                    >
                       <input
+                        id="mode-offline"
                         type="radio"
                         name="mode"
                         checked={mode === 2}
@@ -220,23 +232,32 @@ export default function ExploreCoursePage() {
                 <div className="space-y-3">
                   <div className="text-sm font-semibold text-foreground">Danh mục</div>
                   <div className="space-y-2">
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                    <label 
+                      htmlFor="cat-all"
+                      className="flex cursor-pointer items-center gap-2 text-sm text-slate-600"
+                    >
                       <input
+                        id="cat-all"
                         type="radio"
                         name="category"
-                        checked={categoryId === undefined}
+                        checked={categoryId === undefined || categoryId === null || categoryId === ""}
                         onChange={() => handleCategoryChange(undefined)}
                         className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
                       <span>Tất cả</span>
                     </label>
                     {categories?.map((cat) => (
-                      <label key={cat.id} className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                      <label 
+                        key={cat.id} 
+                        htmlFor={`cat-${cat.id}`}
+                        className="flex cursor-pointer items-center gap-2 text-sm text-slate-600"
+                      >
                         <input
+                          id={`cat-${cat.id}`}
                           type="radio"
                           name="category"
-                          checked={categoryId === cat.id}
-                          onChange={() => handleCategoryChange(cat.id)}
+                          checked={categoryId === String(cat.id)}
+                          onChange={() => handleCategoryChange(String(cat.id))}
                           className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                         />
                         <span>{cat.name}</span>
