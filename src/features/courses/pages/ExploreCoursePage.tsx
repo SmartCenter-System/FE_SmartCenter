@@ -75,29 +75,6 @@ export default function ExploreCoursePage() {
   });
 
   // =========================
-  // Categories
-  // =========================
-  const { data: apiCategories = [] } = useCategories();
-
-  // Bổ sung danh mục từ dữ liệu khóa học (phòng trường hợp API categories thiếu hoặc sai ID)
-  const categories = useMemo(() => {
-    const combined = [...apiCategories];
-    
-    // Trích xuất các danh mục từ danh sách khóa học hiện tại
-    courses.forEach((course: any) => {
-      const cateId = course.cateId;
-      const cateName = course.cateName ?? course.categoryName;
-      
-      if (cateId && !combined.find(c => c.id === cateId)) {
-        combined.push({ id: cateId, name: cateName || "Danh mục khác" });
-      }
-    });
-    
-    // Loại bỏ các danh mục có ID trống (vì chúng sẽ làm hỏng radio button)
-    return combined.filter(c => c.id && c.id !== "");
-  }, [apiCategories, courses]);
-
-  // =========================
   // Sync URL
   // =========================
   useEffect(() => {
@@ -138,6 +115,28 @@ export default function ExploreCoursePage() {
   // =========================
   const courses = data?.items ?? [];
   const totalCount = data?.total ?? 0;
+
+  // =========================
+  // Categories (Enhanced with fallback from courses)
+  // =========================
+  const { data: apiCategories = [] } = useCategories();
+
+  const categories = useMemo(() => {
+    const combined = [...apiCategories];
+    
+    // Trích xuất các danh mục từ danh sách khóa học hiện tại (phòng trường hợp API Categories lỗi)
+    courses.forEach((course: any) => {
+      const cateId = course.cateId;
+      const cateName = course.cateName ?? course.categoryName;
+      
+      if (cateId && !combined.find(c => c.id === cateId)) {
+        combined.push({ id: cateId, name: cateName || "Danh mục khác" });
+      }
+    });
+    
+    // Loại bỏ các danh mục có ID trống
+    return combined.filter(c => c.id && c.id !== "");
+  }, [apiCategories, courses]);
 
   const totalPages = Math.ceil(totalCount / DEFAULT_PAGE_SIZE) || 1;
   const canGoPrevious = pageIndex > 1;
