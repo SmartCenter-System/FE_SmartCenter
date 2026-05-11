@@ -1,5 +1,5 @@
-import { toast } from "sonner";
 import axios from "axios";
+import { toast } from "sonner";
 import { env } from "./env";
 import { useAuthStore } from "@/features/auth/store";
 
@@ -18,64 +18,82 @@ const processQueue = (error: any, token: string | null = null) => {
   });
   failedQueue = [];
 };
-//Task 1.1.1:Khởi tạo Axios Instance
-const base = env.API_URL === "/api" ? "" : env.API_URL;
+
+// Khởi tạo URL gốc (Bảo vệ trường hợp biến env bị thiếu)
+const base = env.VITE_API_URL || env.API_URL || "http://localhost:5000";
 
 export const apiClient = axios.create({
-  baseURL: base,
+  baseURL: base === "/api" ? "" : base,
   timeout: 15000,
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: false,
 });
 
-//Task 1.1.2: Interceptor (Gắn Token và xử lý lỗi 401)
+// ==========================================
+// 1. REQUEST INTERCEPTOR (Gắn Token)
+// ==========================================
 apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().accessToken;
-  if (token) {
+  // Lấy token trực tiếp từ store
+  const token = useAuthStore.getState().accessToken || useAuthStore.getState().token;
+  if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// 2. Lọc dữ liệu trả về và bắt lỗi 401
+// ==========================================
+// 2. RESPONSE INTERCEPTOR (Bắt lỗi & Data)
+// ==========================================
 apiClient.interceptors.response.use(
   (response) => {
-    return response.data?.data !== undefined ? response.data.data : response.data;
+    // QUAN TRỌNG: Chỉ trả về response.data (Chính là cục Wrapper ApiResponse của Backend)
+    // KHÔNG tự động bóc thêm .data ở đây nữa để tránh xung đột với các file services.ts
+    return response.data;
   },
   async (error) => {
     const originalRequest = error.config;
     const is401 = error.response?.status === 401;
 
-    // 1. Xử lý Refresh Token (Giữ nguyên logic ổn định cũ nhưng refactor nhẹ)
-    if (is401 && !originalRequest.url?.includes("/auth") && !originalRequest._retry) {
+    // ----------------------------------------
+    // A. XỬ LÝ REFRESH TOKEN TỰ ĐỘNG
+    // ----------------------------------------
+    if (is401 && originalRequest.url && !originalRequest.url.includes("/login") && !originalRequest._retry) {
       if (!isRefreshing) {
         isRefreshing = true;
         originalRequest._retry = true;
+
         const refreshToken = useAuthStore.getState().refreshToken;
 
         if (refreshToken) {
           try {
-            const { data } = await axios.post(`${env.API_URL}/auth/refresh`, { refreshToken });
+            // Gọi API cấp lại token (Đảm bảo URL khớp với Swagger)
+            const { data } = await axios.post(`${base}/api/auth/refresh`, { refreshToken });
+
+            // Lấy token mới (dự phòng trường hợp BE bọc lớp data)
             const newAuth = data.data ?? data;
 
-            useAuthStore.getState().setAuth({
+            // Cập nhật lại Zustand Store an toàn bằng spread operator (...)
+            const currentStore = useAuthStore.getState();
+            currentStore.setAuth({
+              ...currentStore,
               accessToken: newAuth.accessToken,
               refreshToken: newAuth.refreshToken,
-              role: useAuthStore.getState().role as any,
-              userId: useAuthStore.getState().userId,
-              email: useAuthStore.getState().email,
-              firstName: useAuthStore.getState().firstName,
-              lastName: useAuthStore.getState().lastName,
             });
 
             processQueue(null, newAuth.accessToken);
             originalRequest.headers.Authorization = `Bearer ${newAuth.accessToken}`;
+
+            // Gọi lại request ban đầu vừa bị xịt
             return apiClient(originalRequest);
           } catch (refreshError) {
             processQueue(refreshError, null);
-            useAuthStore.getState().clearAuth();
+
+            // Xóa Auth và văng ra log in nếu refresh token cũng hết hạn
+            const store = useAuthStore.getState();
+            if (store.logout) store.logout();
+            else if (store.clearAuth) store.clearAuth();
+
             toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
             if (!window.location.pathname.includes("/login")) {
               window.location.href = "/login";
@@ -85,11 +103,18 @@ apiClient.interceptors.response.use(
             isRefreshing = false;
           }
         } else {
+          // Không có refresh token -> Kick ra log in
           isRefreshing = false;
+          const store = useAuthStore.getState();
+          if (store.logout) store.logout();
+          else if (store.clearAuth) store.clearAuth();
+
+          if (!window.location.pathname.includes("/login")) window.location.href = "/login";
           return Promise.reject(error);
         }
       }
 
+      // Nếu đang trong quá trình refresh, tống các request đến sau vào Hàng đợi (Queue)
       return new Promise((resolve, reject) => {
         failedQueue.push({
           resolve: (token: string) => {
@@ -101,30 +126,43 @@ apiClient.interceptors.response.use(
       });
     }
 
-    // 2. Parser lỗi chuyên sâu cho .NET và Network
-    let message = "Đã có lỗi xảy ra";
+    // ----------------------------------------
+    // B. PARSER LỖI CHUYÊN SÂU TỪ BACKEND
+    // ----------------------------------------
+    let message = "Đã có lỗi xảy ra từ máy chủ";
     const responseData = error.response?.data;
 
     if (responseData) {
+      // Ưu tiên đọc trường message của cấu trúc Wrapper
       if (responseData.message) {
         message = responseData.message;
-      } else if (responseData.errors) {
+      }
+      // Xử lý lỗi validation (mảng errors) của .NET/Spring Boot
+      if (responseData.errors && typeof responseData.errors === "object") {
         const errorList = Object.values(responseData.errors).flat();
-        message = errorList.length > 0 ? String(errorList[0]) : "Dữ liệu không hợp lệ";
-      } else if (typeof responseData === "string" && !responseData.includes("<!DOCTYPE")) {
+        if (errorList.length > 0) message = String(errorList[0]);
+      }
+      // Nếu BE ném thẳng text string
+      else if (typeof responseData === "string" && !responseData.includes("<!DOCTYPE")) {
         message = responseData;
       }
     } else if (error.request) {
-      message = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra internet.";
+      message = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra đường truyền mạng.";
     }
 
-    // Gán message đã được xử lý vào error object để hooks có thể sử dụng mà không bị lỗi status code
+    // Gắn message sạch vào error để hook React Query có thể lấy ra show UI
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (error as any).userMessage = message;
 
-    const isLogoutEndpoint = originalRequest.url?.includes("/auth/logout");
+    // ----------------------------------------
+    // C. BẬT TOAST THÔNG BÁO LỖI TỰ ĐỘNG
+    // ----------------------------------------
+    const isLogoutEndpoint = originalRequest.url?.includes("/logout");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const isSilent = (originalRequest as any).silent === true;
 
-    if (!isLogoutEndpoint && !isSilent && error.response?.status !== 401) {
+    // Không show Toast nếu: đang logout, request có flag silent, hoặc lỗi 401 (vì 401 đã xử lý ở trên)
+    if (!isLogoutEndpoint && !isSilent && !is401) {
       toast.error(message);
     }
 
