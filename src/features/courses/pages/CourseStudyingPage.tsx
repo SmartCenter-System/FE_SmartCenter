@@ -97,15 +97,24 @@ export default function CourseStudyingPage() {
   }, [courseData?.courseId, enrollments, id]);
 
   const lesson = useMemo(() => {
-    if (!lessonId && allLessons.length > 0) {
-      // Find first accessible lesson
+    if (allLessons.length === 0) return null;
+
+    if (!lessonId) {
+      // Tìm bài học đầu tiên có thể xem (preview hoặc đã mua)
       const firstAccessible = allLessons.find((l: any) => l.isPreview || isPurchased) || allLessons[0];
       if (firstAccessible) {
         navigate(`/courses/${id}/study/${firstAccessible.id}`, { replace: true });
         return firstAccessible;
       }
     }
-    return allLessons.find((item: any) => item.id === lessonId);
+    
+    const found = allLessons.find((item: any) => item.id === lessonId);
+    
+    // Nếu học viên cố tình truy cập bài học không tồn tại hoặc bài học bị khóa mà chưa mua
+    // Chúng ta sẽ để logic canView xử lý việc hiển thị "Locked Screen" 
+    // thay vì văng ra ngoài ngay lập tức để họ vẫn thấy được danh sách bài học khác.
+    
+    return found;
   }, [allLessons, lessonId, id, navigate, isPurchased]);
 
   const canView = Boolean(lesson && (lesson.isPreview || isPurchased));
@@ -175,21 +184,37 @@ export default function CourseStudyingPage() {
                       <video src={lesson.videoUrl} controls className="w-full h-full object-cover" />
                     )
                   ) : (
-                    <div className="flex h-full items-center justify-center text-white text-lg">
+                    <div className="flex h-full items-center justify-center text-white text-lg font-medium bg-slate-900">
                       Video chưa có sẵn cho bài học này.
                     </div>
                   )
                 ) : (
-                  <div className="flex h-full flex-col items-center justify-center gap-4 bg-slate-950 text-center text-white px-6">
-                    <Lock className="h-8 w-8 text-amber-400" />
-                    <div>
-                      <p className="text-xl font-semibold">Bài học bị khoá</p>
-                      <p className="text-sm text-slate-300">Bạn cần mua khóa học để mở toàn bộ nội dung.</p>
-                      <p className="mt-2 text-sm font-medium text-amber-300">
-                        Giá khóa học: {formatPrice(courseData.basePrice)}
-                      </p>
+                  <div className="flex h-full flex-col items-center justify-center gap-6 bg-slate-950 text-center text-white px-8 animate-in fade-in zoom-in duration-500">
+                    <div className="p-4 rounded-full bg-amber-500/10 border border-amber-500/20">
+                      <Lock className="h-10 w-10 text-amber-500" />
                     </div>
-                    <Button onClick={() => navigate(`/checkout/${id}`)}>Mua khóa học</Button>
+                    <div className="max-w-md">
+                      <h2 className="text-2xl font-bold mb-2">Nội dung này đã bị khóa</h2>
+                      <p className="text-slate-400 text-sm leading-relaxed mb-6">
+                        Bài học này chỉ dành cho học viên đã đăng ký khóa học. Hãy mua khóa học để mở khóa toàn bộ nội dung và tài liệu đi kèm.
+                      </p>
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                        <Button 
+                          size="lg"
+                          className="w-full sm:w-auto font-bold bg-amber-500 hover:bg-amber-600 text-black rounded-2xl"
+                          onClick={() => navigate(`/checkout/${id}`)}
+                        >
+                          Mua khóa học - {formatPrice(courseData.basePrice)}
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          className="w-full sm:w-auto text-white hover:bg-white/10 rounded-2xl"
+                          onClick={() => navigate(`/courses/${id}`)}
+                        >
+                          Xem chi tiết khóa học
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
