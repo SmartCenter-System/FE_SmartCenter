@@ -4,7 +4,7 @@
  */
 import type { AxiosInstance } from "axios";
 import { apiClient } from "@/lib/axios";
-import type { PaginatedResponse, SelectOption } from "@/shared/types";
+import type { PaginatedList, SelectOption } from "@/shared/types";
 
 /**
  * Base service config interface với 4 GENERIC TYPE PARAMETERS.
@@ -32,7 +32,7 @@ export interface BaseServiceConfig<
    * VD: getAll?: (params?: TFilterParams) => Promise<PaginatedResponse<TEntity>>
    * ↑ Property "getAll" là 1 function nhận params, trả về Promise.
    */
-  getAll?: (params?: TFilterParams) => Promise<PaginatedResponse<TEntity>>;
+  getAll?: (params?: TFilterParams) => Promise<PaginatedList<TEntity>>;
   getById?: (id: string | number) => Promise<TEntity>;
   create?: (data: TCreateDto) => Promise<TEntity>;
   update?: (id: string | number, data: TUpdateDto) => Promise<TEntity>;
@@ -50,7 +50,7 @@ export interface BaseServiceConfig<
  * Lý do: Config dùng để NHẬN input (có thể thiếu), Service là OUTPUT (đầy đủ).
  */
 export interface BaseService<TEntity, TCreateDto, TUpdateDto, TFilterParams> {
-  getAll: (params?: TFilterParams) => Promise<PaginatedResponse<TEntity>>;
+  getAll: (params?: TFilterParams) => Promise<PaginatedList<TEntity>>;
   getById: (id: string | number) => Promise<TEntity>;
   create: (data: TCreateDto) => Promise<TEntity>;
   update: (id: string | number, data: TUpdateDto) => Promise<TEntity>;
@@ -152,9 +152,9 @@ export function createBaseService<
     getAll:
       config.getAll ??
       (async (params?: TFilterParams) => {
-        return axios.get<PaginatedResponse<TEntity>>(endpoint, {
+        return axios.get<PaginatedList<TEntity>>(endpoint, {
           params,
-        }) as unknown as Promise<PaginatedResponse<TEntity>>;
+        }) as unknown as Promise<PaginatedList<TEntity>>;
       }),
 
     /**

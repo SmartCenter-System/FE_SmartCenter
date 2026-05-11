@@ -108,7 +108,7 @@ export function CourseForm({ initialData, courseId, onSuccess, redirectPath }: C
             });
           }
         } catch (error) {
-          console.error("Delayed upload failed:", error);
+          // Delayed upload failed
           toast.error("Khóa học đã lưu nhưng không thể tải ảnh lên.");
         } finally {
           setIsUploading(false);
@@ -120,17 +120,14 @@ export function CourseForm({ initialData, courseId, onSuccess, redirectPath }: C
       queryClient.invalidateQueries({ queryKey: ["courses"] });
       queryClient.invalidateQueries({ queryKey: ["lecturer-courses"] });
 
-      toast.success(courseId ? "Cập nhật khóa học thành công!" : "Tạo khóa học thành công!");
+      toast.success(courseId ? "Đã cập nhật" : "Đã tạo khóa học");
       if (onSuccess) onSuccess();
       if (redirectPath) navigate(redirectPath);
       else if (!onSuccess) {
         if (isLecturer) navigate("/lecturer/courses");
         else navigate("/admin/courses");
       }
-    },
-    onError: (error: any) => {
-      toast.error(`Lỗi: ${error.message || "Không thể lưu khóa học"}`);
-    },
+    }
   });
 
   const { data: lecturerData, isLoading: isLoadingLecturers } = useQuery({
@@ -173,7 +170,7 @@ export function CourseForm({ initialData, courseId, onSuccess, redirectPath }: C
 
       mutation.mutate(payload);
     } catch (error) {
-      console.error("Form submission error:", error);
+      // Form submission error
       toast.error("Đã có lỗi xảy ra khi chuẩn bị dữ liệu. Vui lòng kiểm tra lại ngày tháng.");
     }
   };

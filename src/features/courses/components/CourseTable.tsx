@@ -29,13 +29,10 @@ export function CourseTable({ courses, isLoading, onDeleteSuccess }: CourseTable
   const deleteMutation = useMutation({
     mutationFn: (id: string) => courseService.remove(id),
     onSuccess: () => {
-      toast.success("Xóa khóa học thành công!");
+      toast.success("Đã xóa khóa học");
       setDeleteId(null);
       onDeleteSuccess?.();
-    },
-    onError: () => {
-      toast.error("Đã xảy ra lỗi khi xóa khóa học.");
-    },
+    }
   });
 
   if (isLoading) {

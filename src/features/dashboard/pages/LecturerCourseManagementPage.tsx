@@ -49,10 +49,7 @@ export default function LecturerCourseManagementPage() {
     mutationFn: (id: string) => courseService.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lecturer-courses"] });
-      toast.success("Đã xóa khóa học thành công!");
-    },
-    onError: (error: any) => {
-      toast.error(`Lỗi khi xóa: ${error.message}`);
+      toast.success("Đã xóa khóa học");
     }
   });
 
@@ -198,7 +195,7 @@ export default function LecturerCourseManagementPage() {
                             courseService.update(course.courseId, { ...course, isActive: newStatus })
                               .then(() => {
                                 queryClient.invalidateQueries({ queryKey: ["lecturer-courses"] });
-                                toast.success(newStatus ? "Đã xuất bản khóa học!" : "Đã tạm ẩn khóa học!");
+                                toast.success(newStatus ? "Đã xuất bản" : "Đã tạm ẩn");
                               });
                           }}
                         >

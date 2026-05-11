@@ -19,8 +19,7 @@ import {
   LogOut,
   MessageCircle,
   CheckCircle2,
-  FileText as FileIcon,
-  Text as TextAreaIcon
+  FileText as FileIcon
 } from "lucide-react";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { useLogout } from "@/features/auth/hooks/useLogout";

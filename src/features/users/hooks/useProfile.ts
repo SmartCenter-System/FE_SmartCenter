@@ -21,10 +21,7 @@ export function useUpdateProfile() {
     mutationFn: (data: UpdateProfileRequest) => profileService.updateProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
-      toast.success("Cập nhật thông tin thành công!");
-    },
-    onError: () => {
-      toast.error("Cập nhật thất bại. Vui lòng thử lại.");
-    },
+      toast.success("Cập nhật thành công");
+    }
   });
 }

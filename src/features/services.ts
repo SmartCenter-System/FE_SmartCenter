@@ -48,6 +48,6 @@ export const authService = {
 export const categoryService = {
   async getAll() {
     const response = await apiClient.get<any>(API_ENDPOINTS.CATEGORY.GET_ALL);
-    return (response.items || response) as Array<{ id: string; name: string }>;
+    return ((response as any).items || response) as Array<{ id: string; name: string }>;
   },
 };

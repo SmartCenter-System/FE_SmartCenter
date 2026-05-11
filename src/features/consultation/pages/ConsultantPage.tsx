@@ -59,12 +59,9 @@ export default function ConsultationForm() {
 
     createConsultation(payload, {
       onSuccess: () => {
-        toast.success("Gửi yêu cầu tư vấn thành công! Chúng tôi sẽ liên hệ bạn sớm nhất.");
+        toast.success("Gửi yêu cầu thành công");
         form.reset();
-      },
-      onError: () => {
-        toast.error("Gửi yêu cầu thất bại. Vui lòng thử lại sau.");
-      },
+      }
     });
   };
 

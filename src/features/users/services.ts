@@ -112,7 +112,7 @@ export const userService = {
     const roleValue = params?.role && params.role !== "ALL" ? ROLE_MAP[params.role] : undefined;
     const statusValue = params?.status === "ACTIVE" ? 1 : params?.status === "LOCKED" ? 2 : undefined;
 
-    const res = await apiClient.get<any>(API_ENDPOINTS.ADMIN.USERS, {
+    const res: any = await apiClient.get(API_ENDPOINTS.ADMIN.USERS, {
       params: {
         Search: params?.search,
         Role: roleValue,
@@ -132,7 +132,7 @@ export const userService = {
   },
 
   async getById(id: string): Promise<User> {
-    const res = await apiClient.get<any>(`${API_ENDPOINTS.ADMIN.USERS}/${id}`);
+    const res: any = await apiClient.get(`${API_ENDPOINTS.ADMIN.USERS}/${id}`);
     return normalizeUser(res);
   },
 
@@ -175,13 +175,13 @@ export const userService = {
       endpoint = API_ENDPOINTS.AUTH.REGISTER_LECTURER;
     }
 
-    const res = await apiClient.post<any>(endpoint, { request: payload });
+    const res: any = await apiClient.post(endpoint, { request: payload });
     return res;
   },
 
   // Profile methods
   async getProfile(): Promise<User> {
-    const res = await apiClient.get<any>(API_ENDPOINTS.USER.PROFILE);
+    const res: any = await apiClient.get(API_ENDPOINTS.USER.PROFILE);
     return normalizeUser(res);
   },
 

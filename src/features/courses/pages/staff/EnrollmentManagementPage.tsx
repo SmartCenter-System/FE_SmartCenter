@@ -67,14 +67,11 @@ export default function EnrollmentManagementPage() {
     mutationFn: (data: { studentId: string, courseId: string, amount: number }) => 
       enrollmentService.enroll(data.courseId, `STAFF_MANUAL_${Date.now()}`, data.studentId),
     onSuccess: () => {
-      toast.success("Ghi danh thành công! Học viên đã được thêm vào lớp.");
+      toast.success("Ghi danh thành công");
       setEnrollEmail("");
       setEnrollCourseId("");
       setEnrollAmount("");
       setFoundStudent(null);
-    },
-    onError: (error: any) => {
-      toast.error(`Lỗi ghi danh: ${error.message}`);
     }
   });
 
@@ -85,13 +82,15 @@ export default function EnrollmentManagementPage() {
       const res = await userService.getUsers({ search: enrollEmail, role: "STUDENT" });
       if (res.data.length > 0) {
         setFoundStudent(res.data[0]);
-        toast.success(`Tìm thấy học viên: ${res.data[0].fullName}`);
+        toast.success(`Tìm thấy: ${res.data[0].fullName}`);
       } else {
         setFoundStudent(null);
-        toast.error("Không tìm thấy học viên với email này.");
+        // This is a logic error (not found), not a server error, so keeping it might be okay, 
+        // but let's see if interceptor handles 404. Usually getUsers returns empty array, not 404.
+        toast.error("Không tìm thấy học viên");
       }
     } catch (error) {
-      toast.error("Lỗi khi tìm kiếm học viên.");
+      // Redundant as interceptor will show error
     } finally {
       setIsSearchingStudent(false);
     }

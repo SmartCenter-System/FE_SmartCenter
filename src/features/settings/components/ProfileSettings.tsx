@@ -55,7 +55,6 @@ export default function ProfileSettings() {
       return userService.updateProfile({
         firstName,
         lastName,
-        email: data.email,
         phone: data.phone,
         bio: data.bio,
         expertise: data.expertise,
@@ -63,11 +62,8 @@ export default function ProfileSettings() {
       });
     },
     onSuccess: () => {
-      toast.success("Cập nhật thông tin thành công!");
+      toast.success("Đã lưu thay đổi");
       queryClient.invalidateQueries({ queryKey: ["user-profile", userId] });
-    },
-    onError: () => {
-      toast.error("Cập nhật thất bại, vui lòng thử lại.");
     }
   });
 

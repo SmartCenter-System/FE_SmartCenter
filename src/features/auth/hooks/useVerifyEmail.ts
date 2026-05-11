@@ -12,7 +12,7 @@ export function useVerifyEmail() {
   return useMutation<void, Error, number>({
     mutationFn: (code) => authService.verifyEmail(code),
     onSuccess: () => {
-      toast.success("Xác thực email thành công!");
+      toast.success("Xác thực thành công");
       
       const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
       
@@ -26,9 +26,6 @@ export function useVerifyEmail() {
         else if (r === "LECTURER" || r === "3") navigate("/lecturer", { replace: true });
         else navigate("/dashboard", { replace: true });
       }
-    },
-    onError: (error: any) => {
-      toast.error(error.userMessage || "Xác thực email thất bại");
-    },
+    }
   });
 }

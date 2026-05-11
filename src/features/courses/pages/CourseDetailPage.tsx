@@ -123,12 +123,14 @@ export default function CourseDetailPage() {
         "Luyện tập với các dự án thực tế trong khóa học",
         "Hỗ trợ giải đáp thắc mắc từ giảng viên",
       ],
-      syllabus: Array.isArray(courseData.sections) ? courseData.sections.map((s: any) => ({
-        title: s.title,
-        lectures: s.lessons?.length || 0,
-        duration: "Đang cập nhật",
-        items: s.lessons?.map((l: any) => l.title) || [],
-      })) : [],
+      syllabus: Array.isArray(courseData.sections)
+        ? courseData.sections.map((s: any) => ({
+            title: s.title,
+            lectures: s.lessons?.length || 0,
+            duration: "Đang cập nhật",
+            items: s.lessons?.map((l: any) => l.title) || [],
+          }))
+        : [],
     };
   }, [courseData]) as any;
 
@@ -138,23 +140,33 @@ export default function CourseDetailPage() {
       return sectionLessonsData;
     }
 
-    return (courseData as any).sections ?? course.syllabus.map((chapter: any, idx: number) => ({
-      id: chapter.id ?? `mock-${idx}`,
-      title: chapter.title,
-      lessons: (chapter.items ?? []).map((item: string, lessonIndex: number) => ({
-        id: `mock-${idx}-${lessonIndex}`,
-        title: item,
-        isPreview: false,
-      })),
-    }));
+    return (
+      (courseData as any).sections ??
+      course.syllabus.map((chapter: any, idx: number) => ({
+        id: chapter.id ?? `mock-${idx}`,
+        title: chapter.title,
+        lessons: (chapter.items ?? []).map((item: string, lessonIndex: number) => ({
+          id: `mock-${idx}-${lessonIndex}`,
+          title: item,
+          isPreview: false,
+        })),
+      }))
+    );
   }, [courseData, sectionLessonsData]);
 
   const isPurchased = useMemo(() => {
     if (!enrollments) return false;
-    const currentCourseId = String(courseData?.courseId ?? id ?? "").trim().toLowerCase();
+    const currentCourseId = String(courseData?.courseId ?? id ?? "")
+      .trim()
+      .toLowerCase();
     if (!currentCourseId) return false;
 
-    return enrollments.some((item) => String(item.courseId ?? "").trim().toLowerCase() === currentCourseId);
+    return enrollments.some(
+      (item) =>
+        String(item.courseId ?? "")
+          .trim()
+          .toLowerCase() === currentCourseId,
+    );
   }, [courseData?.courseId, enrollments, id]);
 
   const allLessons = useMemo(() => sections.flatMap((section) => section.lessons), [sections]);
@@ -186,7 +198,7 @@ export default function CourseDetailPage() {
   const previewTitle = selectedLesson ? selectedLesson.title : "Chọn bài giảng để xem trước";
   const previewLabel = selectedLesson
     ? selectedLesson.isPreview
-      ? "Xem trước" 
+      ? "Xem trước"
       : "Đã mở khóa"
     : "Chọn bài giảng xem trước";
 
@@ -210,7 +222,7 @@ export default function CourseDetailPage() {
             </div>
           </div>
         </div>
-        
+
         {/* Skeleton Body */}
         <div className="container mx-auto px-4 md:px-8 mt-12">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -372,7 +384,11 @@ export default function CourseDetailPage() {
               <div className="bg-card border border-border rounded-xl overflow-hidden">
                 <Accordion type="multiple" defaultValue={["item-0"]} className="w-full">
                   {sections.map((section, index) => (
-                    <AccordionItem key={section.id ?? index} value={`item-${index}`} className="px-6 border-b last:border-0">
+                    <AccordionItem
+                      key={section.id ?? index}
+                      value={`item-${index}`}
+                      className="px-6 border-b last:border-0"
+                    >
                       <AccordionTrigger className="hover:no-underline py-5">
                         <div className="flex flex-col md:flex-row md:items-center justify-between w-full text-left pr-4 gap-2">
                           <span className="font-semibold text-base">{section.title}</span>
@@ -392,12 +408,18 @@ export default function CourseDetailPage() {
                                 key={lesson.id}
                                 onClick={() => handleLessonClick(lesson)}
                                 className={`flex items-center justify-between rounded-2xl border px-4 py-3 transition-colors ${
-                                  isAccessible ? "border-border/50 bg-background/80 hover:border-primary/60 hover:bg-background cursor-pointer" : "border-border/50 bg-muted/10 cursor-not-allowed opacity-80"
+                                  isAccessible
+                                    ? "border-border/50 bg-background/80 hover:border-primary/60 hover:bg-background cursor-pointer"
+                                    : "border-border/50 bg-muted/10 cursor-not-allowed opacity-80"
                                 } ${isSelected ? "ring-2 ring-primary/40" : ""}`}
                               >
                                 <div className="flex items-center gap-3">
-                                  <PlayCircle className={`h-4 w-4 shrink-0 ${isAccessible ? "text-primary" : "text-muted-foreground"}`} />
-                                  <span className={isAccessible ? "text-foreground" : "text-muted-foreground opacity-70"}>
+                                  <PlayCircle
+                                    className={`h-4 w-4 shrink-0 ${isAccessible ? "text-primary" : "text-muted-foreground"}`}
+                                  />
+                                  <span
+                                    className={isAccessible ? "text-foreground" : "text-muted-foreground opacity-70"}
+                                  >
                                     {lesson.title}
                                   </span>
                                 </div>
@@ -551,11 +573,8 @@ export default function CourseDetailPage() {
                         <Smartphone className="h-5 w-5 shrink-0 text-primary" />
                         Học trên máy tính và thiết bị di động
                       </li>
-                      
                     </ul>
                   </div>
-
-                  
                 </CardContent>
               </Card>
             </div>

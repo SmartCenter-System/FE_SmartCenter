@@ -23,13 +23,10 @@ export function useCreateExam() {
 
   return useMutation({
     mutationFn: (data: CreateExamPaperRequest) => examService.create(data),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: EXAM_QUERY_KEYS.all });
-      toast.success("Tạo đề thi thành công!");
-    },
-    onError: (error: any) => {
-      toast.error(`Lỗi: ${error.message || "Không thể tạo đề thi"}`);
-    },
+      toast.success("Đã tạo đề thi");
+    }
   });
 }
 
@@ -41,7 +38,7 @@ export function useUpdateExam() {
       examService.update(examId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: EXAM_QUERY_KEYS.all });
-      toast.success("Cập nhật đề thi thành công!");
+      toast.success("Đã cập nhật đề thi");
     },
   });
 }
@@ -65,11 +62,8 @@ export function useGradeExam() {
     mutationFn: (data: { examId: string; studentId: string; gradeDetails: any[] }) => examService.gradeExam(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: EXAM_QUERY_KEYS.all });
-      toast.success("Chấm điểm thành công!");
-    },
-    onError: (error: any) => {
-      toast.error(`Lỗi: ${error.message || "Không thể chấm điểm"}`);
-    },
+      toast.success("Chấm điểm thành công");
+    }
   });
 }
 
