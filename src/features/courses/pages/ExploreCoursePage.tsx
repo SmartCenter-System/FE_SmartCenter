@@ -99,6 +99,28 @@ export default function ExploreCoursePage() {
     });
   };
 
+  const handleModeChange = (newMode: number | undefined) => {
+    setMode(newMode);
+    applyFilterMutation({
+      keyword: searchInput.trim(),
+      mode: newMode,
+      categoryId,
+      minPrice: minPriceInput === "" ? undefined : Number(minPriceInput),
+      maxPrice: maxPriceInput === "" ? undefined : Number(maxPriceInput),
+    });
+  };
+
+  const handleCategoryChange = (newCatId: string | undefined) => {
+    setCategoryId(newCatId);
+    applyFilterMutation({
+      keyword: searchInput.trim(),
+      mode,
+      categoryId: newCatId,
+      minPrice: minPriceInput === "" ? undefined : Number(minPriceInput),
+      maxPrice: maxPriceInput === "" ? undefined : Number(maxPriceInput),
+    });
+  };
+
   const resetFilters = () => {
     setSearchInput("");
     setMode(undefined);
@@ -140,7 +162,7 @@ export default function ExploreCoursePage() {
                         type="radio"
                         name="mode"
                         checked={mode === undefined}
-                        onChange={() => setMode(undefined)}
+                        onChange={() => handleModeChange(undefined)}
                         className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
                       <span>Tất cả</span>
@@ -150,7 +172,7 @@ export default function ExploreCoursePage() {
                         type="radio"
                         name="mode"
                         checked={mode === 1}
-                        onChange={() => setMode(1)}
+                        onChange={() => handleModeChange(1)}
                         className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
                       <span>Online</span>
@@ -160,7 +182,7 @@ export default function ExploreCoursePage() {
                         type="radio"
                         name="mode"
                         checked={mode === 2}
-                        onChange={() => setMode(2)}
+                        onChange={() => handleModeChange(2)}
                         className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
                       <span>Offline</span>
@@ -176,7 +198,7 @@ export default function ExploreCoursePage() {
                         type="radio"
                         name="category"
                         checked={categoryId === undefined}
-                        onChange={() => setCategoryId(undefined)}
+                        onChange={() => handleCategoryChange(undefined)}
                         className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
                       <span>Tất cả</span>
@@ -187,7 +209,7 @@ export default function ExploreCoursePage() {
                           type="radio"
                           name="category"
                           checked={categoryId === cat.id}
-                          onChange={() => setCategoryId(cat.id)}
+                          onChange={() => handleCategoryChange(cat.id)}
                           className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                         />
                         <span>{cat.name}</span>
