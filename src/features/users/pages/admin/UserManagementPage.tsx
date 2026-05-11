@@ -14,6 +14,16 @@ import {
   Eye
 } from "lucide-react";
 
+import { useAuthStore } from "@/features/auth/store";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationEllipsis, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from "@/shared/components/ui/pagination";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
@@ -70,6 +80,12 @@ export default function UserManagementPage() {
   const [roleFilter, setRoleFilter] = useState<UserRole | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState<UserStatus | "ALL">("ALL");
 
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+
+  const { userId: currentUserId } = useAuthStore();
+
   // react-hook-form for creation
   const createForm = useForm<CreateUserFormValues>({
     defaultValues: {
@@ -85,13 +101,17 @@ export default function UserManagementPage() {
 
   // 1. Fetch Users using useQuery with dynamic filters
   const { data: usersData, isLoading, isRefetching } = useQuery({
-    queryKey: ["users", search, roleFilter, statusFilter],
+    queryKey: ["users", search, roleFilter, statusFilter, page, limit],
     queryFn: () => userService.getUsers({
       search,
       role: roleFilter,
       status: statusFilter,
+      page,
+      limit,
     })
   });
+
+  const totalPages = Math.ceil((usersData?.total || 0) / limit);
 
   // 2. Mutations
   const toggleStatusMutation = useMutation({
@@ -99,11 +119,8 @@ export default function UserManagementPage() {
       userService.toggleUserStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast.success("Cập nhật trạng thái tài khoản thành công!");
+      toast.success("Đã cập nhật trạng thái");
       setIsConfirmLockOpen(false);
-    },
-    onError: () => {
-      toast.error("Không thể cập nhật trạng thái người dùng.");
     }
   });
 
@@ -111,11 +128,8 @@ export default function UserManagementPage() {
     mutationFn: (id: string) => userService.deleteUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast.success("Đã xóa người dùng thành công!");
+      toast.success("Đã xóa người dùng");
       setIsConfirmDeleteOpen(false);
-    },
-    onError: () => {
-      toast.error("Không thể xóa người dùng.");
     }
   });
 
@@ -123,12 +137,9 @@ export default function UserManagementPage() {
     mutationFn: (data: CreateUserFormValues) => userService.createInternalUser(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast.success("Đã tạo tài khoản mới thành công!");
+      toast.success("Tạo tài khoản thành công");
       setIsCreateDialogOpen(false);
       createForm.reset();
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Không thể tạo tài khoản mới.");
     }
   });
 
@@ -301,21 +312,27 @@ export default function UserManagementPage() {
                         <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1.5 uppercase font-bold tracking-wider">Hành động</DropdownMenuLabel>
                         <DropdownMenuItem 
                           className={`rounded-lg gap-2 cursor-pointer focus:bg-primary/10 focus:text-primary ${user.status === "ACTIVE" ? "text-red-600 focus:text-red-600" : "text-green-600 focus:text-green-600"}`}
+                          disabled={user.id === currentUserId}
                           onClick={() => {
+                            if (user.id === currentUserId) return;
                             setSelectedUser(user);
                             setIsConfirmLockOpen(true);
                           }}
                         >
                           {user.status === "ACTIVE" ? <><Lock className="h-4 w-4" /> Khóa tài khoản</> : <><Unlock className="h-4 w-4" /> Mở khóa tài khoản</>}
+                          {user.id === currentUserId && <span className="text-[10px] bg-red-100 text-red-600 px-1 rounded ml-auto">Bạn</span>}
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           className="rounded-lg gap-2 text-red-600 cursor-pointer focus:bg-red-50 focus:text-red-600"
+                          disabled={user.id === currentUserId}
                           onClick={() => {
+                            if (user.id === currentUserId) return;
                             setSelectedUser(user);
                             setIsConfirmDeleteOpen(true);
                           }}
                         >
                           <Trash2 className="h-4 w-4" /> Xóa tài khoản
+                          {user.id === currentUserId && <span className="text-[10px] bg-red-100 text-red-600 px-1 rounded ml-auto">Bạn</span>}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -326,6 +343,56 @@ export default function UserManagementPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination UI */}
+      {!isLoading && usersData && usersData.total > 0 && (
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-4 px-2">
+          <p className="text-sm text-muted-foreground">
+            Hiển thị <b>{Math.min(limit, usersData.data.length)}</b> trong tổng số <b>{usersData.total}</b> người dùng
+          </p>
+          <Pagination className="mx-0 w-auto">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  text="Trước"
+                />
+              </PaginationItem>
+              
+              {[...Array(totalPages)].map((_, i) => {
+                const p = i + 1;
+                // Only show current, first, last, and neighbors
+                if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
+                  return (
+                    <PaginationItem key={p}>
+                      <PaginationLink 
+                        onClick={() => setPage(p)} 
+                        isActive={page === p}
+                        className="cursor-pointer"
+                      >
+                        {p}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                }
+                if (p === page - 2 || p === page + 2) {
+                  return <PaginationEllipsis key={p} />;
+                }
+                return null;
+              })}
+
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  text="Sau"
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
 
       {/* Create Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>

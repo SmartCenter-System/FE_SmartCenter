@@ -177,7 +177,7 @@ export default function CheckoutPage() {
           navigate(`/courses/${purchasedCourseId}`);
         }
       } catch (error) {
-        console.error("[Order Poll] error checking order:", error);
+        // [Order Poll] error checking order
       }
     }, checkInterval);
 
@@ -205,7 +205,7 @@ export default function CheckoutPage() {
     return enrollmentData.items.some((item) => item.courseId === id);
   }, [enrollmentData, id]);
 
-  const { data: cart, isLoading: isLoadingCart } = useCart();
+  const { isLoading: isLoadingCart } = useCart();
 
   // ─── Handlers ──────────────────────────────────────────────────
   if (isLoadingCourse || isLoadingCart) {
@@ -271,10 +271,9 @@ export default function CheckoutPage() {
     try {
       const response = await paymentService.createLink({ courseId: id });
       setPaymentLink(response);
-      toast.success("Tạo link thanh toán thành công!");
+      toast.success("Đã tạo link thanh toán");
     } catch (error) {
-      console.error("Lỗi khi tạo link thanh toán:", error);
-      toast.error("Không thể tạo link thanh toán. Vui lòng thử lại.");
+      // Failed to create payment link
     } finally {
       setIsLoadingPayment(false);
     }

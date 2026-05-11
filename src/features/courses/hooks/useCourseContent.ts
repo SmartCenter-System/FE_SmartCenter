@@ -24,11 +24,8 @@ export function useCreateSection() {
       courseService.createSection(courseId, { title }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: COURSE_CONTENT_KEYS.sections(variables.courseId) });
-      toast.success("Đã thêm chương mới!");
-    },
-    onError: (error: any) => {
-      toast.error(`Lỗi: ${error.message || "Không thể thêm chương"}`);
-    },
+      toast.success("Đã thêm chương");
+    }
   });
 }
 
@@ -40,7 +37,7 @@ export function useUpdateSection() {
       courseService.updateSection(sectionId, courseId, { title }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: COURSE_CONTENT_KEYS.sections(variables.courseId) });
-      toast.success("Đã cập nhật chương!");
+      toast.success("Đã cập nhật chương");
     },
   });
 }
@@ -53,7 +50,7 @@ export function useDeleteSection() {
       courseService.deleteSection(sectionId, courseId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: COURSE_CONTENT_KEYS.sections(variables.courseId) });
-      toast.success("Đã xóa chương!");
+      toast.success("Đã xóa chương");
     },
   });
 }
@@ -66,11 +63,8 @@ export function useCreateLesson() {
       courseService.createLesson(courseId, sectionId, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: COURSE_CONTENT_KEYS.sections(variables.courseId) });
-      toast.success("Đã thêm bài giảng!");
-    },
-    onError: (error: any) => {
-      toast.error(`Lỗi: ${error.message || "Không thể thêm bài giảng"}`);
-    },
+      toast.success("Đã thêm bài giảng");
+    }
   });
 }
 
@@ -82,7 +76,7 @@ export function useUpdateLesson() {
       courseService.updateLesson(lessonId, courseId, sectionId, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: COURSE_CONTENT_KEYS.sections(variables.courseId) });
-      toast.success("Đã cập nhật bài giảng!");
+      toast.success("Đã cập nhật bài giảng");
     },
   });
 }
@@ -95,7 +89,7 @@ export function useDeleteLesson() {
       courseService.deleteLesson(lessonId, courseId, sectionId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: COURSE_CONTENT_KEYS.sections(variables.courseId) });
-      toast.success("Đã xóa bài giảng!");
+      toast.success("Đã xóa bài giảng");
     },
   });
 }

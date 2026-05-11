@@ -1,10 +1,10 @@
 import { type AxiosInstance } from "axios";
-import type { PaginatedResponse, SelectOption } from "../types/index";
+import type { PaginatedList, SelectOption } from "../types/index";
 import { apiClient } from "../../lib/axios";
 export interface BaseServiceConfig<TEntity, TCreateDto, TUpdateDto, TFilterParams> {
   endpoint: string;
   axios?: AxiosInstance;
-  getAll?: (params?: TFilterParams) => Promise<PaginatedResponse<TEntity>>;
+  getAll?: (params?: TFilterParams) => Promise<PaginatedList<TEntity>>;
   getById?: (id: string | number) => Promise<TEntity>;
   create?: (data: TCreateDto) => Promise<TEntity>;
   update?: (id: string | number, data: TUpdateDto) => Promise<TEntity>;
@@ -13,7 +13,7 @@ export interface BaseServiceConfig<TEntity, TCreateDto, TUpdateDto, TFilterParam
 }
 
 export interface BaseService<TEntity, TCreateDto, TUpdateDto, TFilterParams> {
-  getAll: (params?: TFilterParams) => Promise<PaginatedResponse<TEntity>>;
+  getAll: (params?: TFilterParams) => Promise<PaginatedList<TEntity>>;
   getById: (id: string | number) => Promise<TEntity>;
   create: (data: TCreateDto) => Promise<TEntity>;
   update: (id: string | number, data: TUpdateDto) => Promise<TEntity>;
@@ -36,9 +36,9 @@ export function createBaseService<
     getAll:
       config.getAll ??
       (async (params?: TFilterParams) => {
-        return axios.get<PaginatedResponse<TEntity>>(endpoint, {
+        return axios.get<PaginatedList<TEntity>>(endpoint, {
           params,
-        }) as unknown as Promise<PaginatedResponse<TEntity>>;
+        }) as unknown as Promise<PaginatedList<TEntity>>;
       }),
     getById:
       config.getById ??

@@ -35,10 +35,8 @@ export const lessonService = {
       const res = await apiClient.get<any>(API_ENDPOINTS.LESSON.BASE, { 
         params: { courseId, sectionId } 
       });
-      console.log(`[lessonService] Lessons for section ${sectionId}:`, res);
       return normalizeLessonResponse(res);
     } catch (error) {
-      console.error(`[lessonService] Error fetching lessons for section ${sectionId}:`, error);
       return [];
     }
   },

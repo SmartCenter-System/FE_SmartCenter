@@ -133,7 +133,7 @@ export function useLogin() {
           splitName.lastName,
       });
 
-      toast.success("Đăng nhập thành công!");
+      toast.success("Đăng nhập thành công");
 
       // Chuyển hướng
       if (from && from !== "/") {
@@ -155,9 +155,6 @@ export function useLogin() {
             break;
         }
       }
-    },
-    onError: (error: any) => {
-      toast.error(error.userMessage || "Đăng nhập thất bại");
-    },
+    }
   });
 }

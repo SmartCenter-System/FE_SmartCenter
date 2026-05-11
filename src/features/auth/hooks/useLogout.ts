@@ -14,14 +14,13 @@ export function useLogout() {
     onSuccess: () => {
       clearAuth();
       queryClient.clear();
-      toast.success("Đăng xuất thành công!");
+      toast.success("Đã đăng xuất");
       navigate("/login", { replace: true });
     },
-    onError: (error) => {
+    onError: () => {
       clearAuth();
       queryClient.clear();
-      toast.error(error.message || "Có lỗi xảy ra khi đăng xuất");
       navigate("/login", { replace: true });
-    },
+    }
   });
 }

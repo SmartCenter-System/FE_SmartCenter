@@ -10,7 +10,8 @@ import {
   Clock,
   XCircle,
   MoreHorizontal,
-  Filter
+  Filter,
+  Loader2
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/shared/components/ui/card";
@@ -62,6 +63,11 @@ export default function OrderManagementPage() {
     }),
   });
 
+  // We use the selected order data directly because the admin list API provides all necessary details.
+  // /api/Order/{id} is restricted to the order owner, so we shouldn't call it here.
+  const isLoadingDetail = false;
+  const detailData = selectedOrder;
+
   // Safe data extraction
   const orders = Array.isArray(ordersData) 
     ? ordersData 
@@ -70,16 +76,20 @@ export default function OrderManagementPage() {
   // Local filtering fallback for extra safety or client-side polish
   const filteredOrders = orders.filter((o: any) => {
     // If server already filtered, this will still work fine
+    const courseNameStr = Array.isArray(o.courseNames) ? o.courseNames.join(", ") : (o.courseName || "");
+    const statusStr = (o.paymentStatus || o.status)?.toString().toUpperCase();
+
     const matchesSearch = !search || 
       o.studentName?.toLowerCase().includes(search.toLowerCase()) ||
-      o.courseName?.toLowerCase().includes(search.toLowerCase()) ||
-      o.id?.toString().includes(search);
+      courseNameStr.toLowerCase().includes(search.toLowerCase()) ||
+      o.orderCode?.toLowerCase().includes(search.toLowerCase()) ||
+      (o.id && o.id.toString().includes(search));
     
     const matchesStatus = statusFilter === "ALL" || 
-      o.status?.toString() === statusFilter ||
-      (statusFilter === "1" && (o.status === "SUCCESS" || o.status === "PAID")) ||
-      (statusFilter === "0" && o.status === "PENDING") ||
-      (statusFilter === "2" && (o.status === "CANCELLED" || o.status === "FAILED"));
+      statusStr === statusFilter ||
+      (statusFilter === "1" && (statusStr === "SUCCESS" || statusStr === "PAID")) ||
+      (statusFilter === "0" && statusStr === "PENDING") ||
+      (statusFilter === "2" && (statusStr === "CANCELLED" || statusStr === "FAILED"));
 
     return matchesSearch && matchesStatus;
   });
@@ -185,16 +195,18 @@ export default function OrderManagementPage() {
               </TableRow>
             ) : (
               filteredOrders.map((order: any) => (
-                <TableRow key={order.id} className="group hover:bg-muted/30 transition-all border-muted/30">
+                <TableRow key={order.orderId || order.id} className="group hover:bg-muted/30 transition-all border-muted/30">
                   <TableCell className="font-mono text-xs text-primary font-medium">
-                    #{order.id?.toString().slice(-8).toUpperCase() || "N/A"}
+                    #{order.orderCode || order.id?.toString().slice(-8).toUpperCase() || "N/A"}
                   </TableCell>
                   <TableCell className="font-medium">{order.studentName || "N/A"}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">{order.courseName || "N/A"}</TableCell>
+                  <TableCell className="max-w-[200px] truncate">
+                    {Array.isArray(order.courseNames) ? order.courseNames.join(", ") : (order.courseName || "N/A")}
+                  </TableCell>
                   <TableCell className="font-bold text-primary">
                     {formatPrice(order.totalAmount || order.amount || 0)}
                   </TableCell>
-                  <TableCell>{getStatusBadge(order.status)}</TableCell>
+                  <TableCell>{getStatusBadge(order.paymentStatus || order.status)}</TableCell>
                   <TableCell className="text-right pr-6">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -225,56 +237,191 @@ export default function OrderManagementPage() {
         </Table>
       </Card>
 
-      {/* Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="sm:max-w-[600px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="bg-primary/10 px-8 py-8">
+        <DialogContent className="sm:max-w-[700px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
+          <DialogHeader className="bg-gradient-to-r from-primary/20 to-primary/5 px-8 py-8 border-b border-primary/10">
             <div className="flex items-center justify-between">
-              <DialogTitle className="text-2xl font-bold text-primary">Chi tiết đơn hàng</DialogTitle>
-              {selectedOrder && getStatusBadge(selectedOrder.status)}
+              <div>
+                <DialogTitle className="text-3xl font-black text-primary tracking-tight">Chi tiết đơn hàng</DialogTitle>
+                <p className="text-muted-foreground mt-1 font-mono text-sm">#{detailData?.orderCode || detailData?.id?.toString().toUpperCase()}</p>
+              </div>
+              {detailData && getStatusBadge(detailData.paymentStatus || detailData.status)}
             </div>
-            <p className="text-primary/70 mt-1">Mã đơn: #{selectedOrder?.id}</p>
           </DialogHeader>
           
-          <div className="p-8 space-y-8">
-            <div className="grid grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-muted-foreground text-sm uppercase tracking-wider font-bold">
-                  <User className="h-4 w-4" /> Thông tin học viên
-                </div>
-                <div className="space-y-1">
-                  <p className="font-bold text-lg">{selectedOrder?.studentName}</p>
-                  <p className="text-sm text-muted-foreground">{selectedOrder?.studentEmail || "N/A"}</p>
-                </div>
+          <div className="p-8 max-h-[70vh] overflow-y-auto custom-scrollbar space-y-8">
+            {isLoadingDetail ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                <p className="text-muted-foreground animate-pulse">Đang tải chi tiết đơn hàng...</p>
               </div>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-muted-foreground text-sm uppercase tracking-wider font-bold">
-                  <Calendar className="h-4 w-4" /> Thời gian
-                </div>
-                <div className="space-y-1">
-                  <p className="font-bold">{selectedOrder?.createdAt ? new Date(selectedOrder.createdAt).toLocaleString('vi-VN') : "N/A"}</p>
-                  <p className="text-sm text-muted-foreground">Ngày đặt hàng</p>
-                </div>
-              </div>
-            </div>
+            ) : (
+              <>
+                {/* 2-Column Info Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-primary text-xs uppercase tracking-[0.2em] font-black">
+                      <User className="h-4 w-4" /> Thông tin học viên
+                    </div>
+                    <div className="space-y-2 bg-muted/30 p-4 rounded-2xl border border-border/50">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Họ và tên</p>
+                        <p className="font-bold text-lg">{detailData?.studentName || detailData?.fullName || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Email</p>
+                        <p className="text-sm">{detailData?.studentEmail || detailData?.email || "N/A"}</p>
+                      </div>
+                      {detailData?.phone && (
+                        <div>
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold">Số điện thoại</p>
+                          <p className="text-sm">{detailData.phone}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-            <div className="space-y-4 bg-muted/30 p-6 rounded-2xl">
-              <div className="flex items-center gap-2 text-muted-foreground text-sm uppercase tracking-wider font-bold">
-                <Book className="h-4 w-4" /> Sản phẩm
-              </div>
-              <div className="flex justify-between items-center">
-                <p className="font-bold">{selectedOrder?.courseName}</p>
-                <p className="font-bold text-primary">{formatPrice(selectedOrder?.totalAmount || selectedOrder?.amount || 0)}</p>
-              </div>
-            </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-primary text-xs uppercase tracking-[0.2em] font-black">
+                      <Calendar className="h-4 w-4" /> Thời gian & Thanh toán
+                    </div>
+                    <div className="space-y-2 bg-muted/30 p-4 rounded-2xl border border-border/50">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Ngày đặt hàng</p>
+                        <p className="font-bold">{detailData?.createdAt ? new Date(detailData.createdAt).toLocaleString('vi-VN') : "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Phương thức</p>
+                        <p className="text-sm flex items-center gap-2">
+                          <CreditCard className="h-3 w-3" /> 
+                          {detailData?.paymentMethod || "Chuyển khoản / VNPay"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Mã giao dịch</p>
+                        <p className="text-sm font-mono">{detailData?.paymentId || "Chưa có"}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-            <div className="pt-4 flex justify-between items-center border-t border-muted">
-              <div className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm font-medium">Phương thức thanh toán: <span className="font-bold">Chuyển khoản / VNPay</span></span>
-              </div>
-              <Button onClick={() => setIsDetailOpen(false)} className="rounded-xl px-8">Đóng</Button>
-            </div>
+                {/* Products Table */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-primary text-xs uppercase tracking-[0.2em] font-black">
+                    <Book className="h-4 w-4" /> Danh sách khóa học
+                  </div>
+                  <div className="border border-border/50 rounded-2xl overflow-hidden shadow-inner bg-muted/10">
+                    <Table>
+                      <TableHeader className="bg-muted/50">
+                        <TableRow>
+                          <TableHead className="font-bold">Tên khóa học</TableHead>
+                          <TableHead className="text-right font-bold pr-6">Giá tiền</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {detailData?.courseNames && Array.isArray(detailData.courseNames) ? (
+                          detailData.courseNames.map((name: string, i: number) => (
+                            <TableRow key={i}>
+                              <TableCell className="font-medium">{name}</TableCell>
+                              <TableCell className="text-right pr-6 font-bold text-primary">-</TableCell>
+                            </TableRow>
+                          ))
+                        ) : detailData?.items && Array.isArray(detailData.items) ? (
+                          detailData.items.map((item: any, i: number) => (
+                            <TableRow key={i}>
+                              <TableCell className="font-medium">{item.courseName}</TableCell>
+                              <TableCell className="text-right pr-6 font-bold text-primary">{formatPrice(item.price)}</TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell className="font-medium">{detailData?.courseName || "Khóa học lẻ"}</TableCell>
+                            <TableCell className="text-right pr-6 font-bold text-primary">
+                              {formatPrice(detailData?.totalAmount || detailData?.amount || 0)}
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                    <div className="p-4 bg-primary/5 flex justify-between items-center border-t border-primary/10">
+                      <span className="font-black text-sm uppercase tracking-wider text-primary">Tổng cộng</span>
+                      <span className="text-2xl font-black text-primary">
+                        {formatPrice(detailData?.totalAmount || detailData?.amount || 0)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* History Timeline */}
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2 text-primary text-xs uppercase tracking-[0.2em] font-black">
+                    <Clock className="h-4 w-4" /> Lịch sử đơn hàng
+                  </div>
+                  <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-muted before:content-['']">
+                    {/* Item 1: Created */}
+                    <div className="relative">
+                      <div className="absolute -left-[27px] top-1 h-5 w-5 rounded-full bg-blue-100 border-4 border-background z-10 flex items-center justify-center">
+                        <div className="h-1.5 w-1.5 rounded-full bg-blue-600" />
+                      </div>
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
+                        <p className="font-bold text-sm">Đã tạo đơn hàng</p>
+                        <p className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                          {detailData?.createdAt ? new Date(detailData.createdAt).toLocaleString('vi-VN') : "N/A"}
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">Đơn hàng được khởi tạo bởi học viên.</p>
+                    </div>
+
+                    {/* Item 2: Status History (if available) or current status if SUCCESS/CANCELLED */}
+                    {detailData?.status === "SUCCESS" || detailData?.status === "PAID" || detailData?.status === 1 ? (
+                      <div className="relative">
+                        <div className="absolute -left-[27px] top-1 h-5 w-5 rounded-full bg-green-100 border-4 border-background z-10 flex items-center justify-center">
+                          <div className="h-1.5 w-1.5 rounded-full bg-green-600" />
+                        </div>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
+                          <p className="font-bold text-sm">Thanh toán thành công</p>
+                          <p className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                            {detailData?.updatedAt ? new Date(detailData.updatedAt).toLocaleString('vi-VN') : 
+                             (detailData?.createdAt ? new Date(new Date(detailData.createdAt).getTime() + 5 * 60000).toLocaleString('vi-VN') : "N/A")}
+                          </p>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Giao dịch đã được xác nhận qua cổng thanh toán.</p>
+                      </div>
+                    ) : detailData?.status === "CANCELLED" || detailData?.status === "FAILED" || detailData?.status === 2 ? (
+                      <div className="relative">
+                        <div className="absolute -left-[27px] top-1 h-5 w-5 rounded-full bg-red-100 border-4 border-background z-10 flex items-center justify-center">
+                          <div className="h-1.5 w-1.5 rounded-full bg-red-600" />
+                        </div>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
+                          <p className="font-bold text-sm">Đơn hàng đã bị hủy</p>
+                          <p className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                            {detailData?.updatedAt ? new Date(detailData.updatedAt).toLocaleString('vi-VN') : "N/A"}
+                          </p>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Đơn hàng đã bị hủy bởi hệ thống hoặc người dùng.</p>
+                      </div>
+                    ) : (
+                      <div className="relative opacity-60">
+                        <div className="absolute -left-[27px] top-1 h-5 w-5 rounded-full bg-amber-100 border-4 border-background z-10 flex items-center justify-center">
+                          <div className="h-1.5 w-1.5 rounded-full bg-amber-600 animate-pulse" />
+                        </div>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
+                          <p className="font-bold text-sm italic text-amber-700">Đang chờ xử lý...</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Đang đợi xác nhận thanh toán từ ngân hàng.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="p-8 bg-muted/20 border-t border-border/50 flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setIsDetailOpen(false)} className="rounded-xl px-8 h-12 border-2">Đóng</Button>
+            {detailData?.status === "PENDING" && (
+              <Button className="rounded-xl px-8 h-12 shadow-lg shadow-primary/20">Xác nhận thanh toán thủ công</Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>

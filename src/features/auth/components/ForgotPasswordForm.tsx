@@ -28,10 +28,7 @@ export function ForgotPasswordForm() {
   const mutation = useMutation({
     mutationFn: (email: string) => authService.forgotPassword(email),
     onSuccess: () => {
-      toast.success("Yêu cầu đã được gửi! Vui lòng kiểm tra email của bạn.");
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Gửi yêu cầu thất bại. Vui lòng thử lại.");
+      toast.success("Đã gửi yêu cầu");
     }
   });
 

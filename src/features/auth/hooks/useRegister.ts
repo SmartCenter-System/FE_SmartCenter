@@ -30,14 +30,11 @@ export function useRegister() {
         userId: res.user?.userId ?? decoded.sub ?? null,
       });
 
-      toast.success("Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.");
+      toast.success("Đăng ký thành công! Hãy kiểm tra email.");
       navigate(`/verify-email?email=${encodeURIComponent(variables.email)}`, { 
         replace: true,
         state: location.state 
       });
-    },
-    onError: (error: any) => {
-      toast.error(error.userMessage || "Đăng ký thất bại");
-    },
+    }
   });
 }

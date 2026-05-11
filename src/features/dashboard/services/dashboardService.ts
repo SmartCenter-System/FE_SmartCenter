@@ -67,11 +67,11 @@ export const dashboardService = {
       apiClient.get<any>("/api/admin/users", { params: { Role: 2, PageSize: 1 } }).catch(() => ({ totalCount: 0 })),
       apiClient.get<any>("/api/Courses", { params: { PageSize: 1 } }).catch(() => ({ totalCount: 0 })),
       apiClient.get<any[]>("/api/ConsultationRequest").catch(() => []),
-      apiClient.get<any>("/api/Order", { params: { PageSize: 50 } }).catch(() => ({ items: [] }))
+      apiClient.get<any>("/api/Order", { params: { PageSize: 50 } }).catch(() => ({ items: [] })),
     ]);
 
     const orders = ordersRes?.items || [];
-    
+
     // Tính doanh thu THÁNG HIỆN TẠI
     const now = new Date();
     const currentMonth = now.getMonth();
@@ -89,21 +89,23 @@ export const dashboardService = {
     return {
       totalStudents: usersRes?.totalCount || 0,
       activeCourses: coursesRes?.totalCount || 0,
-      pendingConsultations: Array.isArray(consultationsRes) ? consultationsRes.filter((c: any) => c.status === "PENDING").length : 0,
+      pendingConsultations: Array.isArray(consultationsRes)
+        ? consultationsRes.filter((c: any) => c.status === "PENDING").length
+        : 0,
       monthlyRevenue,
       recentOrders: orders.slice(0, 5).map((o: any) => ({
         id: o.id || o.orderId,
         studentName: o.studentName || o.customerName || "Khách hàng",
-        courseName: o.courseName || (o.items?.[0]?.courseName) || "Khóa học",
+        courseName: o.courseName || o.items?.[0]?.courseName || "Khóa học",
         amount: o.totalAmount || o.amount || 0,
         status: String(o.status || "PENDING"),
-        createdAt: o.createdAt
+        createdAt: o.createdAt,
       })),
       systemHealth: {
         api: "stable",
         database: "stable",
-        storageUsage: 42
-      }
+        storageUsage: 42,
+      },
     };
   },
 
@@ -113,22 +115,22 @@ export const dashboardService = {
       // 1. Try dedicated endpoint first
       const directStats = await apiClient.get<LecturerDashboardData>(`/api/lecturer/${lecturerId}/dashboard/stats`);
       if (directStats) return directStats;
-    } catch (e) {
-      console.log("Dedicated lecturer stats endpoint not found, falling back to aggregation...");
-    }
+    } catch (e) {}
 
     // 2. Fallback: Aggregate from courses
-    const coursesRes = await apiClient.get<any>("/api/Courses", { 
-      params: { LecturerId: lecturerId, PageSize: 100 } 
-    }).catch(() => ({ items: [], totalCount: 0 }));
+    const coursesRes = await apiClient
+      .get<any>("/api/Courses", {
+        params: { LecturerId: lecturerId, PageSize: 100 },
+      })
+      .catch(() => ({ items: [], totalCount: 0 }));
 
     const courses = coursesRes?.items || [];
-    
+
     return {
-      totalStudents: courses.reduce((sum: number, c: any) => sum + (c.enrolledCount || 0), 0), 
+      totalStudents: courses.reduce((sum: number, c: any) => sum + (c.enrolledCount || 0), 0),
       activeCourses: coursesRes?.totalCount || courses.length,
       averageRating: 0,
-      newMessages: 0
+      newMessages: 0,
     };
   },
 
@@ -138,18 +140,16 @@ export const dashboardService = {
       // 1. Try dedicated endpoint first
       const directStats = await apiClient.get<StaffDashboardData>("/api/staff/dashboard/stats");
       if (directStats) return directStats;
-    } catch (e) {
-      console.log("Dedicated staff stats endpoint not found, falling back to aggregation...");
-    }
+    } catch (e) {}
 
     // 2. Fallback: Aggregate from services
     const [consultationsRes, ordersRes] = await Promise.all([
       apiClient.get<any[]>("/api/ConsultationRequest").catch(() => []),
-      apiClient.get<any>("/api/Order", { params: { PageSize: 100 } }).catch(() => ({ items: [] }))
+      apiClient.get<any>("/api/Order", { params: { PageSize: 100 } }).catch(() => ({ items: [] })),
     ]);
 
     const consultations = Array.isArray(consultationsRes) ? consultationsRes : [];
-    const orders = ordersRes?.items || [];
+    const orders = (ordersRes as any)?.items || [];
 
     return {
       totalLeads: consultations.length,
@@ -157,7 +157,7 @@ export const dashboardService = {
       totalOrders: orders.length,
       totalRevenue: orders
         .filter((o: any) => ["SUCCESS", "PAID"].includes(String(o.status).toUpperCase()) || o.status === 1)
-        .reduce((sum: number, o: any) => sum + (o.totalAmount || o.amount || 0), 0)
+        .reduce((sum: number, o: any) => sum + (o.totalAmount || o.amount || 0), 0),
     };
-  }
+  },
 };

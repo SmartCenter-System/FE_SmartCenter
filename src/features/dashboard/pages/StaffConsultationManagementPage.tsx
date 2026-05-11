@@ -39,10 +39,7 @@ export default function StaffConsultationManagementPage() {
       consultationService.updateStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
-      toast.success("Cập nhật trạng thái thành công!");
-    },
-    onError: (error: any) => {
-      toast.error(`Lỗi khi cập nhật: ${error.message}`);
+      toast.success("Đã cập nhật trạng thái");
     }
   });
 

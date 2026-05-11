@@ -45,10 +45,7 @@ export function ResetPasswordForm() {
     mutationFn: (data: ResetPasswordFormValues) => 
       authService.resetPassword(data.code, data.password),
     onSuccess: () => {
-      toast.success("Mật khẩu đã được đặt lại thành công!");
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Đặt lại mật khẩu thất bại. Mã có thể đã hết hạn.");
+      toast.success("Đặt lại mật khẩu thành công");
     }
   });
 
