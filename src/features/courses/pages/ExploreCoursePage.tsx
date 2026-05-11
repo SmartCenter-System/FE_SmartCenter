@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, Check, Filter, Search, Users, Wifi, Building2, Loader2, CircleX, Link } from "lucide-react";
 import Header from "@/shared/components/common/Header";
 import { useCategories } from "../hooks/useCategories";
@@ -49,15 +49,42 @@ function createPaginationItems(totalPages: number, currentPage: number): Array<n
 
 export default function ExploreCoursePage() {
   const navigate = useNavigate();
-  const [searchInput, setSearchInput] = useState("");
-  const [mode, setMode] = useState<number | undefined>(undefined);
-  const [minPriceInput, setMinPriceInput] = useState("");
-  const [maxPriceInput, setMaxPriceInput] = useState("");
-  const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const initialKeyword = searchParams.get("keyword") || "";
+  const initialMode = searchParams.get("mode") ? Number(searchParams.get("mode")) : undefined;
+  const initialCategoryId = searchParams.get("categoryId") || undefined;
+  const initialMinPrice = searchParams.get("minPrice") || "";
+  const initialMaxPrice = searchParams.get("maxPrice") || "";
+
+  const [searchInput, setSearchInput] = useState(initialKeyword);
+  const [mode, setMode] = useState<number | undefined>(initialMode);
+  const [minPriceInput, setMinPriceInput] = useState(initialMinPrice);
+  const [maxPriceInput, setMaxPriceInput] = useState(initialMaxPrice);
+  const [categoryId, setCategoryId] = useState<string | undefined>(initialCategoryId);
   const [pageIndex, setPageIndex] = useState(1);
-  const [filters, setFilters] = useState<PublicCourseFilterState>({ keyword: "" });
+  const [filters, setFilters] = useState<PublicCourseFilterState>({ 
+    keyword: initialKeyword,
+    mode: initialMode,
+    categoryId: initialCategoryId,
+    minPrice: initialMinPrice ? Number(initialMinPrice) : undefined,
+    maxPrice: initialMaxPrice ? Number(initialMaxPrice) : undefined
+  });
 
   const { data: categories } = useCategories();
+
+  // Cập nhật URL khi bộ lọc thay đổi
+  useEffect(() => {
+    const params: any = {};
+    if (filters.keyword) params.keyword = filters.keyword;
+    if (filters.mode) params.mode = String(filters.mode);
+    if (filters.categoryId) params.categoryId = filters.categoryId;
+    if (filters.minPrice) params.minPrice = String(filters.minPrice);
+    if (filters.maxPrice) params.maxPrice = String(filters.maxPrice);
+    if (pageIndex > 1) params.page = String(pageIndex);
+    
+    setSearchParams(params, { replace: true });
+  }, [filters, pageIndex, setSearchParams]);
 
   const queryParams = useMemo(
     () => ({
