@@ -26,18 +26,18 @@ export default function CourseStudyingPage() {
   );
 
   const { data: courseData, isLoading } = useQuery<Course>({
-    queryKey: ["course", id],
+    queryKey: ["courses", "detail", id],
     queryFn: () => courseService.getById(id as string),
     enabled: !!id && isValidCourseId,
+    staleTime: 1000 * 60 * 10, // Thông tin khóa học giữ 10 phút
   });
 
   const { data: enrollmentData } = useQuery<{ items: Enrollment[]; total: number }>({
-    queryKey: ["myEnrollments"],
+    queryKey: ["enrollments", "me"],
     queryFn: () => enrollmentService.getMyEnrollments(),
     enabled: !!accessToken,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 30, // Thông tin ghi danh giữ 30 phút
     retry: false,
-    refetchOnMount: "always",
   });
 
   const enrollments = enrollmentData?.items;
@@ -45,22 +45,12 @@ export default function CourseStudyingPage() {
   const { data: sectionLessonsData } = useQuery<
     { id: string; title: string; lessons: { id: string; title: string; description?: string; videoUrl?: string; order?: number; isPreview?: boolean; duration?: number }[] }[]
   >({
-    queryKey: ["courseSectionLessons", courseData?.courseId, sectionId],
+    queryKey: ["courses", "study-content", courseData?.courseId],
     queryFn: async () => {
-      if (!courseData || !Array.isArray(courseData.sections)) {
-        return [];
-      }
-
-      const sectionsToLoad = sectionId
-        ? courseData.sections.filter((section) => String(section.id) === String(sectionId))
-        : courseData.sections;
-
-      if (sectionsToLoad.length === 0) {
-        return [];
-      }
+      if (!courseData || !Array.isArray(courseData.sections)) return [];
 
       return Promise.all(
-        sectionsToLoad.map(async (section) => {
+        courseData.sections.map(async (section) => {
           const rawLessons = await lessonService.getAll(courseData.courseId, section.id);
           return {
             ...section,
@@ -80,7 +70,8 @@ export default function CourseStudyingPage() {
       );
     },
     enabled: !!courseData?.courseId && Array.isArray(courseData?.sections) && courseData.sections.length > 0,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 15, // Nội dung bài học giữ 15 phút
+    gcTime: 1000 * 60 * 30,
     retry: false,
   });
 

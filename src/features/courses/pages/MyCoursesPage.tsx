@@ -11,7 +11,7 @@ import { CourseListSkeleton } from "../components/CourseCardSkeleton";
 
 export default function MyCoursesPage() {
   const { data: enrolledCourses = [], isLoading } = useQuery({
-    queryKey: ["myEnrollments"],
+    queryKey: ["enrollments", "me-courses"],
     queryFn: async () => {
       const data = await enrollmentService.getMyEnrollmentCourses();
       return data.map((item) => ({
@@ -23,6 +23,7 @@ export default function MyCoursesPage() {
         courseType: item.courseType === 1 ? "Online" : "Offline",
       }));
     },
+    staleTime: 1000 * 60 * 30, // Dữ liệu khóa học đã mua giữ 30 phút
   });
 
   return (
