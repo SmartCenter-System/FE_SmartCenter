@@ -99,11 +99,6 @@ export default function ExploreCoursePage() {
 
   const { data, isLoading, isFetching, isError, refetch } = usePublicCourses(queryParams);
 
-  const { mutate: applyFilterMutation, isPending: isApplyingFilter } = useApplyPublicCourseFiltersMutation((next) => {
-    setFilters(next);
-    setPageIndex(1);
-  });
-
   const courses = data?.items ?? [];
   const totalCount = data?.total ?? 0;
   const totalPages = Math.ceil(totalCount / DEFAULT_PAGE_SIZE) || 1;
@@ -116,38 +111,41 @@ export default function ExploreCoursePage() {
     const minPrice = minPriceInput === "" ? undefined : Number(minPriceInput);
     const maxPrice = maxPriceInput === "" ? undefined : Number(maxPriceInput);
 
-    applyFilterMutation({
+    setFilters(prev => ({
+      ...prev,
       keyword: searchInput.trim(),
-      mode: filters.mode,
-      categoryId: filters.categoryId,
       minPrice: Number.isFinite(minPrice) ? minPrice : undefined,
       maxPrice: Number.isFinite(maxPrice) ? maxPrice : undefined,
-    });
+    }));
+    setPageIndex(1);
   };
 
   const handleModeChange = (newMode: number | undefined) => {
-    applyFilterMutation({
-      ...filters,
+    setFilters(prev => ({
+      ...prev,
       keyword: searchInput.trim(),
       mode: newMode,
-    });
+    }));
+    setPageIndex(1);
   };
 
   const handleCategoryChange = (newCatId: string | undefined) => {
     const validId = (newCatId && newCatId !== "undefined" && newCatId !== "null") ? newCatId : undefined;
     
-    applyFilterMutation({
-      ...filters,
+    setFilters(prev => ({
+      ...prev,
       keyword: searchInput.trim(),
       categoryId: validId,
-    });
+    }));
+    setPageIndex(1);
   };
 
   const resetFilters = () => {
     setSearchInput("");
     setMinPriceInput("");
     setMaxPriceInput("");
-    applyFilterMutation({ keyword: "", mode: undefined, categoryId: undefined, minPrice: undefined, maxPrice: undefined });
+    setFilters({ keyword: "", mode: undefined, categoryId: undefined, minPrice: undefined, maxPrice: undefined });
+    setPageIndex(1);
   };
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -285,7 +283,6 @@ export default function ExploreCoursePage() {
 
                 <button
                   onClick={applyFilters}
-                  disabled={isApplyingFilter}
                   className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-800"
                 >
                   <Check className="h-4 w-4" />
@@ -293,7 +290,6 @@ export default function ExploreCoursePage() {
                 </button>
                 <button
                   onClick={resetFilters}
-                  disabled={isApplyingFilter}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted"
                 >
                   <CircleX className="h-4 w-4" />
