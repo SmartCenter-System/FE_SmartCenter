@@ -59,10 +59,8 @@ export default function ExploreCoursePage() {
   const initialMaxPrice = searchParams.get("maxPrice") || "";
 
   const [searchInput, setSearchInput] = useState(initialKeyword);
-  const [mode, setMode] = useState<number | undefined>(initialMode);
   const [minPriceInput, setMinPriceInput] = useState(initialMinPrice);
   const [maxPriceInput, setMaxPriceInput] = useState(initialMaxPrice);
-  const [categoryId, setCategoryId] = useState<string | undefined>(initialCategoryId);
   const [pageIndex, setPageIndex] = useState(1);
   const [filters, setFilters] = useState<PublicCourseFilterState>({ 
     keyword: initialKeyword,
@@ -120,42 +118,33 @@ export default function ExploreCoursePage() {
 
     applyFilterMutation({
       keyword: searchInput.trim(),
-      mode,
-      categoryId,
+      mode: filters.mode,
+      categoryId: filters.categoryId,
       minPrice: Number.isFinite(minPrice) ? minPrice : undefined,
       maxPrice: Number.isFinite(maxPrice) ? maxPrice : undefined,
     });
   };
 
   const handleModeChange = (newMode: number | undefined) => {
-    setMode(newMode);
     applyFilterMutation({
+      ...filters,
       keyword: searchInput.trim(),
       mode: newMode,
-      categoryId,
-      minPrice: minPriceInput === "" ? undefined : Number(minPriceInput),
-      maxPrice: maxPriceInput === "" ? undefined : Number(maxPriceInput),
     });
   };
 
   const handleCategoryChange = (newCatId: string | undefined) => {
-    // Chỉ lấy ID nếu nó hợp lệ và không phải là chuỗi "undefined"
     const validId = (newCatId && newCatId !== "undefined" && newCatId !== "null") ? newCatId : undefined;
     
-    setCategoryId(validId);
     applyFilterMutation({
+      ...filters,
       keyword: searchInput.trim(),
-      mode,
       categoryId: validId,
-      minPrice: minPriceInput === "" ? undefined : Number(minPriceInput),
-      maxPrice: maxPriceInput === "" ? undefined : Number(maxPriceInput),
     });
   };
 
   const resetFilters = () => {
     setSearchInput("");
-    setMode(undefined);
-    setCategoryId(undefined);
     setMinPriceInput("");
     setMaxPriceInput("");
     applyFilterMutation({ keyword: "", mode: undefined, categoryId: undefined, minPrice: undefined, maxPrice: undefined });
@@ -196,7 +185,7 @@ export default function ExploreCoursePage() {
                         id="mode-all"
                         type="radio"
                         name="mode"
-                        checked={mode === undefined || mode === null}
+                        checked={filters.mode === undefined || filters.mode === null}
                         onChange={() => handleModeChange(undefined)}
                         className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
@@ -210,7 +199,7 @@ export default function ExploreCoursePage() {
                         id="mode-online"
                         type="radio"
                         name="mode"
-                        checked={mode === 1}
+                        checked={filters.mode === 1}
                         onChange={() => handleModeChange(1)}
                         className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
@@ -224,7 +213,7 @@ export default function ExploreCoursePage() {
                         id="mode-offline"
                         type="radio"
                         name="mode"
-                        checked={mode === 2}
+                        checked={filters.mode === 2}
                         onChange={() => handleModeChange(2)}
                         className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
@@ -244,7 +233,7 @@ export default function ExploreCoursePage() {
                         id="cat-all"
                         type="radio"
                         name="category"
-                        checked={categoryId === undefined || categoryId === null || categoryId === ""}
+                        checked={filters.categoryId === undefined || filters.categoryId === null || filters.categoryId === ""}
                         onChange={() => handleCategoryChange(undefined)}
                         className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
@@ -260,7 +249,7 @@ export default function ExploreCoursePage() {
                           id={`cat-${cat.id}`}
                           type="radio"
                           name="category"
-                          checked={categoryId === String(cat.id)}
+                          checked={filters.categoryId === String(cat.id)}
                           onChange={() => handleCategoryChange(String(cat.id))}
                           className="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
                         />
