@@ -79,7 +79,10 @@ const normalizeUser = (u: any): User => {
   // Chuẩn hóa Status
   const rawStatus = u.status ?? u.Status ?? u.isActive ?? u.IsActive;
   let normalizedStatus: UserStatus = "LOCKED";
-  if (rawStatus === 1 || rawStatus === "1" || rawStatus === true || rawStatus === "ACTIVE" || rawStatus === "Active") {
+  
+  // Các giá trị được coi là ACTIVE
+  const activeValues = [1, "1", true, "true", "ACTIVE", "Active", "active"];
+  if (activeValues.includes(rawStatus)) {
     normalizedStatus = "ACTIVE";
   }
 
@@ -109,25 +112,43 @@ const normalizeUser = (u: any): User => {
 export const userService = {
   // Lấy danh sách người dùng
   async getUsers(params?: UserFilterParams): Promise<{ data: User[]; total: number }> {
-    const roleValue = params?.role && params.role !== "ALL" ? ROLE_MAP[params.role] : undefined;
-    const statusValue = params?.status === "ACTIVE" ? 1 : params?.status === "LOCKED" ? 2 : undefined;
+    const roleValue = params?.role && params.role !== "ALL" ? params.role : undefined;
+    const statusValue = params?.status === "ACTIVE" ? 1 : params?.status === "LOCKED" ? 0 : undefined;
 
     const res: any = await apiClient.get(API_ENDPOINTS.ADMIN.USERS, {
       params: {
         Search: params?.search,
         Role: roleValue,
         Status: statusValue,
+        IsActive: params?.status === "ACTIVE" ? true : params?.status === "LOCKED" ? false : undefined,
         PageIndex: params?.page ?? 1,
         PageSize: params?.limit ?? 100,
       },
     });
 
-    const rawData = res?.items || (Array.isArray(res) ? res : []);
-    const data = rawData.map(normalizeUser);
+    const rawData = res?.data || res?.items || (Array.isArray(res) ? res : []);
+    let data = rawData.map(normalizeUser);
+
+    // Fallback: Lọc thủ công tại FE nếu BE trả về sai (đảm bảo tính chính xác cho người dùng)
+    if (params?.status && params.status !== "ALL") {
+      data = data.filter(u => u.status === params.status);
+    }
+    if (params?.role && params.role !== "ALL") {
+      data = data.filter(u => u.role === params.role);
+    }
+    if (params?.search) {
+      const s = params.search.toLowerCase();
+      data = data.filter(u => 
+        u.fullName.toLowerCase().includes(s) || 
+        u.email.toLowerCase().includes(s)
+      );
+    }
+
+    const isFiltered = (params?.status && params.status !== "ALL") || (params?.role && params.role !== "ALL") || !!params?.search;
 
     return {
       data,
-      total: Number(res?.totalCount || data.length),
+      total: isFiltered ? data.length : Number(res?.totalCount ?? res?.total ?? data.length ?? 0),
     };
   },
 

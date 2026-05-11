@@ -23,16 +23,18 @@ import {
   DropdownMenuTrigger 
 } from "@/shared/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { consultationService, type ConsultationStatus } from "../services/consultationService";
+import { consultationService, type ConsultationStatus, type ConsultationRequest } from "@/features/consultation/service";
 
 export default function StaffConsultationManagementPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
-  const { data: consultations, isLoading } = useQuery({
-    queryKey: ["consultations"],
+  const { data: consultationsRes, isLoading } = useQuery({
+    queryKey: ["consultations", "list"],
     queryFn: () => consultationService.getConsultations(),
   });
+
+  const consultations = consultationsRes?.items || [];
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string, status: ConsultationStatus }) => 
@@ -47,19 +49,17 @@ export default function StaffConsultationManagementPage() {
     switch (status) {
       case "PENDING":
         return <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-none"><Clock className="h-3 w-3 mr-1" /> Chờ xử lý</Badge>;
-      case "CONTACTED":
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-none"><Phone className="h-3 w-3 mr-1" /> Đã liên hệ</Badge>;
-      case "COMPLETED":
-        return <Badge variant="secondary" className="bg-green-100 text-green-700 border-none"><CheckCircle2 className="h-3 w-3 mr-1" /> Thành công</Badge>;
-      case "REJECTED":
-        return <Badge variant="secondary" className="bg-red-100 text-red-700 border-none"><XCircle className="h-3 w-3 mr-1" /> Từ chối</Badge>;
+      case "PROCESSED":
+        return <Badge variant="secondary" className="bg-green-100 text-green-700 border-none"><CheckCircle2 className="h-3 w-3 mr-1" /> Đã tư vấn</Badge>;
+      case "CANCELLED":
+        return <Badge variant="secondary" className="bg-red-100 text-red-700 border-none"><XCircle className="h-3 w-3 mr-1" /> Đã hủy</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   const filteredData = (consultations || []).filter(item => 
-    item.customerName.toLowerCase().includes(search.toLowerCase()) ||
+    item.fullName.toLowerCase().includes(search.toLowerCase()) ||
     item.phone.includes(search) ||
     item.email.toLowerCase().includes(search.toLowerCase())
   );
@@ -118,20 +118,20 @@ export default function StaffConsultationManagementPage() {
                     <tr key={item.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                       <td className="py-4 px-2">
                         <div className="flex flex-col">
-                          <span className="font-bold">{item.customerName}</span>
+                          <span className="font-bold">{item.fullName}</span>
                           <span className="text-xs text-muted-foreground">{item.phone}</span>
                         </div>
                       </td>
                       <td className="py-4 px-2">
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="font-normal text-[10px]">{item.courseInterest}</Badge>
+                          <Badge variant="outline" className="font-normal text-[10px]">{item.courseName}</Badge>
                         </div>
                       </td>
                       <td className="py-4 px-2">
                         {getStatusBadge(item.status)}
                       </td>
-                      <td className="py-4 px-2 text-muted-foreground">
-                        {item.createdAt}
+                      <td className="py-4 px-2 text-muted-foreground text-xs">
+                        {new Date(item.createdAt).toLocaleDateString("vi-VN")}
                       </td>
                       <td className="py-4 px-2 text-right">
                         <div className="flex justify-end gap-2">
@@ -150,21 +150,15 @@ export default function StaffConsultationManagementPage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 className="gap-2"
-                                onClick={() => updateStatusMutation.mutate({ id: item.id, status: "CONTACTED" })}
+                                onClick={() => updateStatusMutation.mutate({ id: item.id, status: "PROCESSED" })}
                               >
-                                <Phone className="h-4 w-4" /> Đánh dấu đã liên hệ
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className="gap-2"
-                                onClick={() => updateStatusMutation.mutate({ id: item.id, status: "COMPLETED" })}
-                              >
-                                <CheckCircle2 className="h-4 w-4" /> Đánh dấu thành công
+                                <CheckCircle2 className="h-4 w-4" /> Đánh dấu đã tư vấn
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 className="gap-2 text-red-600"
-                                onClick={() => updateStatusMutation.mutate({ id: item.id, status: "REJECTED" })}
+                                onClick={() => updateStatusMutation.mutate({ id: item.id, status: "CANCELLED" })}
                               >
-                                <XCircle className="h-4 w-4" /> Từ chối yêu cầu
+                                <XCircle className="h-4 w-4" /> Hủy yêu cầu
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

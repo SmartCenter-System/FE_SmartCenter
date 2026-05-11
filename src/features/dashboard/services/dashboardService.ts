@@ -64,13 +64,16 @@ export const dashboardService = {
 
     // 2. Fallback: Aggregate from services
     const [usersRes, coursesRes, consultationsRes, ordersRes] = await Promise.all([
-      apiClient.get<any>("/api/admin/users", { params: { Role: 2, PageSize: 1 } }).catch(() => ({ totalCount: 0 })),
-      apiClient.get<any>("/api/Courses", { params: { PageSize: 1 } }).catch(() => ({ totalCount: 0 })),
-      apiClient.get<any[]>("/api/ConsultationRequest").catch(() => []),
-      apiClient.get<any>("/api/Order", { params: { PageSize: 50 } }).catch(() => ({ items: [] })),
+      apiClient.get<any>("/api/admin/users", { params: { Role: 2, PageSize: 1 } }).catch(() => ({ data: [], totalCount: 0 })),
+      apiClient.get<any>("/api/Courses", { params: { PageSize: 1 } }).catch(() => ({ data: [], totalCount: 0 })),
+      apiClient.get<any>("/ConsultationRequest").catch(() => ({ data: [] })),
+      apiClient.get<any>("/api/admin/orders", { params: { PageSize: 100 } }).catch(() => ({ data: [] })),
     ]);
 
-    const orders = ordersRes?.items || [];
+    const usersCount = Number(usersRes?.totalCount ?? usersRes?.total ?? (usersRes?.data ? usersRes.data.length : 0));
+    const coursesCount = Number(coursesRes?.totalCount ?? coursesRes?.total ?? (coursesRes?.data ? coursesRes.data.length : 0));
+    const orders = ordersRes?.data || ordersRes?.items || (Array.isArray(ordersRes) ? ordersRes : []);
+    const consultations = consultationsRes?.data || consultationsRes?.items || (Array.isArray(consultationsRes) ? consultationsRes : []);
 
     // Tính doanh thu THÁNG HIỆN TẠI
     const now = new Date();
@@ -80,25 +83,29 @@ export const dashboardService = {
     const monthlyRevenue = orders
       .filter((o: any) => {
         const orderDate = new Date(o.createdAt || o.orderDate);
-        const isSuccess = ["SUCCESS", "PAID"].includes(String(o.status).toUpperCase()) || o.status === 1;
+        const pStatus = String(o.paymentStatus || "").toUpperCase();
+        const status = String(o.status || "");
+        
+        const isPaid = ["SUCCESS", "PAID"].includes(pStatus) || status === "1";
+        const isNotPending = pStatus !== "PENDING" && status !== "0";
+        const isSuccess = isPaid && isNotPending;
+
         const isCurrentMonth = orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
         return isSuccess && isCurrentMonth;
       })
       .reduce((sum: number, o: any) => sum + (o.totalAmount || o.amount || 0), 0);
 
     return {
-      totalStudents: usersRes?.totalCount || 0,
-      activeCourses: coursesRes?.totalCount || 0,
-      pendingConsultations: Array.isArray(consultationsRes)
-        ? consultationsRes.filter((c: any) => c.status === "PENDING").length
-        : 0,
+      totalStudents: usersCount,
+      activeCourses: coursesCount,
+      pendingConsultations: consultations.filter((c: any) => c.status === "PENDING" || c.status === 0).length,
       monthlyRevenue,
       recentOrders: orders.slice(0, 5).map((o: any) => ({
-        id: o.id || o.orderId,
+        id: o.orderId || o.id,
         studentName: o.studentName || o.customerName || "Khách hàng",
-        courseName: o.courseName || o.items?.[0]?.courseName || "Khóa học",
+        courseName: Array.isArray(o.courseNames) ? o.courseNames[0] : (o.courseName || "Khóa học"),
         amount: o.totalAmount || o.amount || 0,
-        status: String(o.status || "PENDING"),
+        status: String(o.paymentStatus || o.status || "PENDING").toUpperCase(),
         createdAt: o.createdAt,
       })),
       systemHealth: {
@@ -144,19 +151,25 @@ export const dashboardService = {
 
     // 2. Fallback: Aggregate from services
     const [consultationsRes, ordersRes] = await Promise.all([
-      apiClient.get<any[]>("/api/ConsultationRequest").catch(() => []),
-      apiClient.get<any>("/api/Order", { params: { PageSize: 100 } }).catch(() => ({ items: [] })),
+      apiClient.get<any>("/api/ConsultationRequest").catch(() => ({ data: [] })),
+      apiClient.get<any>("/api/admin/orders", { params: { PageSize: 100 } }).catch(() => ({ data: [] })),
     ]);
 
-    const consultations = Array.isArray(consultationsRes) ? consultationsRes : [];
-    const orders = (ordersRes as any)?.items || [];
+    const consultations = consultationsRes?.data || (Array.isArray(consultationsRes) ? consultationsRes : []);
+    const orders = ordersRes?.data || ordersRes?.items || [];
 
     return {
       totalLeads: consultations.length,
       pendingLeads: consultations.filter((c: any) => c.status === "PENDING").length,
       totalOrders: orders.length,
       totalRevenue: orders
-        .filter((o: any) => ["SUCCESS", "PAID"].includes(String(o.status).toUpperCase()) || o.status === 1)
+        .filter((o: any) => {
+          const pStatus = String(o.paymentStatus || "").toUpperCase();
+          const status = String(o.status || "");
+          const isPaid = ["SUCCESS", "PAID"].includes(pStatus) || status === "1";
+          const isNotPending = pStatus !== "PENDING" && status !== "0";
+          return isPaid && isNotPending;
+        })
         .reduce((sum: number, o: any) => sum + (o.totalAmount || o.amount || 0), 0),
     };
   },

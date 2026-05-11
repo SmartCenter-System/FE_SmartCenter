@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { 
-  Search, 
-  Download, 
+import {
+  Search,
+  Download,
   CreditCard,
   User,
   Book,
@@ -11,56 +11,61 @@ import {
   XCircle,
   MoreHorizontal,
   Filter,
-  Loader2
+  Loader2,
+  DollarSign,
+  RotateCw,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { Card } from "@/shared/components/ui/card";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/shared/components/ui/table";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import { Skeleton } from "@/shared/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/components/ui/dialog";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/shared/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/shared/components/ui/pagination";
 import { orderService } from "../../service";
 
 export default function OrderManagementPage() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [pageIndex, setPageIndex] = useState(1);
+  const [pageSize] = useState(10);
 
   // Use useQuery with dynamic keys for server-side filtering (preferred)
-  // If backend doesn't support Search/Status yet, we still handle local fallback
   const { data: ordersData, isLoading } = useQuery({
-    queryKey: ["adminOrders", search, statusFilter],
-    queryFn: () => orderService.getAll({
-      Search: search || undefined,
-      Status: statusFilter === "ALL" ? undefined : statusFilter,
-    }),
+    queryKey: ["orders", "admin-list", search, statusFilter, pageIndex, pageSize],
+    queryFn: () =>
+      orderService.getAll({
+        Search: search || undefined,
+        Status: statusFilter === "ALL" ? undefined : statusFilter,
+        PageIndex: pageIndex,
+        PageSize: pageSize,
+      }),
+  });
+
+  const { data: statsData, isLoading: isLoadingStats } = useQuery({
+    queryKey: ["orders", "admin-stats"],
+    queryFn: () => orderService.getStats(),
+    staleTime: 10 * 60 * 1000, // Thống kê có thể giữ lâu hơn một chút
   });
 
   // We use the selected order data directly because the admin list API provides all necessary details.
@@ -69,23 +74,23 @@ export default function OrderManagementPage() {
   const detailData = selectedOrder;
 
   // Safe data extraction
-  const orders = Array.isArray(ordersData) 
-    ? ordersData 
-    : (ordersData?.items || ordersData?.data || []);
+  const orders = Array.isArray(ordersData) ? ordersData : ordersData?.items || ordersData?.data || [];
 
   // Local filtering fallback for extra safety or client-side polish
   const filteredOrders = orders.filter((o: any) => {
     // If server already filtered, this will still work fine
-    const courseNameStr = Array.isArray(o.courseNames) ? o.courseNames.join(", ") : (o.courseName || "");
+    const courseNameStr = Array.isArray(o.courseNames) ? o.courseNames.join(", ") : o.courseName || "";
     const statusStr = (o.paymentStatus || o.status)?.toString().toUpperCase();
 
-    const matchesSearch = !search || 
+    const matchesSearch =
+      !search ||
       o.studentName?.toLowerCase().includes(search.toLowerCase()) ||
       courseNameStr.toLowerCase().includes(search.toLowerCase()) ||
       o.orderCode?.toLowerCase().includes(search.toLowerCase()) ||
       (o.id && o.id.toString().includes(search));
-    
-    const matchesStatus = statusFilter === "ALL" || 
+
+    const matchesStatus =
+      statusFilter === "ALL" ||
       statusStr === statusFilter ||
       (statusFilter === "1" && (statusStr === "SUCCESS" || statusStr === "PAID")) ||
       (statusFilter === "0" && statusStr === "PENDING") ||
@@ -100,14 +105,26 @@ export default function OrderManagementPage() {
       case "SUCCESS":
       case "PAID":
       case "1":
-        return <Badge className="bg-green-100 text-green-700 border-none"><CheckCircle2 className="h-3 w-3 mr-1" /> Thành công</Badge>;
+        return (
+          <Badge className="bg-green-100 text-green-700 border-none">
+            <CheckCircle2 className="h-3 w-3 mr-1" /> Thành công
+          </Badge>
+        );
       case "PENDING":
       case "0":
-        return <Badge className="bg-amber-100 text-amber-700 border-none"><Clock className="h-3 w-3 mr-1" /> Chờ xử lý</Badge>;
+        return (
+          <Badge className="bg-amber-100 text-amber-700 border-none">
+            <Clock className="h-3 w-3 mr-1" /> Chờ xử lý
+          </Badge>
+        );
       case "CANCELLED":
       case "FAILED":
       case "2":
-        return <Badge className="bg-red-100 text-red-700 border-none"><XCircle className="h-3 w-3 mr-1" /> Đã hủy</Badge>;
+        return (
+          <Badge className="bg-red-100 text-red-700 border-none">
+            <XCircle className="h-3 w-3 mr-1" /> Đã hủy
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status || "Không xác định"}</Badge>;
     }
@@ -132,30 +149,120 @@ export default function OrderManagementPage() {
         </Button>
       </div>
 
-      {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-background p-4 rounded-2xl border-2 border-muted/50 shadow-sm">
-        <div className="relative md:col-span-2">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {isLoadingStats ? (
+          Array(4)
+            .fill(0)
+            .map((_, i) => (
+              <Card key={i} className="border-none shadow-sm p-6 space-y-3 rounded-3xl bg-background/50">
+                <Skeleton className="h-10 w-10 rounded-xl" />
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-7 w-24" />
+                </div>
+              </Card>
+            ))
+        ) : (
+          <>
+            <Card className="border-none shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 group rounded-3xl bg-background border border-border/50">
+              <div className="flex flex-col gap-4">
+                <div className="p-3 w-fit rounded-2xl bg-blue-50 text-blue-600 group-hover:scale-110 transition-transform">
+                  <CreditCard className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mb-1">
+                    Tổng đơn hàng
+                  </p>
+                  <h3 className="text-2xl font-black text-foreground tracking-tight">{statsData?.total || 0}</h3>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="border-none shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 group rounded-3xl bg-background border border-border/50">
+              <div className="flex flex-col gap-4">
+                <div className="p-3 w-fit rounded-2xl bg-green-50 text-green-600 group-hover:scale-110 transition-transform">
+                  <DollarSign className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mb-1">
+                    Tổng doanh thu
+                  </p>
+                  <h3 className="text-2xl font-black text-foreground tracking-tight whitespace-nowrap overflow-visible">
+                    {(statsData?.revenue || 0).toLocaleString("vi-VN")}đ
+                  </h3>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="border-none shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 group rounded-3xl bg-background border border-border/50">
+              <div className="flex flex-col gap-4">
+                <div className="p-3 w-fit rounded-2xl bg-orange-50 text-orange-600 group-hover:scale-110 transition-transform">
+                  <Clock className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mb-1">
+                    Chờ xử lý
+                  </p>
+                  <h3 className="text-2xl font-black text-foreground tracking-tight">{statsData?.pending || 0}</h3>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="border-none shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 group rounded-3xl bg-background border border-border/50">
+              <div className="flex flex-col gap-4">
+                <div className="p-3 w-fit rounded-2xl bg-red-50 text-red-600 group-hover:scale-110 transition-transform">
+                  <XCircle className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mb-1">Đã hủy</p>
+                  <h3 className="text-2xl font-black text-foreground tracking-tight">{statsData?.cancelled || 0}</h3>
+                </div>
+              </div>
+            </Card>
+          </>
+        )}
+      </div>
+
+      {/* Filter Bar */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Tìm theo mã đơn, tên học viên hoặc khóa học..." 
-            className="pl-10 h-11 rounded-xl border-none bg-muted/30 focus-visible:ring-primary transition-all" 
+          <Input
+            placeholder="Tìm theo mã đơn, tên học viên hoặc khóa học..."
+            className="pl-10 h-11 rounded-xl border-none bg-muted/30 focus-visible:ring-primary transition-all"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPageIndex(1);
+            }}
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-11 rounded-xl border-none bg-muted/30">
+        <Select
+          value={statusFilter}
+          onValueChange={(val) => {
+            setStatusFilter(val);
+            setPageIndex(1);
+          }}
+        >
+          <SelectTrigger className="h-11 rounded-xl border-none bg-muted/30 w-full md:w-[200px]">
             <SelectValue placeholder="Tất cả trạng thái" />
           </SelectTrigger>
           <SelectContent className="rounded-xl">
             <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-            <SelectItem value="1">Thành công</SelectItem>
-            <SelectItem value="0">Chờ xử lý</SelectItem>
-            <SelectItem value="2">Đã hủy</SelectItem>
+            <SelectItem value="PAID">Thành công</SelectItem>
+            <SelectItem value="PENDING">Chờ xử lý</SelectItem>
+            <SelectItem value="CANCELLED">Đã hủy</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="ghost" className="h-11 rounded-xl gap-2 hover:bg-muted">
-          <Filter className="h-4 w-4" /> Bộ lọc nâng cao
+        <Button
+          variant="outline"
+          className="h-11 rounded-xl gap-2 border-none bg-muted/30 hover:bg-muted"
+          onClick={() => {
+            queryClient?.invalidateQueries({ queryKey: ["orders"] });
+          }}
+        >
+          <RotateCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} /> Làm mới
         </Button>
       </div>
 
@@ -176,12 +283,24 @@ export default function OrderManagementPage() {
             {isLoading ? (
               [...Array(5)].map((_, i) => (
                 <TableRow key={i} className="animate-pulse border-muted/30">
-                  <TableCell><div className="h-4 w-20 bg-muted rounded" /></TableCell>
-                  <TableCell><div className="h-4 w-32 bg-muted rounded" /></TableCell>
-                  <TableCell><div className="h-4 w-40 bg-muted rounded" /></TableCell>
-                  <TableCell><div className="h-4 w-24 bg-muted rounded" /></TableCell>
-                  <TableCell><div className="h-6 w-24 bg-muted rounded-full" /></TableCell>
-                  <TableCell><div className="h-8 w-8 bg-muted rounded-full ml-auto" /></TableCell>
+                  <TableCell>
+                    <div className="h-4 w-20 bg-muted rounded" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 w-32 bg-muted rounded" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 w-40 bg-muted rounded" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 w-24 bg-muted rounded" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-6 w-24 bg-muted rounded-full" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-8 w-8 bg-muted rounded-full ml-auto" />
+                  </TableCell>
                 </TableRow>
               ))
             ) : filteredOrders.length === 0 ? (
@@ -195,13 +314,16 @@ export default function OrderManagementPage() {
               </TableRow>
             ) : (
               filteredOrders.map((order: any) => (
-                <TableRow key={order.orderId || order.id} className="group hover:bg-muted/30 transition-all border-muted/30">
+                <TableRow
+                  key={order.orderId || order.id}
+                  className="group hover:bg-muted/30 transition-all border-muted/30"
+                >
                   <TableCell className="font-mono text-xs text-primary font-medium">
                     #{order.orderCode || order.id?.toString().slice(-8).toUpperCase() || "N/A"}
                   </TableCell>
                   <TableCell className="font-medium">{order.studentName || "N/A"}</TableCell>
                   <TableCell className="max-w-[200px] truncate">
-                    {Array.isArray(order.courseNames) ? order.courseNames.join(", ") : (order.courseName || "N/A")}
+                    {Array.isArray(order.courseNames) ? order.courseNames.join(", ") : order.courseName || "N/A"}
                   </TableCell>
                   <TableCell className="font-bold text-primary">
                     {formatPrice(order.totalAmount || order.amount || 0)}
@@ -210,12 +332,16 @@ export default function OrderManagementPage() {
                   <TableCell className="text-right pr-6">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary"
+                        >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="rounded-xl">
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className="cursor-pointer gap-2"
                           onClick={() => {
                             setSelectedOrder(order);
@@ -237,18 +363,80 @@ export default function OrderManagementPage() {
         </Table>
       </Card>
 
+      {/* Pagination UI */}
+      {!isLoading && ordersData && (ordersData.totalCount || ordersData.total) > 0 && (
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-4 px-2">
+          <p className="text-sm text-muted-foreground">
+            Hiển thị <b>{Math.min(pageSize, orders.length)}</b> trong tổng số{" "}
+            <b>{ordersData.totalCount || ordersData.total || orders.length}</b> đơn hàng
+          </p>
+          <Pagination className="mx-0 w-auto">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setPageIndex((p) => Math.max(1, p - 1))}
+                  className={pageIndex === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  text="Trước"
+                />
+              </PaginationItem>
+
+              {/* Basic page numbers - Simplified for now */}
+              {[...Array(Math.ceil((ordersData.totalCount || ordersData.total || 1) / pageSize))].map((_, i) => {
+                const p = i + 1;
+                const totalPages = Math.ceil((ordersData.totalCount || ordersData.total || 1) / pageSize);
+                if (p === 1 || p === totalPages || (p >= pageIndex - 1 && p <= pageIndex + 1)) {
+                  return (
+                    <PaginationItem key={p}>
+                      <PaginationLink
+                        onClick={() => setPageIndex(p)}
+                        isActive={pageIndex === p}
+                        className="cursor-pointer"
+                      >
+                        {p}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                }
+                if (p === pageIndex - 2 || p === pageIndex + 2) {
+                  return <PaginationEllipsis key={p} />;
+                }
+                return null;
+              })}
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() =>
+                    setPageIndex((p) =>
+                      Math.min(Math.ceil((ordersData.totalCount || ordersData.total || 1) / pageSize), p + 1),
+                    )
+                  }
+                  className={
+                    pageIndex >= Math.ceil((ordersData.totalCount || ordersData.total || 1) / pageSize)
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                  text="Sau"
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
+
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="sm:max-w-[700px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
           <DialogHeader className="bg-gradient-to-r from-primary/20 to-primary/5 px-8 py-8 border-b border-primary/10">
             <div className="flex items-center justify-between">
               <div>
                 <DialogTitle className="text-3xl font-black text-primary tracking-tight">Chi tiết đơn hàng</DialogTitle>
-                <p className="text-muted-foreground mt-1 font-mono text-sm">#{detailData?.orderCode || detailData?.id?.toString().toUpperCase()}</p>
+                <p className="text-muted-foreground mt-1 font-mono text-sm">
+                  #{detailData?.orderCode || detailData?.id?.toString().toUpperCase()}
+                </p>
               </div>
               {detailData && getStatusBadge(detailData.paymentStatus || detailData.status)}
             </div>
           </DialogHeader>
-          
+
           <div className="p-8 max-h-[70vh] overflow-y-auto custom-scrollbar space-y-8">
             {isLoadingDetail ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -288,12 +476,14 @@ export default function OrderManagementPage() {
                     <div className="space-y-2 bg-muted/30 p-4 rounded-2xl border border-border/50">
                       <div>
                         <p className="text-[10px] text-muted-foreground uppercase font-bold">Ngày đặt hàng</p>
-                        <p className="font-bold">{detailData?.createdAt ? new Date(detailData.createdAt).toLocaleString('vi-VN') : "N/A"}</p>
+                        <p className="font-bold">
+                          {detailData?.createdAt ? new Date(detailData.createdAt).toLocaleString("vi-VN") : "N/A"}
+                        </p>
                       </div>
                       <div>
                         <p className="text-[10px] text-muted-foreground uppercase font-bold">Phương thức</p>
                         <p className="text-sm flex items-center gap-2">
-                          <CreditCard className="h-3 w-3" /> 
+                          <CreditCard className="h-3 w-3" />
                           {detailData?.paymentMethod || "Chuyển khoản / VNPay"}
                         </p>
                       </div>
@@ -330,7 +520,9 @@ export default function OrderManagementPage() {
                           detailData.items.map((item: any, i: number) => (
                             <TableRow key={i}>
                               <TableCell className="font-medium">{item.courseName}</TableCell>
-                              <TableCell className="text-right pr-6 font-bold text-primary">{formatPrice(item.price)}</TableCell>
+                              <TableCell className="text-right pr-6 font-bold text-primary">
+                                {formatPrice(item.price)}
+                              </TableCell>
                             </TableRow>
                           ))
                         ) : (
@@ -366,7 +558,7 @@ export default function OrderManagementPage() {
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
                         <p className="font-bold text-sm">Đã tạo đơn hàng</p>
                         <p className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                          {detailData?.createdAt ? new Date(detailData.createdAt).toLocaleString('vi-VN') : "N/A"}
+                          {detailData?.createdAt ? new Date(detailData.createdAt).toLocaleString("vi-VN") : "N/A"}
                         </p>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">Đơn hàng được khởi tạo bởi học viên.</p>
@@ -381,13 +573,20 @@ export default function OrderManagementPage() {
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
                           <p className="font-bold text-sm">Thanh toán thành công</p>
                           <p className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                            {detailData?.updatedAt ? new Date(detailData.updatedAt).toLocaleString('vi-VN') : 
-                             (detailData?.createdAt ? new Date(new Date(detailData.createdAt).getTime() + 5 * 60000).toLocaleString('vi-VN') : "N/A")}
+                            {detailData?.updatedAt
+                              ? new Date(detailData.updatedAt).toLocaleString("vi-VN")
+                              : detailData?.createdAt
+                                ? new Date(new Date(detailData.createdAt).getTime() + 5 * 60000).toLocaleString("vi-VN")
+                                : "N/A"}
                           </p>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">Giao dịch đã được xác nhận qua cổng thanh toán.</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Giao dịch đã được xác nhận qua cổng thanh toán.
+                        </p>
                       </div>
-                    ) : detailData?.status === "CANCELLED" || detailData?.status === "FAILED" || detailData?.status === 2 ? (
+                    ) : detailData?.status === "CANCELLED" ||
+                      detailData?.status === "FAILED" ||
+                      detailData?.status === 2 ? (
                       <div className="relative">
                         <div className="absolute -left-[27px] top-1 h-5 w-5 rounded-full bg-red-100 border-4 border-background z-10 flex items-center justify-center">
                           <div className="h-1.5 w-1.5 rounded-full bg-red-600" />
@@ -395,10 +594,12 @@ export default function OrderManagementPage() {
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
                           <p className="font-bold text-sm">Đơn hàng đã bị hủy</p>
                           <p className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                            {detailData?.updatedAt ? new Date(detailData.updatedAt).toLocaleString('vi-VN') : "N/A"}
+                            {detailData?.updatedAt ? new Date(detailData.updatedAt).toLocaleString("vi-VN") : "N/A"}
                           </p>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">Đơn hàng đã bị hủy bởi hệ thống hoặc người dùng.</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Đơn hàng đã bị hủy bởi hệ thống hoặc người dùng.
+                        </p>
                       </div>
                     ) : (
                       <div className="relative opacity-60">
@@ -418,7 +619,9 @@ export default function OrderManagementPage() {
           </div>
 
           <div className="p-8 bg-muted/20 border-t border-border/50 flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setIsDetailOpen(false)} className="rounded-xl px-8 h-12 border-2">Đóng</Button>
+            <Button variant="outline" onClick={() => setIsDetailOpen(false)} className="rounded-xl px-8 h-12 border-2">
+              Đóng
+            </Button>
             {detailData?.status === "PENDING" && (
               <Button className="rounded-xl px-8 h-12 shadow-lg shadow-primary/20">Xác nhận thanh toán thủ công</Button>
             )}

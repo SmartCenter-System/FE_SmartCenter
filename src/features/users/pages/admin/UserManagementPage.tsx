@@ -11,7 +11,11 @@ import {
   RotateCw,
   Trash2,
   Loader2,
-  Eye
+  Eye,
+  Users,
+  GraduationCap,
+  UserCheck,
+  UserCog
 } from "lucide-react";
 
 import { useAuthStore } from "@/features/auth/store";
@@ -28,6 +32,8 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
+import { Card, CardContent } from "@/shared/components/ui/card";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
 import { 
   Select, 
@@ -68,7 +74,7 @@ interface CreateUserFormValues {
 export default function UserManagementPage() {
   const queryClient = useQueryClient();
   
-  // UI States (Allowed as they don't hold data from API)
+  // UI States
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isConfirmLockOpen, setIsConfirmLockOpen] = useState(false);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
@@ -81,8 +87,8 @@ export default function UserManagementPage() {
   const [statusFilter, setStatusFilter] = useState<UserStatus | "ALL">("ALL");
 
   // Pagination states
-  const [page, setPage] = useState(1);
-  const [limit] = useState(10);
+  const [pageIndex, setPageIndex] = useState(1);
+  const [pageSize] = useState(10);
 
   const { userId: currentUserId } = useAuthStore();
 
@@ -99,19 +105,73 @@ export default function UserManagementPage() {
     }
   });
 
-  // 1. Fetch Users using useQuery with dynamic filters
-  const { data: usersData, isLoading, isRefetching } = useQuery({
-    queryKey: ["users", search, roleFilter, statusFilter, page, limit],
-    queryFn: () => userService.getUsers({
-      search,
-      role: roleFilter,
-      status: statusFilter,
-      page,
-      limit,
-    })
+  // 1. Lấy toàn bộ danh sách để đảm bảo dữ liệu thống kê và bảng luôn khớp nhau
+  const { data: allUsersData, isLoading, isRefetching, refetch } = useQuery({
+    queryKey: ["users", "admin-list"],
+    queryFn: () => userService.getUsers({ limit: 1000 }),
   });
 
-  const totalPages = Math.ceil((usersData?.total || 0) / limit);
+  const allUsers = allUsersData?.data || [];
+
+  // 2. Logic Lọc và Phân trang tại FE để khắc phục lỗi Filter của BE
+  const filteredUsers = allUsers.filter(user => {
+    const matchesSearch = !search || 
+      user.fullName.toLowerCase().includes(search.toLowerCase()) || 
+      user.email.toLowerCase().includes(search.toLowerCase());
+    
+    const matchesRole = roleFilter === "ALL" || user.role === roleFilter;
+    const matchesStatus = statusFilter === "ALL" || user.status === statusFilter;
+    
+    return matchesSearch && matchesRole && matchesStatus;
+  });
+
+  const totalFiltered = filteredUsers.length;
+  const totalPages = Math.ceil(totalFiltered / pageSize);
+  
+  // Dữ liệu hiển thị trên trang hiện tại
+  const paginatedUsers = filteredUsers.slice((pageIndex - 1) * pageSize, pageIndex * pageSize);
+
+  const stats = [
+    { 
+      label: "Tổng người dùng", 
+      value: allUsersData?.total || allUsers.length, 
+      icon: Users, 
+      color: "bg-blue-500", 
+      loading: !allUsersData 
+    },
+    { 
+      label: "Học viên", 
+      value: allUsers.filter(u => u.role === "STUDENT").length, 
+      icon: GraduationCap, 
+      color: "bg-green-500", 
+      loading: !allUsersData 
+    },
+    { 
+      label: "Giảng viên", 
+      value: allUsers.filter(u => u.role === "LECTURER").length, 
+      icon: UserCheck, 
+      color: "bg-purple-500", 
+      loading: !allUsersData 
+    },
+    { 
+      label: "Nhân viên", 
+      value: allUsers.filter(u => u.role === "STAFF").length, 
+      icon: UserCog, 
+      color: "bg-orange-500", 
+      loading: !allUsersData 
+    },
+  ];
+
+
+
+  // 1.5 Fetch Full User Detail when selected
+  const { data: fullUserData, isLoading: isLoadingDetail } = useQuery({
+    queryKey: ["users", "detail", selectedUser?.id],
+    queryFn: () => selectedUser ? userService.getById(selectedUser.id) : null,
+    enabled: isDetailOpen && !!selectedUser?.id, // Chỉ gọi khi modal mở và có ID
+  });
+
+  const displayUser = fullUserData || selectedUser;
 
   // 2. Mutations
   const toggleStatusMutation = useMutation({
@@ -184,7 +244,10 @@ export default function UserManagementPage() {
         <div className="flex gap-2">
           <Button 
             variant="outline" 
-            onClick={() => queryClient.invalidateQueries({ queryKey: ["users"] })} 
+            onClick={() => {
+              refetch();
+              queryClient.invalidateQueries({ queryKey: ["users"] });
+            }} 
             className="rounded-xl border-2 hover:bg-muted transition-all"
           >
             <RotateCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
@@ -200,6 +263,27 @@ export default function UserManagementPage() {
         </div>
       </div>
 
+      {/* Stats Area */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((s) => (
+          <Card key={s.label} className="border-none shadow-sm bg-card hover:shadow-md transition-all border-l-4 border-l-transparent hover:border-l-primary">
+            <CardContent className="p-6 flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">{s.label}</p>
+                {s.loading ? (
+                  <Skeleton className="h-9 w-16" />
+                ) : (
+                  <p className="text-3xl font-bold">{s.value}</p>
+                )}
+              </div>
+              <div className={`p-3 rounded-2xl ${s.color} bg-opacity-10 text-${s.color.split('-')[1]}-600`}>
+                <s.icon className="h-6 w-6" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       {/* Filters Card */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-background p-4 rounded-2xl border-2 border-muted/50 shadow-sm">
         <div className="relative md:col-span-2">
@@ -208,10 +292,16 @@ export default function UserManagementPage() {
             placeholder="Tìm kiếm theo tên hoặc email..." 
             className="pl-10 h-11 rounded-xl border-none bg-muted/30 focus-visible:ring-primary transition-all" 
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPageIndex(1);
+            }}
           />
         </div>
-        <Select value={roleFilter} onValueChange={(val) => setRoleFilter(val as UserRole | "ALL")}>
+        <Select value={roleFilter} onValueChange={(val) => {
+          setRoleFilter(val as UserRole | "ALL");
+          setPageIndex(1);
+        }}>
           <SelectTrigger className="h-11 rounded-xl border-none bg-muted/30">
             <SelectValue placeholder="Tất cả vai trò" />
           </SelectTrigger>
@@ -223,7 +313,10 @@ export default function UserManagementPage() {
             <SelectItem value="ADMIN">Admin</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as UserStatus | "ALL")}>
+        <Select value={statusFilter} onValueChange={(val) => {
+          setStatusFilter(val as UserStatus | "ALL");
+          setPageIndex(1);
+        }}>
           <SelectTrigger className="h-11 rounded-xl border-none bg-muted/30">
             <SelectValue placeholder="Tất cả trạng thái" />
           </SelectTrigger>
@@ -258,7 +351,7 @@ export default function UserManagementPage() {
                   <TableCell><div className="h-8 w-8 bg-muted rounded-full ml-auto" /></TableCell>
                 </TableRow>
               ))
-            ) : usersData?.data?.length === 0 ? (
+            ) : paginatedUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-64 text-center">
                   <div className="flex flex-col items-center justify-center text-muted-foreground gap-2">
@@ -269,7 +362,7 @@ export default function UserManagementPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              usersData?.data?.map((user: User) => (
+              paginatedUsers.map((user: User) => (
                 <TableRow key={user.id} className="group hover:bg-muted/30 transition-all border-muted/30">
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -345,17 +438,17 @@ export default function UserManagementPage() {
       </div>
 
       {/* Pagination UI */}
-      {!isLoading && usersData && usersData.total > 0 && (
+      {!isLoading && totalFiltered > 0 && (
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-4 px-2">
           <p className="text-sm text-muted-foreground">
-            Hiển thị <b>{Math.min(limit, usersData.data.length)}</b> trong tổng số <b>{usersData.total}</b> người dùng
+            Hiển thị <b>{paginatedUsers.length}</b> trong tổng số <b>{totalFiltered}</b> người dùng
           </p>
           <Pagination className="mx-0 w-auto">
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious 
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  onClick={() => setPageIndex(p => Math.max(1, p - 1))}
+                  className={pageIndex === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                   text="Trước"
                 />
               </PaginationItem>
@@ -363,12 +456,12 @@ export default function UserManagementPage() {
               {[...Array(totalPages)].map((_, i) => {
                 const p = i + 1;
                 // Only show current, first, last, and neighbors
-                if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
+                if (p === 1 || p === totalPages || (p >= pageIndex - 1 && p <= pageIndex + 1)) {
                   return (
                     <PaginationItem key={p}>
                       <PaginationLink 
-                        onClick={() => setPage(p)} 
-                        isActive={page === p}
+                        onClick={() => setPageIndex(p)} 
+                        isActive={pageIndex === p}
                         className="cursor-pointer"
                       >
                         {p}
@@ -376,7 +469,7 @@ export default function UserManagementPage() {
                     </PaginationItem>
                   );
                 }
-                if (p === page - 2 || p === page + 2) {
+                if (p === pageIndex - 2 || p === pageIndex + 2) {
                   return <PaginationEllipsis key={p} />;
                 }
                 return null;
@@ -384,8 +477,8 @@ export default function UserManagementPage() {
 
               <PaginationItem>
                 <PaginationNext 
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  onClick={() => setPageIndex(p => Math.min(totalPages, p + 1))}
+                  className={pageIndex === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
                   text="Sau"
                 />
               </PaginationItem>
@@ -550,44 +643,60 @@ export default function UserManagementPage() {
               </Avatar>
             </div>
           </div>
-          <div className="px-8 pt-16 pb-8 space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-2xl font-bold">{selectedUser?.fullName}</h3>
-                <p className="text-muted-foreground">{selectedUser?.email}</p>
+            <div className="px-8 pt-16 pb-8 space-y-6">
+            {isLoadingDetail ? (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-48" />
+                  <Skeleton className="h-4 w-64" />
+                </div>
+                <div className="grid grid-cols-1 gap-4 bg-muted/30 p-4 rounded-2xl">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
               </div>
-              <div className="flex flex-col items-end gap-2">
-                {selectedUser && roleBadge(selectedUser.role)}
-                {selectedUser && statusBadge(selectedUser.status)}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 gap-4 text-sm bg-muted/30 p-4 rounded-2xl">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">ID:</span>
-                <span className="font-mono">{selectedUser?.id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Số điện thoại:</span>
-                <span>{selectedUser?.phone || "Chưa cập nhật"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Chuyên môn:</span>
-                <span>{selectedUser?.expertise || "Chưa cập nhật"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Ngày tham gia:</span>
-                <span>{selectedUser && new Date(selectedUser.createdAt).toLocaleDateString('vi-VN')}</span>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-2xl font-bold">{displayUser?.fullName}</h3>
+                    <p className="text-muted-foreground">{displayUser?.email}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    {displayUser && roleBadge(displayUser.role)}
+                    {displayUser && statusBadge(displayUser.status)}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4 text-sm bg-muted/30 p-4 rounded-2xl">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">ID:</span>
+                    <span className="font-mono">{displayUser?.id}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Số điện thoại:</span>
+                    <span>{displayUser?.phone || "Chưa cập nhật"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Chuyên môn:</span>
+                    <span>{displayUser?.expertise || "Chưa cập nhật"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Ngày tham gia:</span>
+                    <span>{displayUser && new Date(displayUser.createdAt).toLocaleDateString('vi-VN')}</span>
+                  </div>
+                </div>
 
-            {selectedUser?.bio && (
-              <div className="space-y-2">
-                <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Giới thiệu</h4>
-                <p className="text-sm italic text-foreground/80 leading-relaxed bg-muted/20 p-4 rounded-xl">
-                  "{selectedUser.bio}"
-                </p>
-              </div>
+                {displayUser?.bio && (
+                  <div className="space-y-2">
+                    <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Giới thiệu</h4>
+                    <p className="text-sm italic text-foreground/80 leading-relaxed bg-muted/20 p-4 rounded-xl">
+                      "{displayUser.bio}"
+                    </p>
+                  </div>
+                )}
+              </>
             )}
 
             <Button className="w-full rounded-xl h-11 border-2" variant="outline" onClick={() => setIsDetailOpen(false)}>

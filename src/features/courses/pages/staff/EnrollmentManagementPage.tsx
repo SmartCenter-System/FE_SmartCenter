@@ -28,7 +28,7 @@ import { toast } from "sonner";
 import { courseService } from "@/features/courses/services";
 import { userService } from "@/features/users/services";
 import { enrollmentService } from "@/features/courses/enrollmentService";
-import { consultationService, type ConsultationStatus } from "@/features/dashboard/services/consultationService";
+import { consultationService, type ConsultationStatus } from "@/features/consultation/service";
 
 export default function EnrollmentManagementPage() {
   const queryClient = useQueryClient();
@@ -43,13 +43,14 @@ export default function EnrollmentManagementPage() {
 
   // Queries
   const { data: coursesData } = useQuery({
-    queryKey: ["staff-courses-list"],
+    queryKey: ["courses", "staff-list"],
     queryFn: () => courseService.getCourses({ limit: 100 }),
+    staleTime: 30 * 60 * 1000, // Danh sách khóa học ít thay đổi, giữ cache lâu hơn
   });
   const courses = coursesData?.data || [];
 
   const { data: consultations, isLoading: isLoadingConsultations } = useQuery({
-    queryKey: ["consultations"],
+    queryKey: ["consultations", "list"],
     queryFn: () => consultationService.getConsultations(),
   });
 
@@ -113,14 +114,15 @@ export default function EnrollmentManagementPage() {
   const getStatusIcon = (status: ConsultationStatus) => {
     switch (status) {
       case "PENDING": return <Clock className="h-4 w-4 text-amber-500" />;
-      case "CONTACTED": return <MessageSquare className="h-4 w-4 text-blue-500" />;
-      case "COMPLETED": return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-      case "REJECTED": return <XCircle className="h-4 w-4 text-red-500" />;
+      case "PROCESSED": return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      case "CANCELLED": return <XCircle className="h-4 w-4 text-red-500" />;
+      default: return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
-  const filteredConsultations = (consultations || []).filter(l => 
-    l.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const leads = consultations?.items || [];
+  const filteredConsultations = (leads || []).filter((l: any) => 
+    l.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || 
     l.phone.includes(searchTerm)
   );
 
@@ -281,11 +283,11 @@ export default function EnrollmentManagementPage() {
                       filteredConsultations.map((lead) => (
                         <TableRow key={lead.id}>
                           <TableCell>
-                            <div className="font-medium text-sm">{lead.customerName}</div>
+                            <div className="font-medium text-sm">{lead.fullName}</div>
                             <div className="text-xs text-muted-foreground mt-0.5">{lead.phone}</div>
                           </TableCell>
                           <TableCell className="text-sm">
-                            <Badge variant="outline" className="font-normal">{lead.courseInterest}</Badge>
+                            <Badge variant="outline" className="font-normal">{lead.courseName}</Badge>
                           </TableCell>
                           <TableCell>
                             <Select 
@@ -300,9 +302,8 @@ export default function EnrollmentManagementPage() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="PENDING" className="text-xs text-amber-600 font-medium">Chờ xử lý</SelectItem>
-                                <SelectItem value="CONTACTED" className="text-xs text-blue-600 font-medium">Đã liên hệ</SelectItem>
-                                <SelectItem value="COMPLETED" className="text-xs text-green-600 font-medium">Thành công</SelectItem>
-                                <SelectItem value="REJECTED" className="text-xs text-red-600 font-medium">Từ chối</SelectItem>
+                                <SelectItem value="PROCESSED" className="text-xs text-green-600 font-medium">Đã tư vấn</SelectItem>
+                                <SelectItem value="CANCELLED" className="text-xs text-red-600 font-medium">Đã hủy</SelectItem>
                               </SelectContent>
                             </Select>
                           </TableCell>

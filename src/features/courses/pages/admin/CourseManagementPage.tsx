@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { CourseTable } from "@/features/courses/components/CourseTable";
+import { CourseGrid } from "@/features/courses/components/CourseGrid";
 import { CourseFilter } from "@/features/courses/components/CourseFilter";
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
@@ -9,54 +10,82 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import {
   Pagination,
   PaginationContent,
+  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
 } from "@/shared/components/ui/pagination";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 
 const ITEMS_PER_PAGE = 5;
 
 export default function CourseManagementPage() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [format, setFormat] = useState<1 | 2 | "ALL">("ALL");
-  const [page, setPage] = useState(1);
+  const [pageIndex, setPageIndex] = useState(1);
+  const [pageSize] = useState(10);
+  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
 
   const { data, isLoading, isError, refetch, isRefetching } = useQuery({
-    queryKey: ["admin-courses", { search, format }],
+    queryKey: ["courses", "admin-list", search, format, pageIndex, pageSize],
     queryFn: () => courseService.getAll({ 
       Keyword: search || undefined, 
       Mode: format === "ALL" ? undefined : format,
+      page: pageIndex,
+      limit: pageSize,
     }),
   });
 
-  const filteredCourses = data?.data || [];
-  const totalCourses = data?.total || 0;
+  // 1. Lấy toàn bộ để thống kê chính xác 100% và tránh gọi nhiều API
+  const { data: allCoursesRes } = useQuery({
+    queryKey: ["courses", "admin-all-for-stats"],
+    queryFn: () => courseService.getCourses({ limit: 1000 }),
+    staleTime: 5 * 60 * 1000,
+  });
+  const allCourses = allCoursesRes?.data || [];
 
-  // Mock stats based on data
+  const courses = data?.data || [];
+  const isStatsLoading = !allCoursesRes;
+
+  // Global stats that stay constant regardless of table filters
   const stats = [
-    { label: "Tổng khóa học", value: totalCourses, icon: BookOpen, color: "bg-blue-500" },
-    { label: "Học Online", value: filteredCourses.filter(c => c.courseType === 1).length, icon: Globe, color: "bg-green-500" },
-    { label: "Tại trung tâm", value: filteredCourses.filter(c => c.courseType === 2).length, icon: Building2, color: "bg-purple-500" },
+    { 
+      label: "Tổng khóa học", 
+      value: allCoursesRes?.total || allCourses.length, 
+      icon: BookOpen, 
+      color: "bg-blue-500", 
+      loading: isStatsLoading 
+    },
+    { 
+      label: "Học Online", 
+      value: allCourses.filter(c => c.courseMode === 1 || c.courseMode === "1").length, 
+      icon: Globe, 
+      color: "bg-green-500", 
+      loading: isStatsLoading 
+    },
+    { 
+      label: "Tại trung tâm", 
+      value: allCourses.filter(c => c.courseMode === 2 || c.courseMode === "2").length, 
+      icon: Building2, 
+      color: "bg-purple-500", 
+      loading: isStatsLoading 
+    },
   ];
 
-  const paginatedCourses = useMemo(() => {
-    const startIndex = (page - 1) * ITEMS_PER_PAGE;
-    return filteredCourses.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredCourses, page]);
-
-  const totalPages = Math.ceil(totalCourses / ITEMS_PER_PAGE) || 1;
+  const totalPages = Math.ceil((data?.total || 0) / pageSize) || 1;
 
   const handleSearchChange = (val: string) => {
     setSearch(val);
-    setPage(1);
+    setPageIndex(1);
   };
 
   const handleFormatChange = (val: 1 | 2 | "ALL") => {
     setFormat(val);
-    setPage(1);
+    setPageIndex(1);
   };
 
   return (
@@ -76,7 +105,10 @@ export default function CourseManagementPage() {
           <Button 
             variant="outline" 
             size="icon" 
-            onClick={() => refetch()} 
+            onClick={() => {
+              refetch();
+              queryClient.invalidateQueries({ queryKey: ["courses"] });
+            }} 
             disabled={isLoading || isRefetching}
             className="rounded-full hover:rotate-180 transition-transform duration-500"
             title="Làm mới dữ liệu"
@@ -99,7 +131,11 @@ export default function CourseManagementPage() {
             <CardContent className="p-6 flex items-center justify-between">
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">{s.label}</p>
-                <p className="text-3xl font-bold">{s.value}</p>
+                {s.loading ? (
+                  <Skeleton className="h-9 w-16" />
+                ) : (
+                  <p className="text-3xl font-bold">{s.value}</p>
+                )}
               </div>
               <div className={`p-3 rounded-2xl ${s.color} bg-opacity-10 text-${s.color.split('-')[1]}-600`}>
                 <s.icon className="h-6 w-6" />
@@ -126,16 +162,27 @@ export default function CourseManagementPage() {
           onSearchChange={handleSearchChange}
           format={format}
           onFormatChange={handleFormatChange}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
         />
         
         <div className="p-0">
-          <CourseTable 
-            courses={paginatedCourses} 
-            isLoading={isLoading} 
-            onDeleteSuccess={() => refetch()}
-          />
+          {viewMode === "table" ? (
+            <CourseTable 
+              courses={courses} 
+              isLoading={isLoading} 
+              onDeleteSuccess={() => refetch()}
+            />
+          ) : (
+            <CourseGrid
+              courses={courses}
+              isLoading={isLoading}
+              onDeleteSuccess={() => refetch()}
+            />
+          )}
         </div>
 
+        {/* Pagination integrated at bottom of the same container */}
         {/* Pagination integrated at bottom of the same container */}
         {totalPages > 1 && (
           <div className="p-4 border-t bg-muted/20">
@@ -143,36 +190,39 @@ export default function CourseManagementPage() {
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setPage((p) => Math.max(1, p - 1));
-                    }}
-                    className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    onClick={() => setPageIndex((p) => Math.max(1, p - 1))}
+                    className={pageIndex === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    text="Trước"
                   />
                 </PaginationItem>
-                {[...Array(totalPages)].map((_, i) => (
-                  <PaginationItem key={i}>
-                    <PaginationLink
-                      href="#"
-                      isActive={page === i + 1}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setPage(i + 1);
-                      }}
-                    >
-                      {i + 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
+                
+                {[...Array(totalPages)].map((_, i) => {
+                  const p = i + 1;
+                  // Only show current, first, last, and neighbors
+                  if (p === 1 || p === totalPages || (p >= pageIndex - 1 && p <= pageIndex + 1)) {
+                    return (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          onClick={() => setPageIndex(p)}
+                          isActive={pageIndex === p}
+                          className="cursor-pointer"
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  }
+                  if (p === pageIndex - 2 || p === pageIndex + 2) {
+                    return <PaginationEllipsis key={p} />;
+                  }
+                  return null;
+                })}
+
                 <PaginationItem>
                   <PaginationNext
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setPage((p) => Math.min(totalPages, p + 1));
-                    }}
-                    className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    onClick={() => setPageIndex((p) => Math.min(totalPages, p + 1))}
+                    className={pageIndex >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    text="Sau"
                   />
                 </PaginationItem>
               </PaginationContent>
