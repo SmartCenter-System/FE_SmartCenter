@@ -53,7 +53,8 @@ export default function ExploreCoursePage() {
   
   const initialKeyword = searchParams.get("keyword") || "";
   const initialMode = searchParams.get("mode") ? Number(searchParams.get("mode")) : undefined;
-  const initialCategoryId = searchParams.get("categoryId") || undefined;
+  const rawCatId = searchParams.get("categoryId");
+  const initialCategoryId = (rawCatId && rawCatId !== "undefined" && rawCatId !== "null") ? rawCatId : undefined;
   const initialMinPrice = searchParams.get("minPrice") || "";
   const initialMaxPrice = searchParams.get("maxPrice") || "";
 
@@ -138,11 +139,14 @@ export default function ExploreCoursePage() {
   };
 
   const handleCategoryChange = (newCatId: string | undefined) => {
-    setCategoryId(newCatId);
+    // Chỉ lấy ID nếu nó hợp lệ và không phải là chuỗi "undefined"
+    const validId = (newCatId && newCatId !== "undefined" && newCatId !== "null") ? newCatId : undefined;
+    
+    setCategoryId(validId);
     applyFilterMutation({
       keyword: searchInput.trim(),
       mode,
-      categoryId: newCatId,
+      categoryId: validId,
       minPrice: minPriceInput === "" ? undefined : Number(minPriceInput),
       maxPrice: maxPriceInput === "" ? undefined : Number(maxPriceInput),
     });

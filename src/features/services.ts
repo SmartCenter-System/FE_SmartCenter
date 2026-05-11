@@ -54,8 +54,8 @@ export const categoryService = {
     
     // Chuẩn hóa dữ liệu trả về để Frontend luôn có id và name
     return (Array.isArray(rawItems) ? rawItems : []).map((cat: any) => ({
-      id: String(cat?.id ?? cat?.categoryId ?? ""),
-      name: String(cat?.name ?? cat?.categoryName ?? "Chưa đặt tên"),
+      id: String(cat?.id ?? cat?.categoryId ?? cat?.cateId ?? ""),
+      name: String(cat?.name ?? cat?.categoryName ?? cat?.cateName ?? "Chưa đặt tên"),
     }));
   },
 };
