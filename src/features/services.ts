@@ -49,7 +49,20 @@ export const authService = {
 
 export const categoryService = {
   async getAll() {
-    const response = await apiClient.get<any>(API_ENDPOINTS.CATEGORY.GET_ALL);
-    return ((response as any).items || response) as Array<{ id: string; name: string }>;
+    const data = await apiClient.get<any>(API_ENDPOINTS.CATEGORY.GET_ALL);
+    
+    // Dữ liệu từ interceptor đã là ruột của ApiResponse.data
+    // Nó có thể là mảng trực tiếp hoặc nằm trong { items: [] }
+    const items = Array.isArray(data) ? data : (data.items || []);
+    
+    // Chuẩn hóa dữ liệu trả về để Frontend luôn có id và name
+    return items.map((cat: any) => {
+      // Tìm ID: ưu tiên cateId (như trong Course), sau đó đến categoryId, id...
+      const id = String(cat?.cateId ?? cat?.categoryId ?? cat?.id ?? cat?.Id ?? "");
+      // Tìm Name: ưu tiên cateName, sau đó đến categoryName, name...
+      const name = String(cat?.cateName ?? cat?.categoryName ?? cat?.name ?? cat?.Name ?? "Chưa đặt tên");
+      
+      return { id, name };
+    });
   },
 };

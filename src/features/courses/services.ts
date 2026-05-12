@@ -8,17 +8,6 @@ import type {
   PublicCourseListResult,
 } from "./type";
 
-interface PublicCourseApiResponse {
-  items?: any[];
-  total?: number;
-  pageIndex?: number;
-  pageSize?: number;
-  totalCount?: number;
-  totalPages?: number;
-  hasPreviousPage?: boolean;
-  hasNextPage?: boolean;
-}
-
 function normalizeCourseType(value: unknown): 1 | 2 {
   return value === 2 ? 2 : 1;
 }
@@ -60,7 +49,7 @@ function normalizeCourse(raw: any): Course {
 
 export const courseService = {
   async getPublicCourses(params?: PublicCourseQueryParams): Promise<PublicCourseListResult> {
-    const response = await apiClient.get<PublicCourseListResult>(API_ENDPOINTS.COURSES.BASE, {
+    const data: any = await apiClient.get(API_ENDPOINTS.COURSES.BASE, {
       params: {
         CategoryId: params?.CategoryId,
         Mode: params?.Mode,
@@ -72,11 +61,11 @@ export const courseService = {
       },
     });
 
-    return response;
+    return data || { items: [], total: 0 };
   },
 
   async getCourses(params?: CourseFilterParams): Promise<{ data: Course[]; total: number }> {
-    const response = await apiClient.get<PaginatedList<any>>(API_ENDPOINTS.COURSES.BASE, {
+    const pageData: any = await apiClient.get(API_ENDPOINTS.COURSES.BASE, {
       params: {
         CategoryId: params?.CategoryId,
         CourseId: params?.CourseId,
@@ -91,8 +80,8 @@ export const courseService = {
     });
 
     return {
-      data: response.items?.map(normalizeCourse) || [],
-      total: response.totalCount ?? response.total ?? response.items?.length ?? 0,
+      data: (pageData.items || []).map(normalizeCourse),
+      total: pageData.totalCount ?? pageData.total ?? (pageData.items?.length || 0),
     };
   },
 
@@ -101,7 +90,7 @@ export const courseService = {
   },
 
   async getById(courseId: string): Promise<Course> {
-    const data = (await apiClient.get(API_ENDPOINTS.COURSES.BY_ID(courseId))) as any;
+    const data: any = await apiClient.get(API_ENDPOINTS.COURSES.BY_ID(courseId));
     return normalizeCourse(data);
   },
 
@@ -123,8 +112,8 @@ export const courseService = {
       endAt: data.endAt,
     };
 
-    const res = (await apiClient.post(API_ENDPOINTS.COURSES.BASE, payload)) as any;
-    return normalizeCourse(res);
+    const res: any = await apiClient.post(API_ENDPOINTS.COURSES.BASE, payload);
+    return normalizeCourse(res.data);
   },
 
   async update(courseId: string, data: any): Promise<Course> {
@@ -139,8 +128,8 @@ export const courseService = {
       isActive: data.isActive,
     };
 
-    const res = (await apiClient.put(API_ENDPOINTS.COURSES.BY_ID(courseId), payload)) as any;
-    return normalizeCourse(res);
+    const res: any = await apiClient.put(API_ENDPOINTS.COURSES.BY_ID(courseId), payload);
+    return normalizeCourse(res.data);
   },
 
   async remove(courseId: string): Promise<void> {
@@ -152,8 +141,8 @@ export const courseService = {
   },
 
   async getTopPopularCourses() {
-    const res = await apiClient.get(API_ENDPOINTS.COURSES.TOP_POPULAR);
-    return (res.data || res) as any[];
+    const res: any = await apiClient.get(API_ENDPOINTS.COURSES.TOP_POPULAR);
+    return (res.data || []) as any[];
   },
 
   // Section Management
@@ -164,12 +153,10 @@ export const courseService = {
 
   async createSection(courseId: string, data: { title: string }) {
     if (!courseId) throw new Error("Course ID is required");
-    // OpenAPI shows courseId as query param, body is CreateSectionRequest (title, position)
     return apiClient.post(API_ENDPOINTS.SECTION.BASE, data, { params: { courseId } });
   },
 
   async updateSection(sectionId: string, courseId: string, data: { title: string }) {
-    // Body is UpdateSectionRequest (title, position)
     return apiClient.put(API_ENDPOINTS.SECTION.BY_ID(sectionId), data, { params: { courseId } });
   },
 
@@ -182,28 +169,49 @@ export const courseService = {
     return apiClient.get(API_ENDPOINTS.LESSON.BASE, { params: { courseId, sectionId } });
   },
 
-  async createLesson(courseId: string, sectionId: string, data: { title: string; description?: string; videoUrl?: string; order?: number; isPreview?: boolean; duration?: number }) {
-    // Body is CreateLessonRequest (title, videoUrl, description, order, isPreview, duration)
+  async createLesson(
+    courseId: string,
+    sectionId: string,
+    data: {
+      title: string;
+      description?: string;
+      videoUrl?: string;
+      order?: number;
+      isPreview?: boolean;
+      duration?: number;
+    },
+  ) {
     const payload = {
       title: data.title,
       videoUrl: data.videoUrl || "https://youtube.com/watch?v=placeholder",
       description: data.description || "",
       order: data.order || 0,
       isPreview: data.isPreview || false,
-      duration: data.duration || 0
+      duration: data.duration || 0,
     };
     return apiClient.post(API_ENDPOINTS.LESSON.BASE, payload, { params: { courseId, sectionId } });
   },
 
-  async updateLesson(lessonId: string, courseId: string, sectionId: string, data: { title: string; description?: string; videoUrl?: string; order?: number; isPreview?: boolean; duration?: number }) {
-    // Body is UpdateLessonRequest (title, videoUrl, description, order, isPreview, duration)
+  async updateLesson(
+    lessonId: string,
+    courseId: string,
+    sectionId: string,
+    data: {
+      title: string;
+      description?: string;
+      videoUrl?: string;
+      order?: number;
+      isPreview?: boolean;
+      duration?: number;
+    },
+  ) {
     const payload = {
       title: data.title,
       videoUrl: data.videoUrl || "https://youtube.com/watch?v=placeholder",
       description: data.description || "",
       order: data.order || 0,
       isPreview: data.isPreview || false,
-      duration: data.duration || 0
+      duration: data.duration || 0,
     };
     return apiClient.put(API_ENDPOINTS.LESSON.BY_ID(lessonId), payload, { params: { courseId, sectionId } });
   },
@@ -213,6 +221,7 @@ export const courseService = {
   },
 
   async getDashboardData() {
-    return apiClient.get(API_ENDPOINTS.COURSES.DASHBOARD);
+    const res: any = await apiClient.get(API_ENDPOINTS.COURSES.DASHBOARD);
+    return res.data;
   },
 };
