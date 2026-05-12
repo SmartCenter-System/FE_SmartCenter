@@ -6,12 +6,25 @@ import type {
   PublicCourseItem,
   PublicCourseQueryParams,
   PublicCourseListResult,
+  CourseRaw,
+  CreateCoursePayload,
+  UpdateCoursePayload,
 } from "./type";
 
+import type { PaginatedData } from "@/shared/types";
+
+/**
+ * Chuẩn hóa giá trị hình thức học (1: Online, 2: Offline).
+ * @param value Giá trị thô từ API
+ */
 function normalizeCourseType(value: unknown): 1 | 2 {
   return value === 2 ? 2 : 1;
 }
 
+/**
+ * Adapter chuẩn hóa Lesson từ Backend
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeCourseLesson(raw: any) {
   return {
     id: String(raw?.id ?? ""),
@@ -20,6 +33,10 @@ function normalizeCourseLesson(raw: any) {
   };
 }
 
+/**
+ * Adapter chuẩn hóa Section từ Backend
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeCourseSection(raw: any) {
   return {
     id: String(raw?.id ?? ""),
@@ -28,7 +45,13 @@ function normalizeCourseSection(raw: any) {
   };
 }
 
-function normalizeCourse(raw: any): Course {
+/**
+ * Adapter chuẩn hóa cấu trúc Course chung từ Backend.
+ * Dùng cho các trang quản trị (Admin/Staff/Lecturer).
+ * @param {CourseRaw} raw - Dữ liệu khóa học thô từ API
+ * @returns {Course} Dữ liệu khóa học đã làm sạch
+ */
+function normalizeCourse(raw: CourseRaw): Course {
   return {
     courseId: String(raw?.courseId ?? raw?.id ?? ""),
     courseName: String(raw?.courseName ?? raw?.title ?? ""),
@@ -41,15 +64,42 @@ function normalizeCourse(raw: any): Course {
     academicYear: raw?.academicYear ?? null,
     maxStudents: raw?.maxStudents ?? null,
     lecturerId: raw?.lecturerId ?? null,
-    lecturerName: raw?.lecturerName ?? raw?.lecturer?.fullName ?? "Chưa có giảng viên",
+    lecturerName: String(raw?.lecturerName ?? raw?.lecturer?.fullName ?? "Chưa có giảng viên"),
     isActive: Boolean(raw?.isActive ?? true),
     sections: Array.isArray(raw?.sections) ? raw.sections.map(normalizeCourseSection) : [],
   };
 }
 
+/**
+ * Adapter chuẩn hóa cấu trúc Course dành riêng cho trang Public.
+ * Dùng cho ExploreCoursePage.
+ * @param {CourseRaw} raw - Dữ liệu khóa học thô từ API
+ * @returns {PublicCourseItem} Dữ liệu khóa học public đã làm sạch
+ */
+function normalizePublicCourse(raw: CourseRaw): PublicCourseItem {
+  return {
+    id: String(raw?.courseId ?? raw?.id ?? ""),
+    title: String(raw?.courseName ?? raw?.title ?? ""),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    cateId: String((raw as any)?.categoryId ?? (raw as any)?.cateId ?? ""),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    cateName: String((raw as any)?.categoryName ?? (raw as any)?.cateName ?? ""),
+    mode: normalizeCourseType(raw?.courseType ?? raw?.mode),
+    price: Number(raw?.basePrice ?? raw?.price ?? 0),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    availableSlots: Number((raw as any)?.availableSlots ?? raw?.maxStudents ?? 0),
+    imgUrl: raw?.imgUrl ?? raw?.thumbnail ?? null,
+  };
+}
+
+
 export const courseService = {
+  /**
+   * Lấy danh sách khóa học Public (có lọc, phân trang).
+   * @param params Bộ tham số truy vấn
+   */
   async getPublicCourses(params?: PublicCourseQueryParams): Promise<PublicCourseListResult> {
-    const data: any = await apiClient.get(API_ENDPOINTS.COURSES.BASE, {
+    const data = await apiClient.get<CourseRaw[] | PaginatedData<CourseRaw>>(API_ENDPOINTS.COURSES.BASE, {
       params: {
         CategoryId: params?.CategoryId,
         Mode: params?.Mode,
@@ -61,11 +111,23 @@ export const courseService = {
       },
     });
 
-    return data || { items: [], total: 0 };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const itemsRaw: CourseRaw[] = Array.isArray(data) ? data : ((data as any)?.items || []);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const total = Array.isArray(data) ? data.length : ((data as any)?.totalCount ?? (data as any)?.total ?? itemsRaw.length);
+
+    return {
+      items: itemsRaw.map(normalizePublicCourse),
+      total,
+    };
   },
 
+  /**
+   * Lấy danh sách khóa học chi tiết (Course) cho quản trị viên/giảng viên.
+   * @param params Bộ tham số truy vấn mở rộng
+   */
   async getCourses(params?: CourseFilterParams): Promise<{ data: Course[]; total: number }> {
-    const pageData: any = await apiClient.get(API_ENDPOINTS.COURSES.BASE, {
+    const pageData = await apiClient.get<CourseRaw[] | PaginatedData<CourseRaw>>(API_ENDPOINTS.COURSES.BASE, {
       params: {
         CategoryId: params?.CategoryId,
         CourseId: params?.CourseId,
@@ -79,26 +141,47 @@ export const courseService = {
       },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const itemsRaw: CourseRaw[] = Array.isArray(pageData) ? pageData : ((pageData as any)?.items || []);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const total = Array.isArray(pageData) ? pageData.length : ((pageData as any)?.totalCount ?? (pageData as any)?.total ?? itemsRaw.length);
+
     return {
-      data: (pageData.items || []).map(normalizeCourse),
-      total: pageData.totalCount ?? pageData.total ?? (pageData.items?.length || 0),
+      data: itemsRaw.map(normalizeCourse),
+      total,
     };
   },
 
+  /**
+   * Alias cho getCourses (Dùng chung cho nhiều component Admin)
+   * @param params Bộ tham số truy vấn mở rộng
+   */
   async getAll(params?: CourseFilterParams): Promise<{ data: Course[]; total: number }> {
     return this.getCourses(params);
   },
 
+  /**
+   * Lấy chi tiết khóa học theo ID.
+   * @param courseId ID khóa học
+   */
   async getById(courseId: string): Promise<Course> {
-    const data: any = await apiClient.get(API_ENDPOINTS.COURSES.BY_ID(courseId));
+    const data = await apiClient.get<CourseRaw>(API_ENDPOINTS.COURSES.BY_ID(courseId));
     return normalizeCourse(data);
   },
 
+  /**
+   * Lấy dữ liệu preview của khóa học (Ví dụ các video trailer)
+   * @param courseId ID khóa học
+   */
   getPreviews(courseId: string) {
     return apiClient.get(API_ENDPOINTS.COURSES.PREVIEWS(courseId));
   },
 
-  async create(data: any): Promise<Course> {
+  /**
+   * Tạo mới một khóa học
+   * @param data Dữ liệu khóa học
+   */
+  async create(data: CreateCoursePayload): Promise<Course> {
     const payload = {
       courseName: data.courseName,
       description: data.description,
@@ -112,11 +195,16 @@ export const courseService = {
       endAt: data.endAt,
     };
 
-    const res: any = await apiClient.post(API_ENDPOINTS.COURSES.BASE, payload);
-    return normalizeCourse(res.data);
+    const res = await apiClient.post<CourseRaw>(API_ENDPOINTS.COURSES.BASE, payload);
+    return normalizeCourse(res);
   },
 
-  async update(courseId: string, data: any): Promise<Course> {
+  /**
+   * Cập nhật thông tin khóa học
+   * @param courseId ID khóa học
+   * @param data Dữ liệu cập nhật
+   */
+  async update(courseId: string, data: UpdateCoursePayload): Promise<Course> {
     const payload = {
       courseName: data.courseName,
       description: data.description,
@@ -128,21 +216,33 @@ export const courseService = {
       isActive: data.isActive,
     };
 
-    const res: any = await apiClient.put(API_ENDPOINTS.COURSES.BY_ID(courseId), payload);
-    return normalizeCourse(res.data);
+    const res = await apiClient.put<CourseRaw>(API_ENDPOINTS.COURSES.BY_ID(courseId), payload);
+    return normalizeCourse(res);
   },
 
+  /**
+   * Xóa một khóa học
+   * @param courseId ID khóa học
+   */
   async remove(courseId: string): Promise<void> {
     await apiClient.delete(API_ENDPOINTS.COURSES.BY_ID(courseId));
   },
 
+  /**
+   * Alias cho hàm remove
+   * @param courseId ID khóa học
+   */
   async delete(courseId: string): Promise<void> {
     return this.remove(courseId);
   },
 
-  async getTopPopularCourses() {
-    const res: any = await apiClient.get(API_ENDPOINTS.COURSES.TOP_POPULAR);
-    return (res.data || []) as any[];
+  /**
+   * Lấy danh sách khóa học phổ biến nhất
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async getTopPopularCourses(): Promise<any[]> {
+    const res = await apiClient.get<CourseRaw[]>(API_ENDPOINTS.COURSES.TOP_POPULAR);
+    return Array.isArray(res) ? res : [];
   },
 
   // Section Management

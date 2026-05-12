@@ -23,6 +23,19 @@ import type { PublicCourseItem } from "../type";
 
 const DEFAULT_PAGE_SIZE = 12;
 
+/**
+ * Component ExploreCoursePage
+ * 
+ * Trang này cho phép người dùng công khai và học viên tìm kiếm, lọc và xem danh sách các khóa học hiện có.
+ * Nó sử dụng chiến lược lọc phía client (tải tất cả khóa học ban đầu hoặc tải một trang lớn) và sau đó lọc 
+ * chúng ở phía client để cập nhật UI mượt mà, nhanh chóng mà không cần gọi API liên tục.
+ * 
+ * Các tính năng:
+ * - Tìm kiếm theo từ khóa (không phân biệt chữ hoa chữ thường và dấu)
+ * - Lọc theo danh mục và hình thức học
+ * - Lọc theo khoảng giá
+ * - Phân trang phía client
+ */
 const ExploreCoursePage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -77,6 +90,12 @@ const ExploreCoursePage: React.FC = () => {
   // =========================
   // Client-Side Filtering & Search Logic
   // =========================
+  
+  /**
+   * Danh sách khóa học đã được lọc (dùng useMemo để tối ưu). 
+   * Áp dụng tuần tự các bộ lọc từ khóa, danh mục, hình thức học và khoảng giá ở phía client.
+   * Điều này cung cấp phản hồi tức thì cho người dùng mà không cần gọi thêm API.
+   */
   const filteredCourses = useMemo(() => {
     const allItems = rawData?.items || [];
     
@@ -136,33 +155,24 @@ const ExploreCoursePage: React.FC = () => {
   }, [filteredCourses, pageIndex]);
 
   // =========================
-  // Categories (Enhanced Fallback)
+  // Categories
   // =========================
-  const { data: apiCategories } = useCategories();
-  const safeApiCategories = Array.isArray(apiCategories) ? apiCategories : [];
-
-  const categories = useMemo(() => {
-    const combined = [...safeApiCategories];
-    const allItems = rawData?.items || [];
-    if (Array.isArray(allItems)) {
-      allItems.forEach((course: any) => {
-        if (!course) return;
-        const cateId = course.cateId;
-        const cateName = course.cateName ?? course.categoryName;
-        if (cateId && !combined.find((c) => c.id === cateId)) {
-          combined.push({ id: cateId, name: cateName || "Danh mục khác" });
-        }
-      });
-    }
-    return combined.filter((c) => c && c.id && c.id !== "");
-  }, [safeApiCategories, rawData]);
+  
+  /**
+   * Danh sách danh mục đã được chuẩn hóa (từ Category API).
+   * Adapter Layer đã đảm bảo dữ liệu luôn là mảng Category[] sạch sẽ.
+   */
+  const { data: categories = [] } = useCategories();
 
   // =========================
-  // Logic
+  // Logic (Event Handlers)
   // =========================
   const canGoPrevious = pageIndex > 1;
   const canGoNext = pageIndex < totalPages;
 
+  /**
+   * Tạo danh sách các mục phân trang để hiển thị trong PaginationBar.
+   */
   const paginationItems = useMemo(() => {
     const items = [];
     for (let i = 1; i <= totalPages; i++) {
@@ -175,6 +185,9 @@ const ExploreCoursePage: React.FC = () => {
     return items;
   }, [totalPages, pageIndex]);
 
+  /**
+   * Áp dụng các giá trị đầu vào của bộ lọc vào trạng thái bộ lọc (filter state) và đặt lại trang về 1.
+   */
   const applyFilters = () => {
     const parsedMinPrice = Number(minPriceInput);
     const parsedMaxPrice = Number(maxPriceInput);
@@ -200,6 +213,9 @@ const ExploreCoursePage: React.FC = () => {
     setPageIndex(1);
   };
 
+  /**
+   * Xóa tất cả các bộ lọc đã áp dụng và đặt lại chỉ số trang (page index) về 1.
+   */
   const clearAllFilters = () => {
     setFilters({
       keyword: "",
@@ -214,12 +230,19 @@ const ExploreCoursePage: React.FC = () => {
     setPageIndex(1);
   };
 
+  /**
+   * Xử lý khi gửi biểu mẫu (form) tìm kiếm theo từ khóa.
+   */
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFilters((prev) => ({ ...prev, keyword: searchInput.trim() }));
     setPageIndex(1);
   };
 
+  /**
+   * Chuyển hướng đến trang chi tiết khóa học khi một khóa học được nhấp vào.
+   * @param {string} courseId - ID của khóa học được chọn
+   */
   const handleOpenCourse = (courseId?: string) => {
     if (!courseId) return;
     navigate(`/courses/${encodeURIComponent(courseId)}`);
@@ -426,12 +449,11 @@ const ExploreCoursePage: React.FC = () => {
                 )}
                 {!isLoading && !isError && courses.map((course: PublicCourseItem) => {
                   const ModeIcon = getModeIcon(course.mode);
-                  const realId = course.id ?? (course as any).courseId;
 
                   return (
                     <article
-                      key={realId ?? course.title}
-                      onClick={() => handleOpenCourse(realId)}
+                      key={course.id}
+                      onClick={() => handleOpenCourse(course.id)}
                       className="group cursor-pointer overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                     >
                       <div className="relative bg-gradient-to-br from-indigo-50 to-cyan-50 p-5">
@@ -441,19 +463,19 @@ const ExploreCoursePage: React.FC = () => {
                         </span>
 
                         <h3 className="mt-4 min-h-14 text-base font-bold leading-tight text-slate-800 line-clamp-2 group-hover:text-indigo-700 transition-colors">
-                          {course.title ?? (course as any).courseName}
+                          {course.title}
                         </h3>
 
                         <div className="mt-6 flex items-center justify-between border-t border-slate-200/50 pt-4">
                           <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
                             <Users className="h-4 w-4 text-slate-400" />
-                            <span>{course.availableSlots ?? (course as any).maxStudents} chỗ trống</span>
+                            <span>{course.availableSlots} chỗ trống</span>
                           </div>
 
                           <div className="text-right">
                             <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Học phí</p>
                             <p className="text-lg font-black text-indigo-700">
-                              {formatPrice(course.price ?? (course as any).basePrice ?? 0)}
+                              {formatPrice(course.price)}
                             </p>
                           </div>
                         </div>
