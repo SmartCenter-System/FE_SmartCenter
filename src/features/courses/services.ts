@@ -141,6 +141,11 @@ export const courseService = {
     const itemsRaw: CourseRaw[] = Array.isArray(pageData) ? pageData : pageData.items || [];
     const total = Array.isArray(pageData) ? pageData.length : pageData.totalCount ?? pageData.total ?? itemsRaw.length;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const itemsRaw: CourseRaw[] = Array.isArray(pageData) ? pageData : ((pageData as any)?.items || []);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const total = Array.isArray(pageData) ? pageData.length : ((pageData as any)?.totalCount ?? (pageData as any)?.total ?? itemsRaw.length);
+
     return {
       data: itemsRaw.map(normalizeCourse),
       total,
