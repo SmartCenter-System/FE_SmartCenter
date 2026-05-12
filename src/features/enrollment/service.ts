@@ -23,7 +23,7 @@ function resolveEnrollmentCourseId(item: any): string | undefined {
   }
 
   return String(fallbackId);
-}
+}  
 
 function normalizeEnrollment(item: any): Enrollment {
   return {
