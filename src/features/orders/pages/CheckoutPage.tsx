@@ -77,16 +77,13 @@ export default function CheckoutPage() {
     queryFn: async () => {
       try {
         const profile = (await userService.getProfile()) as any;
-        
+
         // Check if response is HTML (proxy not working)
-        if (typeof profile === 'string' && profile.includes('<!doctype')) {
+        if (typeof profile === "string" && profile.includes("<!doctype")) {
           throw new Error("Got HTML response - proxy not configured correctly");
         }
-        
-        const fullName = [profile?.lastName, profile?.firstName]
-          .filter(Boolean)
-          .join(" ")
-          .trim();
+
+        const fullName = [profile?.lastName, profile?.firstName].filter(Boolean).join(" ").trim();
 
         const result = {
           firstName: profile?.firstName ?? "",
@@ -148,21 +145,18 @@ export default function CheckoutPage() {
     const checkInterval = 5000;
     const intervalId = setInterval(async () => {
       try {
-        const resp = (await orderService.getMe()) as any;
-        const orders = resp?.data ?? resp;
+        const orders = await orderService.getMe();
         if (!orders || !Array.isArray(orders)) {
           return;
         }
 
-        const match = orders.find(
-          (o: any) => o.orderId === paymentLink.orderId || o.orderCode === paymentLink.orderCode,
-        );
+        const match = orders.find((o) => o.id === paymentLink.orderId || o.orderCode === paymentLink.orderCode);
 
         if (!match) {
           return;
         }
 
-        const paid = Boolean(match?.paidAt) || (typeof match?.status === "string" && match.status.toLowerCase() === "paid");
+        const paid = match.status === "PAID";
         if (paid && !cancelled) {
           clearInterval(intervalId);
           toast.success("Thanh toán thành công. Đang chuyển tới khóa học...");
@@ -170,14 +164,12 @@ export default function CheckoutPage() {
 
           // Try to derive the actual purchased course id from the order payload.
           // Fallback to the `id` route param if we can't find it.
-          const purchasedCourseId =
-            match?.courseId ||
-            (match?.items && match.items.length > 0 && (match.items[0].courseId || match.items[0].productId)) ||
-            id;
+          const purchasedCourseId = (match.items && match.items.length > 0 && match.items[0].courseId) || id;
           navigate(`/courses/${purchasedCourseId}`);
         }
       } catch (error) {
         // [Order Poll] error checking order
+        toast.error("Lỗi khi kiểm tra trạng thái đơn hàng");
       }
     }, checkInterval);
 
@@ -320,7 +312,9 @@ export default function CheckoutPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-bold text-base">Chuyển khoản QR tự động (SePay)</span>
-                        <span className="bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-full uppercase font-bold">Khuyên dùng</span>
+                        <span className="bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-full uppercase font-bold">
+                          Khuyên dùng
+                        </span>
                       </div>
                       <p className="text-sm text-muted-foreground leading-relaxed mb-3">
                         Hệ thống tự động kích hoạt khóa học trong vòng 3-5 giây sau khi thanh toán thành công.
@@ -415,7 +409,6 @@ export default function CheckoutPage() {
                           "Tiến hành thanh toán"
                         )}
                       </Button>
-                      
                     </>
                   ) : (
                     <div className="w-full space-y-4">
@@ -428,13 +421,9 @@ export default function CheckoutPage() {
                           <X className="h-5 w-5 text-muted-foreground" />
                         </button>
                       </div>
-                      
+
                       <div className="bg-white p-4 rounded-lg flex items-center justify-center">
-                        <img
-                          src={paymentLink.qrCode}
-                          alt="QR Code thanh toán"
-                          className="h-64 w-64 object-contain"
-                        />
+                        <img src={paymentLink.qrCode} alt="QR Code thanh toán" className="h-64 w-64 object-contain" />
                       </div>
 
                       <div className="space-y-2 text-sm">
@@ -446,25 +435,27 @@ export default function CheckoutPage() {
                           <span className="text-muted-foreground">Số tiền:</span>
                           <span className="font-semibold text-primary">
                             {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-                              paymentLink.totalAmount
+                              paymentLink.totalAmount,
                             )}
                           </span>
                         </div>
-                        <div className={`flex justify-between p-2 rounded-md ${timeRemaining < 300000 ? "bg-red-50" : "bg-muted/50"}`}>
-                          <span className={timeRemaining < 300000 ? "text-red-600 font-medium" : "text-muted-foreground"}>
+                        <div
+                          className={`flex justify-between p-2 rounded-md ${timeRemaining < 300000 ? "bg-red-50" : "bg-muted/50"}`}
+                        >
+                          <span
+                            className={timeRemaining < 300000 ? "text-red-600 font-medium" : "text-muted-foreground"}
+                          >
                             Hết hạn trong:
                           </span>
-                          <span className={`font-mono font-bold ${timeRemaining < 300000 ? "text-red-600" : "text-primary"}`}>
+                          <span
+                            className={`font-mono font-bold ${timeRemaining < 300000 ? "text-red-600" : "text-primary"}`}
+                          >
                             {formatTimeRemaining(timeRemaining)}
                           </span>
                         </div>
                       </div>
 
-                      <Button
-                        className="w-full"
-                        variant="outline"
-                        onClick={() => setPaymentLink(null)}
-                      >
+                      <Button className="w-full" variant="outline" onClick={() => setPaymentLink(null)}>
                         Tạo mã QR mới
                       </Button>
                     </div>

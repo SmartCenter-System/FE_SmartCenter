@@ -3,6 +3,11 @@ import type { AuthResponse, LoginRequest, RegisterRequest } from "./auth/type";
 import { API_ENDPOINTS } from "@/shared/constants";
 import { useAuthStore } from "./auth/store";
 
+import type { Category, CategoryRaw } from "./courses/type";
+
+// ==========================================
+// 1. DỊCH VỤ AUTHENTICATION
+// ==========================================
 export const authService = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials, { silent: true } as any) as unknown as AuthResponse;
@@ -47,9 +52,39 @@ export const authService = {
   },
 };
 
+// ==========================================
+// 2. DỊCH VỤ DANH MỤC (CATEGORY)
+// ==========================================
+
+/**
+ * Adapter chuẩn hóa dữ liệu Category từ Backend.
+ * Xử lý mọi biến thể tên trường (cateId, categoryId...) về chuẩn { id, name }.
+ * @param {CategoryRaw} raw - Object dữ liệu thô từ API
+ * @returns {Category} Object dữ liệu đã làm sạch
+ */
+function normalizeCategory(raw: CategoryRaw): Category {
+  return {
+    id: String(raw.cateId ?? raw.categoryId ?? raw.id ?? raw.Id ?? ""),
+    name: String(raw.cateName ?? raw.categoryName ?? raw.name ?? raw.Name ?? "Chưa đặt tên"),
+  };
+}
+
 export const categoryService = {
-  async getAll() {
-    const response = await apiClient.get<any>(API_ENDPOINTS.CATEGORY.GET_ALL);
-    return ((response as any).items || response) as Array<{ id: string; name: string }>;
+  /**
+   * Lấy danh sách tất cả danh mục khóa học.
+   * Dữ liệu trả về được đảm bảo luôn sạch và đúng chuẩn `Category[]`.
+   */
+  async getAll(): Promise<Category[]> {
+    // 1. Fetch data
+    const data = await apiClient.get<CategoryRaw[] | { items: CategoryRaw[] }>(
+      API_ENDPOINTS.CATEGORY.GET_ALL
+    );
+    
+    // 2. Bóc vỏ bọc (nếu BE trả về { items: [] } thay vì mảng trực tiếp)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const items: CategoryRaw[] = Array.isArray(data) ? data : ((data as any)?.items || []);
+    
+    // 3. Normalize dữ liệu sạch, lọc bỏ rác
+    return items.map(normalizeCategory).filter((cat) => cat.id !== "");
   },
 };
