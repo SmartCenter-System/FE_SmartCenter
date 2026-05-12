@@ -1,21 +1,41 @@
 export type RoleType = "ADMIN" | "STUDENT" | "LECTURER" | "STAFF" | "GUEST";
 
 // ─── API Structure ──────────────────────────────────────────
+/**
+ * Chuẩn chung cho mọi Response trả về từ Server.
+ */
 export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
   data: T;
-  message?: string;
-  statusCode?: number;
+  errors?: Record<string, string[]>;
+  traceId?: string;
+  timestampUtc?: string;
 }
 
-// .NET standard PaginatedList structure
-export interface PaginatedList<T> {
+/**
+ * Chuẩn chung cho cấu trúc phân trang từ .NET
+ */
+export interface PaginatedData<T> {
   items: T[];
-  pageIndex: number;
-  pageSize: number;
-  totalCount: number;
-  totalPages: number;
-  hasPreviousPage: boolean;
-  hasNextPage: boolean;
+  total: number;
+  pageIndex?: number;
+  pageSize?: number;
+  totalCount?: number;
+  totalPages?: number;
+  hasPreviousPage?: boolean;
+  hasNextPage?: boolean;
+}
+
+/**
+ * Các trường dữ liệu hệ thống chung của một Raw Entity
+ */
+export interface BaseEntityRaw {
+  createdAt?: string;
+  updatedAt?: string;
+  isDeleted?: boolean;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 // ─── Base filter params ──────────────────────────────────
