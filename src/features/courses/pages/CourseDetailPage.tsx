@@ -16,13 +16,12 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/shared/components/ui/accordion";
 import { useQuery } from "@tanstack/react-query";
-import { courseService } from "@/features/courses/services";
-import { lessonService } from "@/features/courses/lessonService";
-import { enrollmentService } from "@/features/courses/enrollmentService";
 import { useAuthStore } from "@/features/auth/store";
 import { getYouTubeEmbedUrl, isYouTubeUrl } from "@/lib/utils";
 import type { Course } from "@/features/courses/type";
-import type { Enrollment } from "@/features/courses/enrollmentService";
+import { useMyEnrollments } from "@/features/enrollment";
+import { lessonService, type Lesson } from "../services/lessonService";
+import { useCourse } from "../hooks/useCourses";
 
 export default function CourseDetailPage() {
   const { id } = useParams();
@@ -33,20 +32,9 @@ export default function CourseDetailPage() {
 
   const accessToken = useAuthStore((state) => state.accessToken);
 
-  const { data: courseData, isLoading } = useQuery<Course>({
-    queryKey: ["courses", "detail", id],
-    queryFn: () => courseService.getById(id as string),
-    enabled: !!id && isValidCourseId,
-    staleTime: 1000 * 60 * 10,
-  });
+  const { data: courseData, isLoading } = useCourse(id, isValidCourseId);
 
-  const { data: enrollmentData } = useQuery<{ items: Enrollment[]; total: number }>({
-    queryKey: ["enrollments", "me"],
-    queryFn: () => enrollmentService.getMyEnrollments(),
-    enabled: !!accessToken,
-    staleTime: 1000 * 60 * 30,
-    retry: false,
-  });
+  const { data: enrollmentData } = useMyEnrollments(!!accessToken);
   const enrollments = enrollmentData?.items;
 
   // TODO: Extend data from API with UI mock properties if missing.
@@ -82,40 +70,42 @@ export default function CourseDetailPage() {
     );
   }, [courseData?.courseId, enrollments, id]);
 
+  const normalizePreviewLesson = (lesson: {
+    id?: string;
+    title?: string;
+    videoUrl?: string | null;
+    isPreview?: boolean;
+  }) => {
+    return {
+      id: String(lesson.id ?? ""),
+      title: String(lesson.title ?? ""),
+      isPreview: Boolean(lesson.isPreview),
+      videoUrl: lesson.videoUrl ? String(lesson.videoUrl) : undefined,
+    };
+  };
+
   const { data: sectionLessonsData } = useQuery<CourseSection[]>({
-    queryKey: ["courses", "content", id, isPurchased], // Thêm isPurchased vào key để tự động fetch lại khi mua xong
+    queryKey: ["courses", "content", id, isPurchased], 
     queryFn: async () => {
       if (!courseData || !Array.isArray(courseData.sections)) {
         return [];
       }
 
-      // Tối ưu hóa: Nếu CHƯA MUA và courseData đã có sẵn bài học, dùng luôn để hiện tiêu đề cho nhanh
-      const hasLessons = courseData.sections.some(s => Array.isArray(s.lessons) && s.lessons.length > 0);
-      if (!isPurchased && hasLessons) {
-        return courseData.sections.map(section => ({
-          ...section,
-          lessons: (Array.isArray(section.lessons) ? section.lessons : []).map(lesson => {
-            // Nếu chưa mua, chỉ giữ lại videoUrl của bài Preview
-            if (!lesson.isPreview) {
-              return { ...lesson, videoUrl: undefined };
-            }
-            return lesson;
-          })
-        }));
-      }
-
-      // Nếu ĐÃ MUA: Bắt buộc phải gọi API lẻ để lấy đầy đủ Link Video và tài liệu (vì API getById thường ẩn các thông tin này)
+      // Luôn gọi API /Lesson để lấy đủ trường chi tiết (đặc biệt là videoUrl).
       const sectionResults = await Promise.all(
         courseData.sections.map(async (section) => {
           const rawLessons = await lessonService.getAll(courseData.courseId, section.id);
           return {
-            ...section,
-            lessons: (Array.isArray(rawLessons) ? rawLessons : []).map(lesson => {
-              // Bảo mật: Nếu chưa mua (phòng hờ), xóa videoUrl của các bài không phải Preview
-              if (!isPurchased && !lesson.isPreview) {
-                return { ...lesson, videoUrl: undefined };
-              }
-              return lesson;
+            id: String(section.id ?? ""),
+            title: String(section.title ?? ""),
+            lessons: (Array.isArray(rawLessons) ? rawLessons : []).map((lesson: Lesson) => {
+              const normalized = normalizePreviewLesson({
+                id: String(lesson.id ?? ""),
+                title: String(lesson.title ?? ""),
+                isPreview: Boolean(lesson.isPreview),
+                videoUrl: lesson.videoUrl,
+              });
+              return normalized;
             }),
           };
         }),
@@ -144,7 +134,7 @@ export default function CourseDetailPage() {
       },
       rating: 4.8,
       reviews: 120,
-      students: courseData.enrolledCount || 0,
+      students: Number((courseData as Course & { enrolledCount?: number }).enrolledCount ?? 0),
       duration: "Đang cập nhật",
       lastUpdated: courseData.startAt ? new Date(courseData.startAt).toLocaleDateString("vi-VN") : "Đang cập nhật",
       benefits: [
@@ -154,11 +144,11 @@ export default function CourseDetailPage() {
         "Hỗ trợ giải đáp thắc mắc từ giảng viên",
       ],
       syllabus: Array.isArray(courseData.sections)
-        ? courseData.sections.map((s: any) => ({
+        ? courseData.sections.map((s: { id?: string; title?: string; lessons?: Array<{ title?: string }> }) => ({
             title: s.title,
             lectures: s.lessons?.length || 0,
             duration: "Đang cập nhật",
-            items: s.lessons?.map((l: any) => l.title) || [],
+            items: s.lessons?.map((l: { title?: string }) => l.title || "") || [],
           }))
         : [],
     };
@@ -379,7 +369,7 @@ export default function CourseDetailPage() {
             <section className="bg-muted/30 border border-border rounded-xl p-6 md:p-8">
               <h2 className="text-2xl font-bold mb-6">Bạn sẽ học được gì?</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {course.benefits.map((benefit, idx) => (
+                {course.benefits.map((benefit: string, idx: number) => (
                   <div key={idx} className="flex items-start gap-3">
                     <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
                     <span className="text-muted-foreground">{benefit}</span>
@@ -615,3 +605,4 @@ export default function CourseDetailPage() {
     </div>
   );
 }
+

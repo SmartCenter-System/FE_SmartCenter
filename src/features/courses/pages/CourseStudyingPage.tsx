@@ -1,19 +1,16 @@
 import { useMemo } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { courseService } from "@/features/courses/services";
-import { lessonService } from "@/features/courses/lessonService";
-import { enrollmentService } from "@/features/courses/enrollmentService";
-import { LessonDocuments } from "@/features/document/components/LessonDocuments";
 import { useAuthStore } from "@/features/auth/store";
 import { getYouTubeEmbedUrl, isYouTubeUrl } from "@/lib/utils";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { ChevronLeft, Lock } from "lucide-react";
-import { Badge } from "@/shared/components/ui/badge";
+import { useMyEnrollments } from "@/features/enrollment";
+import { LessonDocuments } from "@/features/document/components/LessonDocuments";
 import { CommentSection } from "../components/CommentSection";
-import type { Course } from "@/features/courses/type";
-import type { Enrollment } from "@/features/courses/enrollmentService";
+import { lessonService } from "../services/lessonService";
+import { useCourse } from "../hooks/useCourses";
 
 export default function CourseStudyingPage() {
   const { id, lessonId } = useParams();
@@ -25,20 +22,9 @@ export default function CourseStudyingPage() {
     String(id ?? ""),
   );
 
-  const { data: courseData, isLoading } = useQuery<Course>({
-    queryKey: ["courses", "detail", id],
-    queryFn: () => courseService.getById(id as string),
-    enabled: !!id && isValidCourseId,
-    staleTime: 1000 * 60 * 10, // Thông tin khóa học giữ 10 phút
-  });
+  const { data: courseData, isLoading } = useCourse(id, isValidCourseId);
 
-  const { data: enrollmentData } = useQuery<{ items: Enrollment[]; total: number }>({
-    queryKey: ["enrollments", "me"],
-    queryFn: () => enrollmentService.getMyEnrollments(),
-    enabled: !!accessToken,
-    staleTime: 1000 * 60 * 30, // Thông tin ghi danh giữ 30 phút
-    retry: false,
-  });
+  const { data: enrollmentData } = useMyEnrollments(!!accessToken);
 
   const enrollments = enrollmentData?.items;
 
@@ -50,6 +36,26 @@ export default function CourseStudyingPage() {
     return enrollments.some((item) => String(item.courseId ?? "").trim().toLowerCase() === currentCourseId);
   }, [courseData?.courseId, enrollments, id]);
 
+  const normalizePreviewLesson = (lesson: {
+    id?: string;
+    title?: string;
+    description?: string;
+    videoUrl?: string | null;
+    order?: number;
+    isPreview?: boolean;
+    duration?: number;
+  }) => {
+    return {
+      id: String(lesson.id ?? ""),
+      title: String(lesson.title ?? ""),
+      description: lesson.description,
+      order: lesson.order,
+      duration: lesson.duration,
+      isPreview: Boolean(lesson.isPreview),
+      videoUrl: lesson.videoUrl ? String(lesson.videoUrl) : undefined,
+    };
+  };
+
   const { data: sectionLessonsData } = useQuery<
     { id: string; title: string; lessons: { id: string; title: string; description?: string; videoUrl?: string; order?: number; isPreview?: boolean; duration?: number }[] }[]
   >({
@@ -57,33 +63,16 @@ export default function CourseStudyingPage() {
     queryFn: async () => {
       if (!courseData || !Array.isArray(courseData.sections)) return [];
 
-      // Tối ưu hóa: Nếu CHƯA MUA và courseData đã có sẵn bài học, dùng luôn để hiện tiêu đề cho nhanh
-      const hasLessons = courseData.sections.some(s => Array.isArray(s.lessons) && s.lessons.length > 0);
-      if (!isPurchased && hasLessons) {
-        return courseData.sections.map(section => ({
-          ...section,
-          lessons: (Array.isArray(section.lessons) ? section.lessons : []).map(lesson => {
-            // Nếu chưa mua, chỉ giữ lại videoUrl của bài Preview
-            if (!lesson.isPreview) {
-              return { ...lesson, videoUrl: undefined };
-            }
-            return lesson;
-          })
-        }));
-      }
-
-      // Nếu ĐÃ MUA: Bắt buộc phải gọi API lẻ để lấy đầy đủ Link Video và tài liệu (vì API getById thường ẩn các thông tin này)
+      // Luôn gọi API /Lesson để lấy đủ trường chi tiết (đặc biệt là videoUrl).
       return Promise.all(
         courseData.sections.map(async (section) => {
           const rawLessons = await lessonService.getAll(courseData.courseId, section.id);
           return {
-            ...section,
+            id: String(section.id ?? ""),
+            title: String(section.title ?? ""),
             lessons: (Array.isArray(rawLessons) ? rawLessons : []).map(lesson => {
-              // Bảo mật: Nếu chưa mua (phòng hờ), xóa videoUrl của các bài không phải Preview
-              if (!isPurchased && !lesson.isPreview) {
-                return { ...lesson, videoUrl: undefined };
-              }
-              return lesson;
+              const normalized = normalizePreviewLesson(lesson as any);
+              return normalized;
             }),
           };
         }),
@@ -168,7 +157,7 @@ export default function CourseStudyingPage() {
   return (
     <div className="bg-background min-h-screen pb-12">
       <div className="container mx-auto px-4 md:px-8 pt-8">
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex flex-col items-start gap-3 mb-6">
           <Button variant="outline" className="h-11 px-4" onClick={() => navigate(`/courses/${id}`)}>
             <ChevronLeft className="mr-2 h-4 w-4" /> Quay lại khóa học
           </Button>
@@ -247,6 +236,8 @@ export default function CourseStudyingPage() {
                 )}
               </CardContent>
             </Card>
+
+            <LessonDocuments lessonId={lesson.id} enabled={canView} />
 
             {/* Discussion Section */}
             <div className="mt-10 pt-10 border-t">

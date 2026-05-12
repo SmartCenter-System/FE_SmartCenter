@@ -3,21 +3,11 @@ import { API_ENDPOINTS } from "@/shared/constants";
 import type {
   Course,
   CourseFilterParams,
-  PublicCourseItem,
   PublicCourseQueryParams,
   PublicCourseListResult,
 } from "./type";
+import type { PaginatedList } from "@/shared/types";
 
-interface PublicCourseApiResponse {
-  items?: any[];
-  total?: number;
-  pageIndex?: number;
-  pageSize?: number;
-  totalCount?: number;
-  totalPages?: number;
-  hasPreviousPage?: boolean;
-  hasNextPage?: boolean;
-}
 
 function normalizeCourseType(value: unknown): 1 | 2 {
   return value === 2 ? 2 : 1;
@@ -60,7 +50,7 @@ function normalizeCourse(raw: any): Course {
 
 export const courseService = {
   async getPublicCourses(params?: PublicCourseQueryParams): Promise<PublicCourseListResult> {
-    const response = await apiClient.get<PublicCourseListResult>(API_ENDPOINTS.COURSES.BASE, {
+    const response = (await apiClient.get<PublicCourseListResult>(API_ENDPOINTS.COURSES.BASE, {
       params: {
         CategoryId: params?.CategoryId,
         Mode: params?.Mode,
@@ -70,13 +60,13 @@ export const courseService = {
         PageIndex: params?.PageIndex ?? 1,
         PageSize: params?.PageSize ?? 12,
       },
-    });
+    })) as unknown as PublicCourseListResult;
 
     return response;
   },
 
   async getCourses(params?: CourseFilterParams): Promise<{ data: Course[]; total: number }> {
-    const response = await apiClient.get<PaginatedList<any>>(API_ENDPOINTS.COURSES.BASE, {
+    const response = (await apiClient.get<PaginatedList<any>>(API_ENDPOINTS.COURSES.BASE, {
       params: {
         CategoryId: params?.CategoryId,
         CourseId: params?.CourseId,
@@ -88,11 +78,11 @@ export const courseService = {
         PageIndex: params?.page ?? 1,
         PageSize: params?.limit ?? 10,
       },
-    });
+    })) as unknown as PaginatedList<any>;
 
     return {
       data: response.items?.map(normalizeCourse) || [],
-      total: response.totalCount ?? response.total ?? response.items?.length ?? 0,
+      total: response.totalCount ?? response.items?.length ?? 0,
     };
   },
 

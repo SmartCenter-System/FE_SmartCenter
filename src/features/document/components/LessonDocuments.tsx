@@ -1,7 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
 import { FileText, Download, ExternalLink, FileArchive } from "lucide-react";
 import { Card, CardContent } from "@/shared/components/ui/card";
-import { documentService } from "@/features/document/service";
+import { useLessonDocuments } from "@/features/document";
 
 type LessonDocumentsProps = {
   lessonId?: string;
@@ -17,13 +16,7 @@ function getDocumentIcon(fileType?: string) {
 }
 
 export function LessonDocuments({ lessonId, enabled = true }: LessonDocumentsProps) {
-  const { data: documents, isLoading } = useQuery({
-    queryKey: ["lessonDocuments", lessonId],
-    queryFn: () => documentService.getByLesson(lessonId as string),
-    enabled: enabled && Boolean(lessonId),
-    staleTime: 1000 * 60 * 5,
-    retry: false,
-  });
+  const { data: documents, isLoading } = useLessonDocuments(lessonId, enabled);
 
 
   if (!enabled) return null;

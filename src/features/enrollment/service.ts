@@ -1,20 +1,6 @@
 import { apiClient } from "@/lib/axios";
 import { API_ENDPOINTS } from "@/shared/constants";
-
-export interface Enrollment {
-  courseId?: string;
-  courseName: string;
-  basePrice: number;
-  courseType: number;
-  imgUrl?: string | null;
-  isActive: boolean;
-  startAt?: string;
-  endAt?: string;
-  academicYear?: number;
-  enrollmentDate: string;
-  status: number;
-  progress?: number;
-}
+import type { Enrollment } from "./types";
 
 function resolveEnrollmentCourseId(item: any): string | undefined {
   const primaryCandidate =
@@ -25,13 +11,12 @@ function resolveEnrollmentCourseId(item: any): string | undefined {
     item?.courseInfo?.id ??
     item?.course?.courseID ??
     item?.courseID ??
-    item?.courseName; // Use courseName as fallback
+    item?.courseName;
 
   if (primaryCandidate !== undefined && primaryCandidate !== null && primaryCandidate !== "") {
     return String(primaryCandidate);
   }
 
-  // Some enrollment APIs return the course id in `id`.
   const fallbackId = item?.id;
   if (fallbackId === undefined || fallbackId === null || fallbackId === "") {
     return undefined;
@@ -73,15 +58,14 @@ export const enrollmentService = {
   },
 
   getMyEnrollmentCourses: async (): Promise<Enrollment[]> => {
-    const response = (await apiClient.get<any>(API_ENDPOINTS.ENROLLMENT.MY)) as any;
-    const items = response?.items || response || [];
-    return items.map(normalizeEnrollment);
+    const response = await enrollmentService.getMyEnrollments();
+    return response.items;
   },
 
   enroll: (courseId: string, transactionId: string, studentId?: string) =>
-    apiClient.post(API_ENDPOINTS.ENROLLMENT.BASE, { 
-      courseId, 
+    apiClient.post(API_ENDPOINTS.ENROLLMENT.BASE, {
+      courseId,
       transactionId,
-      studentId: studentId // Optional: Support manual enrollment by staff if backend allows extra fields
+      studentId,
     }),
 };
