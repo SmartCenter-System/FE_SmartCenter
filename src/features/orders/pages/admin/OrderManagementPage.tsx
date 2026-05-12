@@ -40,6 +40,7 @@ import {
   PaginationPrevious,
 } from "@/shared/components/ui/pagination";
 import { orderService } from "../../service";
+import type { CleanOrder } from "../../type";
 
 export default function OrderManagementPage() {
   const queryClient = useQueryClient();
@@ -76,57 +77,46 @@ export default function OrderManagementPage() {
   // Safe data extraction
   const orders = Array.isArray(ordersData) ? ordersData : ordersData?.items || ordersData?.data || [];
 
-  // Local filtering fallback for extra safety or client-side polish
-  const filteredOrders = orders.filter((o: any) => {
-    // If server already filtered, this will still work fine
-    const courseNameStr = Array.isArray(o.courseNames) ? o.courseNames.join(", ") : o.courseName || "";
-    const statusStr = (o.paymentStatus || o.status)?.toString().toUpperCase();
+  // Local filtering fallback using normalized CleanOrder properties
+  const filteredOrders = orders.filter((o: CleanOrder) => {
+    const courseNameStr = o.courseNames?.join(", ") || o.courseName || "";
+    const statusStr = o.status;
 
     const matchesSearch =
       !search ||
       o.studentName?.toLowerCase().includes(search.toLowerCase()) ||
       courseNameStr.toLowerCase().includes(search.toLowerCase()) ||
-      o.orderCode?.toLowerCase().includes(search.toLowerCase()) ||
-      (o.id && o.id.toString().includes(search));
+      o.orderCode.toLowerCase().includes(search.toLowerCase()) ||
+      o.id.includes(search);
 
-    const matchesStatus =
-      statusFilter === "ALL" ||
-      statusStr === statusFilter ||
-      (statusFilter === "1" && (statusStr === "SUCCESS" || statusStr === "PAID")) ||
-      (statusFilter === "0" && statusStr === "PENDING") ||
-      (statusFilter === "2" && (statusStr === "CANCELLED" || statusStr === "FAILED"));
+    const matchesStatus = statusFilter === "ALL" || statusStr === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (status: any) => {
-    const s = status?.toString()?.toUpperCase();
-    switch (s) {
-      case "SUCCESS":
+  const getStatusBadge = (status: CleanOrder["status"] | string) => {
+    switch (status) {
       case "PAID":
-      case "1":
         return (
-          <Badge className="bg-green-100 text-green-700 border-none">
+          <Badge className="bg-green-100 text-green-700 border-none font-bold">
             <CheckCircle2 className="h-3 w-3 mr-1" /> Thành công
           </Badge>
         );
       case "PENDING":
-      case "0":
         return (
-          <Badge className="bg-amber-100 text-amber-700 border-none">
+          <Badge className="bg-amber-100 text-amber-700 border-none font-bold">
             <Clock className="h-3 w-3 mr-1" /> Chờ xử lý
           </Badge>
         );
       case "CANCELLED":
       case "FAILED":
-      case "2":
         return (
-          <Badge className="bg-red-100 text-red-700 border-none">
+          <Badge className="bg-red-100 text-red-700 border-none font-bold">
             <XCircle className="h-3 w-3 mr-1" /> Đã hủy
           </Badge>
         );
       default:
-        return <Badge variant="outline">{status || "Không xác định"}</Badge>;
+        return <Badge variant="outline">{status || "N/A"}</Badge>;
     }
   };
 
@@ -313,22 +303,22 @@ export default function OrderManagementPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredOrders.map((order: any) => (
+              filteredOrders.map((order: CleanOrder) => (
                 <TableRow
-                  key={order.orderId || order.id}
+                  key={order.id}
                   className="group hover:bg-muted/30 transition-all border-muted/30"
                 >
                   <TableCell className="font-mono text-xs text-primary font-medium">
-                    #{order.orderCode || order.id?.toString().slice(-8).toUpperCase() || "N/A"}
+                    #{order.orderCode || order.id.slice(-8).toUpperCase()}
                   </TableCell>
                   <TableCell className="font-medium">{order.studentName || "N/A"}</TableCell>
                   <TableCell className="max-w-[200px] truncate">
-                    {Array.isArray(order.courseNames) ? order.courseNames.join(", ") : order.courseName || "N/A"}
+                    {order.courseNames?.join(", ") || order.courseName || "N/A"}
                   </TableCell>
                   <TableCell className="font-bold text-primary">
-                    {formatPrice(order.totalAmount || order.amount || 0)}
+                    {formatPrice(order.totalAmount)}
                   </TableCell>
-                  <TableCell>{getStatusBadge(order.paymentStatus || order.status)}</TableCell>
+                  <TableCell>{getStatusBadge(order.status)}</TableCell>
                   <TableCell className="text-right pr-6">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -477,14 +467,14 @@ export default function OrderManagementPage() {
                       <div>
                         <p className="text-[10px] text-muted-foreground uppercase font-bold">Ngày đặt hàng</p>
                         <p className="font-bold">
-                          {detailData?.createdAt ? new Date(detailData.createdAt).toLocaleString("vi-VN") : "N/A"}
+                          {detailData?.createdAt || "N/A"}
                         </p>
                       </div>
                       <div>
                         <p className="text-[10px] text-muted-foreground uppercase font-bold">Phương thức</p>
                         <p className="text-sm flex items-center gap-2">
                           <CreditCard className="h-3 w-3" />
-                          {detailData?.paymentMethod || "Chuyển khoản / VNPay"}
+                          {detailData?.paymentMethod || "Chuyển khoản"}
                         </p>
                       </div>
                       <div>
@@ -558,14 +548,14 @@ export default function OrderManagementPage() {
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
                         <p className="font-bold text-sm">Đã tạo đơn hàng</p>
                         <p className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                          {detailData?.createdAt ? new Date(detailData.createdAt).toLocaleString("vi-VN") : "N/A"}
+                          {detailData?.createdAt || "N/A"}
                         </p>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">Đơn hàng được khởi tạo bởi học viên.</p>
                     </div>
 
-                    {/* Item 2: Status History (if available) or current status if SUCCESS/CANCELLED */}
-                    {detailData?.status === "SUCCESS" || detailData?.status === "PAID" || detailData?.status === 1 ? (
+                    {/* Item 2: Status History */}
+                    {detailData?.status === "PAID" ? (
                       <div className="relative">
                         <div className="absolute -left-[27px] top-1 h-5 w-5 rounded-full bg-green-100 border-4 border-background z-10 flex items-center justify-center">
                           <div className="h-1.5 w-1.5 rounded-full bg-green-600" />
@@ -573,20 +563,14 @@ export default function OrderManagementPage() {
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
                           <p className="font-bold text-sm">Thanh toán thành công</p>
                           <p className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                            {detailData?.updatedAt
-                              ? new Date(detailData.updatedAt).toLocaleString("vi-VN")
-                              : detailData?.createdAt
-                                ? new Date(new Date(detailData.createdAt).getTime() + 5 * 60000).toLocaleString("vi-VN")
-                                : "N/A"}
+                            {detailData?.createdAt || "N/A"}
                           </p>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
                           Giao dịch đã được xác nhận qua cổng thanh toán.
                         </p>
                       </div>
-                    ) : detailData?.status === "CANCELLED" ||
-                      detailData?.status === "FAILED" ||
-                      detailData?.status === 2 ? (
+                    ) : detailData?.status === "CANCELLED" || detailData?.status === "FAILED" ? (
                       <div className="relative">
                         <div className="absolute -left-[27px] top-1 h-5 w-5 rounded-full bg-red-100 border-4 border-background z-10 flex items-center justify-center">
                           <div className="h-1.5 w-1.5 rounded-full bg-red-600" />
@@ -594,7 +578,7 @@ export default function OrderManagementPage() {
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-1">
                           <p className="font-bold text-sm">Đơn hàng đã bị hủy</p>
                           <p className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                            {detailData?.updatedAt ? new Date(detailData.updatedAt).toLocaleString("vi-VN") : "N/A"}
+                            {detailData?.createdAt || "N/A"}
                           </p>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
