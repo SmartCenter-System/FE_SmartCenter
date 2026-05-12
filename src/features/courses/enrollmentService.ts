@@ -63,12 +63,10 @@ function normalizeEnrollment(item: any): Enrollment {
 
 export const enrollmentService = {
   getMyEnrollments: async (): Promise<{ items: Enrollment[]; total: number }> => {
-    const res: any = await apiClient.get(API_ENDPOINTS.ENROLLMENT.MY);
+    const data: any = await apiClient.get(API_ENDPOINTS.ENROLLMENT.MY);
     
-    // Bóc tách Wrapper: lấy .data từ ApiResponse
-    const data = res.data || res;
-    
-    // Dữ liệu có thể là mảng trực tiếp hoặc nằm trong { items: [] }
+    // Dữ liệu từ interceptor đã là ruột của ApiResponse.data
+    // Nó có thể là mảng trực tiếp hoặc nằm trong { items: [] }
     const items = Array.isArray(data) ? data : (data.items || []);
     const normalized = items.map(normalizeEnrollment);
     
@@ -79,8 +77,7 @@ export const enrollmentService = {
   },
 
   getMyEnrollmentCourses: async (): Promise<Enrollment[]> => {
-    const res: any = await apiClient.get(API_ENDPOINTS.ENROLLMENT.MY);
-    const data = res.data || res;
+    const data: any = await apiClient.get(API_ENDPOINTS.ENROLLMENT.MY);
     const items = Array.isArray(data) ? data : (data.items || []);
     return items.map(normalizeEnrollment);
   },

@@ -49,7 +49,7 @@ function normalizeCourse(raw: any): Course {
 
 export const courseService = {
   async getPublicCourses(params?: PublicCourseQueryParams): Promise<PublicCourseListResult> {
-    const response: any = await apiClient.get(API_ENDPOINTS.COURSES.BASE, {
+    const data: any = await apiClient.get(API_ENDPOINTS.COURSES.BASE, {
       params: {
         CategoryId: params?.CategoryId,
         Mode: params?.Mode,
@@ -61,12 +61,11 @@ export const courseService = {
       },
     });
 
-    // Bóc tách Wrapper: lấy .data (chứa items và total) từ ApiResponse
-    return response.data || { items: [], total: 0 };
+    return data || { items: [], total: 0 };
   },
 
   async getCourses(params?: CourseFilterParams): Promise<{ data: Course[]; total: number }> {
-    const response: any = await apiClient.get(API_ENDPOINTS.COURSES.BASE, {
+    const pageData: any = await apiClient.get(API_ENDPOINTS.COURSES.BASE, {
       params: {
         CategoryId: params?.CategoryId,
         CourseId: params?.CourseId,
@@ -80,9 +79,6 @@ export const courseService = {
       },
     });
 
-    // Bóc tách Wrapper
-    const pageData = response.data || {};
-
     return {
       data: (pageData.items || []).map(normalizeCourse),
       total: pageData.totalCount ?? pageData.total ?? (pageData.items?.length || 0),
@@ -94,8 +90,8 @@ export const courseService = {
   },
 
   async getById(courseId: string): Promise<Course> {
-    const res: any = await apiClient.get(API_ENDPOINTS.COURSES.BY_ID(courseId));
-    return normalizeCourse(res.data);
+    const data: any = await apiClient.get(API_ENDPOINTS.COURSES.BY_ID(courseId));
+    return normalizeCourse(data);
   },
 
   getPreviews(courseId: string) {

@@ -20,7 +20,7 @@ const processQueue = (error: any, token: string | null = null) => {
 };
 
 // Khởi tạo URL gốc (Bảo vệ trường hợp biến env bị thiếu)
-const base = env.VITE_API_URL || env.API_URL || "http://localhost:5000";
+const base = env.API_URL || "http://localhost:5000";
 
 export const apiClient = axios.create({
   baseURL: base === "/api" ? "" : base,
@@ -35,7 +35,7 @@ export const apiClient = axios.create({
 // ==========================================
 apiClient.interceptors.request.use((config) => {
   // Lấy token trực tiếp từ store
-  const token = useAuthStore.getState().accessToken || useAuthStore.getState().token;
+  const token = useAuthStore.getState().accessToken;
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -43,13 +43,25 @@ apiClient.interceptors.request.use((config) => {
 });
 
 // ==========================================
-// 2. RESPONSE INTERCEPTOR (Bắt lỗi & Data)
+// 2. RESPONSE INTERCEPTOR (Bắt lỗi & Tự động bóc tách Data)
 // ==========================================
 apiClient.interceptors.response.use(
   (response) => {
-    // QUAN TRỌNG: Chỉ trả về response.data (Chính là cục Wrapper ApiResponse của Backend)
-    // KHÔNG tự động bóc thêm .data ở đây nữa để tránh xung đột với các file services.ts
-    return response.data;
+    const apiResponse = response.data;
+
+    // Nếu Backend trả về cấu trúc Wrapper chuẩn { success, data, message, ... }
+    if (apiResponse && typeof apiResponse === "object" && "success" in apiResponse) {
+      // Nếu thành công -> Trả về cục data bên trong cho service dùng luôn
+      if (apiResponse.success) {
+        return apiResponse.data;
+      }
+
+      // Nếu success = false -> Ném lỗi để catch xử lý
+      return Promise.reject(apiResponse);
+    }
+
+    // Trường hợp khác (không bọc wrapper) -> Trả về nguyên bản
+    return apiResponse;
   },
   async (error) => {
     const originalRequest = error.config;
@@ -73,12 +85,16 @@ apiClient.interceptors.response.use(
             // Lấy token mới (dự phòng trường hợp BE bọc lớp data)
             const newAuth = data.data ?? data;
 
-            // Cập nhật lại Zustand Store an toàn bằng spread operator (...)
+            // Cập nhật lại Zustand Store an toàn
             const currentStore = useAuthStore.getState();
             currentStore.setAuth({
-              ...currentStore,
               accessToken: newAuth.accessToken,
               refreshToken: newAuth.refreshToken,
+              role: currentStore.role,
+              userId: currentStore.userId,
+              email: currentStore.email,
+              firstName: currentStore.firstName,
+              lastName: currentStore.lastName,
             });
 
             processQueue(null, newAuth.accessToken);
@@ -91,8 +107,7 @@ apiClient.interceptors.response.use(
 
             // Xóa Auth và văng ra log in nếu refresh token cũng hết hạn
             const store = useAuthStore.getState();
-            if (store.logout) store.logout();
-            else if (store.clearAuth) store.clearAuth();
+            store.clearAuth();
 
             toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
             if (!window.location.pathname.includes("/login")) {
@@ -106,8 +121,7 @@ apiClient.interceptors.response.use(
           // Không có refresh token -> Kick ra log in
           isRefreshing = false;
           const store = useAuthStore.getState();
-          if (store.logout) store.logout();
-          else if (store.clearAuth) store.clearAuth();
+          store.clearAuth();
 
           if (!window.location.pathname.includes("/login")) window.location.href = "/login";
           return Promise.reject(error);
