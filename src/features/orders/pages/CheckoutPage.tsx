@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/store";
 import { useCart } from "@/features/cart/hooks/useCart";
 import InfoStudentForm from "@/features/orders/component/infoStudentForm";
-import { enrollmentService } from "@/features/courses/enrollmentService";
+import { enrollmentService } from "@/features/enrollment";
 
 export default function CheckoutPage() {
   const { id } = useParams();

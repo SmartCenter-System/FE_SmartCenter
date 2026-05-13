@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { 
   Search, 
-  MessageSquare, 
   CheckCircle2, 
   XCircle, 
   Clock, 
@@ -27,7 +26,7 @@ import { toast } from "sonner";
 
 import { courseService } from "@/features/courses/services";
 import { userService } from "@/features/users/services";
-import { enrollmentService } from "@/features/courses/enrollmentService";
+import { enrollmentService } from "@/features/enrollment";
 import { consultationService, type ConsultationStatus } from "@/features/consultation/service";
 
 export default function EnrollmentManagementPage() {

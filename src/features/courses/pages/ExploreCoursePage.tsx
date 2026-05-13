@@ -9,7 +9,6 @@ import {
   ArrowRight,
   Loader2,
   X,
-  LayoutGrid,
 } from "lucide-react";
 import Header from "@/shared/components/common/Header";
 import { usePublicCourses } from "../hooks/usePublicCourses";
@@ -21,7 +20,7 @@ import { EmptyState } from "@/shared/components/common/EmptyState";
 import PaginationBar from "@/shared/components/common/PaginationBar";
 import type { PublicCourseItem } from "../type";
 
-const DEFAULT_PAGE_SIZE = 12;
+const DEFAULT_PAGE_SIZE = 9;
 
 /**
  * Component ExploreCoursePage
@@ -72,14 +71,19 @@ const ExploreCoursePage: React.FC = () => {
   }, [filters, pageIndex, setSearchParams]);
 
   // =========================
-  // Query params (Always fetch all for local filtering)
+  // Query params (Server-side filtering)
   // =========================
   const queryParams = useMemo(
     () => ({
-      PageIndex: 1,
-      PageSize: 100, // Fetch all to support robust local filtering
+      PageIndex: pageIndex,
+      PageSize: DEFAULT_PAGE_SIZE,
+      Keyword: filters.keyword || undefined,
+      CategoryId: filters.categoryId,
+      Mode: filters.mode,
+      MinPrice: filters.minPrice,
+      MaxPrice: filters.maxPrice,
     }),
-    [],
+    [filters, pageIndex],
   );
 
   // =========================
@@ -87,72 +91,9 @@ const ExploreCoursePage: React.FC = () => {
   // =========================
   const { data: rawData, isLoading, isFetching, isError, refetch } = usePublicCourses(queryParams);
 
-  // =========================
-  // Client-Side Filtering & Search Logic
-  // =========================
-  
-  /**
-   * Danh sách khóa học đã được lọc (dùng useMemo để tối ưu). 
-   * Áp dụng tuần tự các bộ lọc từ khóa, danh mục, hình thức học và khoảng giá ở phía client.
-   * Điều này cung cấp phản hồi tức thì cho người dùng mà không cần gọi thêm API.
-   */
-  const filteredCourses = useMemo(() => {
-    const allItems = rawData?.items || [];
-    
-    // Helper to normalize Vietnamese strings (remove accents for robust searching)
-    const normalizeStr = (str: string) => {
-      return str
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // Remove accents
-        .replace(/đ/g, "d")
-        .trim();
-    };
-
-    return allItems.filter((course) => {
-      // 1. Filter by Keyword (Case-insensitive & Accent-insensitive)
-      if (filters.keyword) {
-        const title = (course.title || (course as any).courseName || "").toLowerCase();
-        const keyword = filters.keyword.toLowerCase();
-        
-        // Try exact match first (case-insensitive)
-        if (title.includes(keyword)) return true;
-        
-        // Fallback to accent-insensitive match
-        const normalizedTitle = normalizeStr(title);
-        const normalizedKeyword = normalizeStr(keyword);
-        if (!normalizedTitle.includes(normalizedKeyword)) return false;
-      }
-
-      // 2. Filter by Category
-      if (filters.categoryId && course.cateId !== filters.categoryId) {
-        return false;
-      }
-
-      // 3. Filter by Mode
-      if (filters.mode !== undefined && course.mode !== filters.mode) {
-        return false;
-      }
-
-      // 4. Filter by Price
-      if (filters.minPrice !== undefined && (course.price || 0) < filters.minPrice) return false;
-      if (filters.maxPrice !== undefined && (course.price || 0) > filters.maxPrice) return false;
-
-      return true;
-    });
-  }, [rawData, filters]);
-
-  // =========================
-  // Pagination (Local)
-  // =========================
-  const totalCount = filteredCourses.length;
+  const courses = rawData?.items || [];
+  const totalCount = rawData?.total || 0;
   const totalPages = Math.ceil(totalCount / DEFAULT_PAGE_SIZE) || 1;
-  
-  const courses = useMemo(() => {
-    const start = (pageIndex - 1) * DEFAULT_PAGE_SIZE;
-    const end = start + DEFAULT_PAGE_SIZE;
-    return filteredCourses.slice(start, end);
-  }, [filteredCourses, pageIndex]);
 
   // =========================
   // Categories
@@ -174,16 +115,12 @@ const ExploreCoursePage: React.FC = () => {
    * Tạo danh sách các mục phân trang để hiển thị trong PaginationBar.
    */
   const paginationItems = useMemo(() => {
-    const items = [];
+    const items: (number | "ellipsis")[] = [];
     for (let i = 1; i <= totalPages; i++) {
-      items.push({
-        label: i.toString(),
-        active: i === pageIndex,
-        href: `?page=${i}`,
-      });
+      items.push(i);
     }
     return items;
-  }, [totalPages, pageIndex]);
+  }, [totalPages]);
 
   /**
    * Áp dụng các giá trị đầu vào của bộ lọc vào trạng thái bộ lọc (filter state) và đặt lại trang về 1.

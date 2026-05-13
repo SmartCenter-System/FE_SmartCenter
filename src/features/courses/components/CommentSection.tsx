@@ -27,11 +27,12 @@ export function CommentSection({ lessonId }: CommentSectionProps) {
   const queryClient = useQueryClient();
   const { userId, accessToken } = useAuthStore();
   const [newComment, setNewComment] = useState("");
+  const isAuthenticated = Boolean(accessToken);
 
   const { data: comments = [], isLoading } = useQuery<Comment[]>({
     queryKey: ["comments", lessonId],
     queryFn: async () => {
-      const res = await apiClient.get<any>(API_ENDPOINTS.COMMENT.BY_LESSON(lessonId));
+      const res = (await apiClient.get<any>(API_ENDPOINTS.COMMENT.BY_LESSON(lessonId))) as any;
       const rawData = res?.items || (Array.isArray(res) ? res : []);
       return rawData.map((c: any) => ({
         id: c.id || c.commentId,
@@ -42,7 +43,8 @@ export function CommentSection({ lessonId }: CommentSectionProps) {
         createdAt: c.createdAt,
       }));
     },
-    enabled: !!lessonId,
+    enabled: !!lessonId && isAuthenticated,
+    retry: false,
   });
 
   const createMutation = useMutation({

@@ -1,30 +1,31 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { BookOpen, PlayCircle, Clock, GraduationCap } from "lucide-react";
-import { enrollmentService } from "@/features/courses/enrollmentService";
+import { useMemo } from "react";
+import { BookOpen, PlayCircle, GraduationCap } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/shared/components/ui/card";
 import { Progress } from "@/shared/components/ui/progress";
 import { Badge } from "@/shared/components/ui/badge";
 import { EmptyState } from "@/shared/components/common/EmptyState";
 import { CourseListSkeleton } from "../components/CourseCardSkeleton";
+import { useAuthStore } from "@/features/auth/store";
+import { useMyEnrollments } from "@/features/enrollment";
 
 export default function MyCoursesPage() {
-  const { data: enrolledCourses = [], isLoading } = useQuery({
-    queryKey: ["enrollments", "me-courses"],
-    queryFn: async () => {
-      const data = await enrollmentService.getMyEnrollmentCourses();
-      return data.map((item) => ({
-        id: item.courseId,
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const { data: enrollmentData, isLoading } = useMyEnrollments(!!accessToken);
+
+  const enrolledCourses = useMemo(
+    () =>
+      (enrollmentData?.items ?? []).map((item) => ({
+        id: item.courseId ?? item.courseName,
         title: item.courseName,
         imgUrl: item.imgUrl,
         progress: item.progress || 0,
-        lecturerName: item.lecturerName || "Giảng viên SmartCenter",
+        lecturerName: "Giảng viên SmartCenter",
         courseType: item.courseType === 1 ? "Online" : "Offline",
-      }));
-    },
-    staleTime: 1000 * 60 * 30, // Dữ liệu khóa học đã mua giữ 30 phút
-  });
+      })),
+    [enrollmentData?.items],
+  );
 
   return (
     <div className="min-h-screen bg-muted/30 pb-20">

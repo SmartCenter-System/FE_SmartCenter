@@ -3,14 +3,13 @@ import { API_ENDPOINTS } from "@/shared/constants";
 import type {
   Course,
   CourseFilterParams,
-  PublicCourseItem,
   PublicCourseQueryParams,
   PublicCourseListResult,
   CourseRaw,
   CreateCoursePayload,
   UpdateCoursePayload,
+  PublicCourseItem,
 } from "./type";
-
 import type { PaginatedData } from "@/shared/types";
 
 /**
@@ -61,7 +60,7 @@ function normalizeCourse(raw: CourseRaw): Course {
     courseType: normalizeCourseType(raw?.courseType ?? raw?.mode),
     startAt: raw?.startAt ?? null,
     endAt: raw?.endAt ?? null,
-    academicYear: raw?.academicYear ?? null,
+    academicYear: raw?.academicYear !== undefined && raw?.academicYear !== null ? Number(raw.academicYear) : null,
     maxStudents: raw?.maxStudents ?? null,
     lecturerId: raw?.lecturerId ?? null,
     lecturerName: String(raw?.lecturerName ?? raw?.lecturer?.fullName ?? "Chưa có giảng viên"),
@@ -99,7 +98,7 @@ export const courseService = {
    * @param params Bộ tham số truy vấn
    */
   async getPublicCourses(params?: PublicCourseQueryParams): Promise<PublicCourseListResult> {
-    const data = await apiClient.get<CourseRaw[] | PaginatedData<CourseRaw>>(API_ENDPOINTS.COURSES.BASE, {
+    const data = (await apiClient.get<CourseRaw[] | PaginatedData<CourseRaw>>(API_ENDPOINTS.COURSES.BASE, {
       params: {
         CategoryId: params?.CategoryId,
         Mode: params?.Mode,
@@ -109,12 +108,10 @@ export const courseService = {
         PageIndex: params?.PageIndex ?? 1,
         PageSize: params?.PageSize ?? 12,
       },
-    });
+    })) as unknown as CourseRaw[] | PaginatedData<CourseRaw>;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const itemsRaw: CourseRaw[] = Array.isArray(data) ? data : ((data as any)?.items || []);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const total = Array.isArray(data) ? data.length : ((data as any)?.totalCount ?? (data as any)?.total ?? itemsRaw.length);
+    const itemsRaw: CourseRaw[] = Array.isArray(data) ? data : data.items || [];
+    const total = Array.isArray(data) ? data.length : data.totalCount ?? data.total ?? itemsRaw.length;
 
     return {
       items: itemsRaw.map(normalizePublicCourse),
@@ -127,7 +124,7 @@ export const courseService = {
    * @param params Bộ tham số truy vấn mở rộng
    */
   async getCourses(params?: CourseFilterParams): Promise<{ data: Course[]; total: number }> {
-    const pageData = await apiClient.get<CourseRaw[] | PaginatedData<CourseRaw>>(API_ENDPOINTS.COURSES.BASE, {
+    const pageData = (await apiClient.get<CourseRaw[] | PaginatedData<CourseRaw>>(API_ENDPOINTS.COURSES.BASE, {
       params: {
         CategoryId: params?.CategoryId,
         CourseId: params?.CourseId,
@@ -139,12 +136,10 @@ export const courseService = {
         PageIndex: params?.page ?? 1,
         PageSize: params?.limit ?? 10,
       },
-    });
+    })) as unknown as CourseRaw[] | PaginatedData<CourseRaw>;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const itemsRaw: CourseRaw[] = Array.isArray(pageData) ? pageData : ((pageData as any)?.items || []);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const total = Array.isArray(pageData) ? pageData.length : ((pageData as any)?.totalCount ?? (pageData as any)?.total ?? itemsRaw.length);
+    const itemsRaw: CourseRaw[] = Array.isArray(pageData) ? pageData : pageData.items || [];
+    const total = Array.isArray(pageData) ? pageData.length : pageData.totalCount ?? pageData.total ?? itemsRaw.length;
 
     return {
       data: itemsRaw.map(normalizeCourse),
@@ -165,7 +160,7 @@ export const courseService = {
    * @param courseId ID khóa học
    */
   async getById(courseId: string): Promise<Course> {
-    const data = await apiClient.get<CourseRaw>(API_ENDPOINTS.COURSES.BY_ID(courseId));
+    const data = (await apiClient.get<CourseRaw>(API_ENDPOINTS.COURSES.BY_ID(courseId))) as unknown as CourseRaw;
     return normalizeCourse(data);
   },
 
@@ -195,7 +190,7 @@ export const courseService = {
       endAt: data.endAt,
     };
 
-    const res = await apiClient.post<CourseRaw>(API_ENDPOINTS.COURSES.BASE, payload);
+    const res = (await apiClient.post<CourseRaw>(API_ENDPOINTS.COURSES.BASE, payload)) as unknown as CourseRaw;
     return normalizeCourse(res);
   },
 
@@ -216,7 +211,7 @@ export const courseService = {
       isActive: data.isActive,
     };
 
-    const res = await apiClient.put<CourseRaw>(API_ENDPOINTS.COURSES.BY_ID(courseId), payload);
+    const res = (await apiClient.put<CourseRaw>(API_ENDPOINTS.COURSES.BY_ID(courseId), payload)) as unknown as CourseRaw;
     return normalizeCourse(res);
   },
 

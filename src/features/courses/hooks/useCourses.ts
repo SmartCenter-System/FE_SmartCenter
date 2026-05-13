@@ -12,13 +12,19 @@ export function useCourses(params?: CourseFilterParams) {
   return useQuery({
     queryKey: COURSE_KEYS.list(params),
     queryFn: () => courseService.getCourses(params),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 15,
+    retry: 1,
   });
 }
 
-export function useCourse(courseId: string) {
+export function useCourse(courseId?: string, enabled = true) {
   return useQuery({
-    queryKey: COURSE_KEYS.detail(courseId),
-    queryFn: () => courseService.getById(courseId),
-    enabled: !!courseId,
+    queryKey: COURSE_KEYS.detail(courseId || ""),
+    queryFn: () => courseService.getById(courseId || ""),
+    enabled: !!courseId && enabled,
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
+    retry: 1,
   });
 }

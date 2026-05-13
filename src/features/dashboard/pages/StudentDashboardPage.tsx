@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
-import { enrollmentService } from "@/features/courses/enrollmentService";
+import { enrollmentService } from "@/features/enrollment";
 import type { Course } from "@/features/courses/type";
 import { BookOpen, Clock, TrendingUp, ChevronRight, PlayCircle, Sparkles, Star } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
@@ -88,6 +88,8 @@ export default function StudentDashboardPage() {
   const { data: enrolledCoursesData, isLoading: isEnrolledLoading } = useQuery({
     queryKey: ["myEnrollments"],
     queryFn: () => enrollmentService.getMyEnrollmentCourses(),
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
     staleTime: 1000 * 60 * 5,
   });
 
