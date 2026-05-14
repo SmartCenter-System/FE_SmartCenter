@@ -25,11 +25,6 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
       },
-      "/Lesson": {
-        target: API_TARGET,
-        changeOrigin: true,
-        secure: true,
-      },
       "/ExamPaper": {
         target: API_TARGET,
         changeOrigin: true,
