@@ -61,11 +61,11 @@ export const API_ENDPOINTS = {
   },
 
   /**
-   * Lesson endpoints (No /api prefix in spec)
+   * Lesson endpoints
    */
   LESSON: {
-    BASE: "/Lesson",
-    BY_ID: (lessonId: string) => `/Lesson/${lessonId}`,
+    BASE: "/api/Lesson",
+    BY_ID: (lessonId: string) => `/api/Lesson/${lessonId}`,
   },
 
   /**
