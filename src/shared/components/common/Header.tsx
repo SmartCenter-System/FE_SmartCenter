@@ -69,22 +69,23 @@ export default function Header({ variant = "fixed", tone = "solid" }: HeaderProp
 
   return (
     <header className={`${headerClassName} transition-all duration-300`}>
-      <div className="flex items-center justify-between px-4 py-0 md:px-8 ">
-        <div className="flex flex-1 items-center gap-4">
+      <div className="flex items-center justify-between px-2 py-1.5 sm:px-4 md:px-8">
+        <div className="flex flex-1 items-center gap-2 sm:gap-4">
           <div
-            className={`ml-4 flex items-center gap-3 rounded-full px-4 py-1.5 md:ml-8 transition-all ${
+            className={`ml-1 flex items-center gap-2 sm:gap-3 rounded-full px-3 py-1.5 sm:ml-4 md:ml-8 transition-all ${
               isScrolledPastHero
                 ? "bg-card shadow-sm border border-border/50"
                 : ""
             }`}
           >
             <Link to="/" className="flex-shrink-0">
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-transparent">
-                <img src="/images/Logo.png" alt="SmartCenter" className="h-[30px] w-[30px] object-contain" />
+              <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-md bg-transparent">
+                <img src="/images/Logo.png" alt="SmartCenter" className="h-[24px] w-[24px] sm:h-[30px] sm:w-[30px] object-contain" />
               </div>
             </Link>
 
-            <nav className="flex items-center justify-start">
+            {/* Desktop Navigation Links */}
+            <nav className="hidden md:flex items-center justify-start">
               {navigationItems.map(({ icon: Icon, label, path }) => {
                 const isActive = location.pathname === path;
 
@@ -124,7 +125,7 @@ export default function Header({ variant = "fixed", tone = "solid" }: HeaderProp
             </nav>
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-3">
             <ThemeToggle className={isScrolledPastHero ? "text-foreground" : "text-white"} />
             {accessToken ? (
               <>
@@ -137,11 +138,11 @@ export default function Header({ variant = "fixed", tone = "solid" }: HeaderProp
                   else if (r === "LECTURER" || r === "3") dashboardPath = "/lecturer";
                   
                   return (
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5 sm:gap-4">
                       {(r === "STUDENT" || r === "LECTURER" || r === "3") && (
                         <Link
                           to={r === "STUDENT" ? "/dashboard/my-courses" : "/lecturer/courses"}
-                          className={`flex items-center gap-2 text-sm font-bold transition-all hover:text-primary ${isScrolledPastHero ? "text-foreground" : "text-white"}`}
+                          className={`hidden md:flex items-center gap-2 text-sm font-bold transition-all hover:text-primary ${isScrolledPastHero ? "text-foreground" : "text-white"}`}
                         >
                           <BookOpen className="h-4 w-4" />
                           Khóa học của tôi
@@ -149,10 +150,10 @@ export default function Header({ variant = "fixed", tone = "solid" }: HeaderProp
                       )}
                       <Link
                         to={dashboardPath}
-                        className="flex items-center gap-2 text-sm font-semibold text-primary hover:opacity-80"
+                        className="flex items-center gap-1 text-xs sm:text-sm font-semibold text-primary hover:opacity-80 bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20"
                       >
-                        <LayoutDashboard className="h-4 w-4" />
-                        Dashboard
+                        <LayoutDashboard className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="hidden sm:inline">Dashboard</span>
                       </Link>
                     </div>
                   );
@@ -160,24 +161,24 @@ export default function Header({ variant = "fixed", tone = "solid" }: HeaderProp
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="rounded-full text-red-500 hover:text-red-700 hover:bg-red-50"
+                  className="rounded-full text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0"
                   onClick={() => handleLogout()}
                   title="Đăng xuất"
                 >
-                  <LogOut className="h-5 w-5" />
+                  <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </>
             ) : (
               <>
                 <Link
                   to="/register"
-                  className="inline-flex h-11 items-center rounded-full bg-card px-5 text-sm font-semibold text-primary shadow-[0_8px_24px_rgba(0,0,0,0.12)] border border-border/50 transition-colors hover:bg-muted"
+                  className="hidden sm:inline-flex h-9 sm:h-11 items-center rounded-full bg-card px-4 sm:px-5 text-xs sm:text-sm font-semibold text-primary shadow-[0_8px_24px_rgba(0,0,0,0.12)] border border-border/50 transition-colors hover:bg-muted"
                 >
                   Đăng ký
                 </Link>
                 <Button
                   asChild
-                  className="h-11 rounded-full bg-yellow-400 px-5 text-blue-900 hover:bg-yellow-500 hover:text-white"
+                  className="h-9 sm:h-11 rounded-full bg-yellow-400 px-3 sm:px-5 text-xs sm:text-sm text-blue-900 hover:bg-yellow-500 hover:text-white font-bold"
                 >
                   <Link to="/login">Đăng nhập</Link>
                 </Button>
@@ -185,6 +186,21 @@ export default function Header({ variant = "fixed", tone = "solid" }: HeaderProp
             )}
           </div>
         </div>
+      </div>
+
+      {/* Mobile Bottom Navigation Bar (Visible only on screens < 768px) */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-border/50 bg-background/95 backdrop-blur-md py-2 md:hidden shadow-lg">
+        {navigationItems.map(({ icon: Icon, label, path }) => {
+          const isActive = location.pathname === path;
+          return (
+            <Link key={label} to={path} className="flex flex-col items-center gap-1 px-2 py-1">
+              <Icon className={`h-4 w-4 ${isActive ? "text-primary scale-110 transition-transform font-black" : "text-muted-foreground"}`} />
+              <span className={`text-[10px] font-bold leading-none ${isActive ? "text-primary font-black" : "text-muted-foreground"}`}>
+                {label}
+              </span>
+            </Link>
+          );
+        })}
       </div>
     </header>
   );

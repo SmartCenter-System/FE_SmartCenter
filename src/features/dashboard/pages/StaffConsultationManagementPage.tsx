@@ -41,6 +41,7 @@ export default function StaffConsultationManagementPage() {
       consultationService.updateStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Đã cập nhật trạng thái");
     }
   });

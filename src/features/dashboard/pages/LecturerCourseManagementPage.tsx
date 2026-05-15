@@ -66,9 +66,11 @@ export default function LecturerCourseManagementPage() {
   // Local filtering if API doesn't support status filter yet
   const rawCourses = data?.data || [];
   const courses = rawCourses.filter(c => {
-    if (status === "ACTIVE") return c.isActive;
-    if (status === "INACTIVE") return !c.isActive;
-    return true;
+    const matchesStatus = status === "ALL" || (status === "ACTIVE" ? c.isActive : !c.isActive);
+    const matchesSearch = !search || 
+      c.courseName.toLowerCase().includes(search.toLowerCase()) ||
+      c.courseId.toLowerCase().includes(search.toLowerCase());
+    return matchesStatus && matchesSearch;
   });
 
   const handleCreate = () => {

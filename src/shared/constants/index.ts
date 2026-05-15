@@ -11,6 +11,7 @@ export const API_ENDPOINTS = {
     FORGOT_PASSWORD: "/api/auth/forgot-password",
     RESET_PASSWORD: "/api/auth/reset-password",
     REGISTER_LECTURER: "/api/auth/register-lecturer",
+    REGISTER_STAFF: "/api/auth/register-staff",
   },
 
   /**
@@ -18,9 +19,11 @@ export const API_ENDPOINTS = {
    */
   ADMIN: {
     USERS: "/api/admin/users",
+    USER_BY_ID: (userId: string) => `/api/admin/users/${userId}`,
     USER_LOCK: (userId: string) => `/api/admin/users/${userId}/lock`,
     USER_UNLOCK: (userId: string) => `/api/admin/users/${userId}/unlock`,
     ORDERS: "/api/admin/orders",
+    DASHBOARD_STATS: "/api/admin/dashboard/stats",
   },
 
   /**
@@ -40,6 +43,9 @@ export const API_ENDPOINTS = {
    */
   CATEGORY: {
     GET_ALL: "/api/Category/get-categories",
+    CREATE: "/api/Category/create-categories",
+    UPDATE: "/api/Category/update-categories",
+    DELETE: (categoryId: string) => `/api/Category/categories/${categoryId}`,
   },
 
   /**
@@ -53,19 +59,19 @@ export const API_ENDPOINTS = {
   },
 
   /**
-   * Section endpoints (No /api prefix in spec)
+   * Section endpoints
    */
   SECTION: {
-    BASE: "/Section",
-    BY_ID: (sectionId: string) => `/Section/${sectionId}`,
+    BASE: "/api/Section",
+    BY_ID: (sectionId: string) => `/api/Section/${sectionId}`,
   },
 
   /**
-   * Lesson endpoints (No /api prefix in spec)
+   * Lesson endpoints
    */
   LESSON: {
-    BASE: "/Lesson",
-    BY_ID: (lessonId: string) => `/Lesson/${lessonId}`,
+    BASE: "/api/Lesson",
+    BY_ID: (lessonId: string) => `/api/Lesson/${lessonId}`,
   },
 
   /**
@@ -81,18 +87,18 @@ export const API_ENDPOINTS = {
    * Enrollment endpoints
    */
   ENROLLMENT: {
-    MY: "/Enrollment/my-enrollments",
-    BASE: "/Enrollment/create-enrollment",
+    MY: "/api/Enrollment/my-enrollments",
+    BASE: "/api/Enrollment/create-enrollment",
   },
 
   /**
-   * ExamPaper endpoints (No /api prefix in spec)
+   * ExamPaper endpoints
    */
   EXAM_PAPER: {
-    BASE: "/ExamPaper",
-    BY_ID: (examId: string) => `/ExamPaper/${examId}`,
-    DEADLINE: (examId: string) => `/ExamPaper/${examId}/deadline`,
-    ADD_QUESTIONS: "/ExamPaper/add-questions",
+    BASE: "/api/ExamPaper",
+    BY_ID: (examId: string) => `/api/ExamPaper/${examId}`,
+    DEADLINE: (examId: string) => `/api/ExamPaper/${examId}/deadline`,
+    ADD_QUESTIONS: "/api/ExamPaper/add-questions",
   },
 
   /**
@@ -106,11 +112,12 @@ export const API_ENDPOINTS = {
   },
 
   /**
-   * GradeExam endpoints (No /api prefix in spec)
+   * GradeExam endpoints
    */
   GRADE_EXAM: {
-    BASE: "/GradeExam",
-    MY_DETAILS: "/GradeExam/my-exam-details",
+    BASE: "/api/GradeExam",
+    MY_DETAILS: "/api/GradeExam/my-exam-details",
+    SUBMITTED: "/api/GradeExam/submitted-exams",
   },
 
   /**
@@ -121,6 +128,7 @@ export const API_ENDPOINTS = {
     ME: "/api/Order/me",
     BY_ID: (orderId: string) => `/api/Order/${orderId}`,
     CANCEL: (orderId: string) => `/api/Order/${orderId}/cancel`,
+    STATUS: (orderId: string) => `/api/Order/${orderId}/status`,
   },
 
   /**
@@ -135,27 +143,31 @@ export const API_ENDPOINTS = {
    * ConsultationRequest endpoints
    */
   CONSULTATION: {
-    BASE: "/ConsultationRequest",
-    CREATE: "/ConsultationRequest/create-consultation-request",
-    STATUS: (id: string) => `/ConsultationRequest/${id}/status`,
+    BASE: "/api/ConsultationRequest",
+    CREATE: "/api/ConsultationRequest/create-consultation-request",
+    STATUS: (id: string) => `/api/ConsultationRequest/${id}/status`,
+    ACCEPT: (id: string) => `/api/ConsultationRequest/${id}/accept`,
+    REJECT: (id: string) => `/api/ConsultationRequest/${id}/reject`,
+    STATS: "/api/ConsultationRequest/dashboard/stats",
+    ENROLLMENT: "/api/ConsultationRequest/Enrollment",
   },
 
   /**
    * User Profile endpoints
    */
   USER: {
-    PROFILE: "/User/profile",
-    UPDATE: "/User/update-profile",
-    GET_PROFILE: "/User/profile", // Backward compatibility
-    UPDATE_PROFILE: "/User/update-profile", // Backward compatibility
+    PROFILE: "/api/User/profile",
+    UPDATE: "/api/User/update-profile",
+    GET_PROFILE: "/api/User/profile", // Backward compatibility
+    UPDATE_PROFILE: "/api/User/update-profile", // Backward compatibility
   },
 
   /**
    * Combo endpoints
    */
   COMBO: {
-    BASE: "/Combo",
-    BY_ID: (comboId: string) => `/Combo/${comboId}`,
+    BASE: "/api/Combo",
+    BY_ID: (comboId: string) => `/api/Combo/${comboId}`,
   },
 
   /**
@@ -171,8 +183,8 @@ export const API_ENDPOINTS = {
    * ReviewCourse endpoints
    */
   REVIEW: {
-    CREATE: "/ReviewCourse/review-course",
-    GET: "/ReviewCourse/get-review-course",
+    CREATE: "/api/ReviewCourse/review-course",
+    GET: "/api/ReviewCourse/get-review-course",
   },
 
   /**
@@ -180,6 +192,6 @@ export const API_ENDPOINTS = {
    */
   PROGRESS: {
     COMPLETE: "/api/progress/complete",
-    BY_COURSE: (courseId: string) => `/api/Progress/${courseId}`,
+    BY_COURSE: (courseId: string) => `/api/progress/course/${courseId}`,
   },
 };

@@ -76,13 +76,12 @@ export const categoryService = {
    */
   async getAll(): Promise<Category[]> {
     // 1. Fetch data
-    const data = await apiClient.get<CategoryRaw[] | { items: CategoryRaw[] }>(
-      API_ENDPOINTS.CATEGORY.GET_ALL
-    );
+    const res = await apiClient.get<any>(API_ENDPOINTS.CATEGORY.GET_ALL);
     
-    // 2. Bóc vỏ bọc (nếu BE trả về { items: [] } thay vì mảng trực tiếp)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const items: CategoryRaw[] = Array.isArray(data) ? data : ((data as any)?.items || []);
+    // 2. Bóc vỏ bọc linh hoạt cho mọi dạng envelope trả về từ BE
+    const items: CategoryRaw[] = Array.isArray(res) 
+      ? res 
+      : (res?.data || res?.items || res?.result || []);
     
     // 3. Normalize dữ liệu sạch, lọc bỏ rác
     return items.map(normalizeCategory).filter((cat) => cat.id !== "");

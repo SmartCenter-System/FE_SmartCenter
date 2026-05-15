@@ -54,15 +54,39 @@ export default function StaffLayout() {
           </nav>
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 flex flex-col min-w-0">
-          <header className="h-16 border-b bg-background flex items-center px-4 lg:hidden gap-3 sticky top-0 z-10">
-            <Button variant="ghost" size="icon" className="lg:hidden">
-              <Menu className="h-5 w-5" />
-            </Button>
-            <span className="font-bold text-primary">Staff Portal</span>
-          </header>
-          <div className="p-4 md:p-8 lg:p-10 flex-1 overflow-auto w-full">
+        {/* Main Content with Mobile Submenu */}
+        <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden pb-16 md:pb-0">
+          {/* Mobile Portal Sub-header & Navigation */}
+          <div className="border-b bg-background sticky top-[56px] sm:top-[64px] z-30 lg:hidden shadow-sm">
+            <div className="flex items-center gap-2 px-4 py-2 border-b border-border/40 bg-muted/10">
+              <div className="h-6 w-6 bg-blue-600 rounded-md flex items-center justify-center text-white flex-shrink-0">
+                <Users className="h-3.5 w-3.5" />
+              </div>
+              <span className="font-bold text-sm tracking-tight text-primary">Staff Portal</span>
+            </div>
+            {/* Horizontal Scrolling Menu Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto px-3 py-2 scrollbar-none">
+              {menuItems.map((item) => {
+                const isActive = location.pathname.includes(item.path) || (item.path === "/staff/dashboard" && location.pathname === "/staff");
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                    }`}
+                  >
+                    <item.icon className="h-3.5 w-3.5" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="p-4 md:p-8 lg:p-10 flex-1 w-full">
             <Outlet />
           </div>
         </main>

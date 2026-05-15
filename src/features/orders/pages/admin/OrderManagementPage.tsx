@@ -250,6 +250,7 @@ export default function OrderManagementPage() {
           className="h-11 rounded-xl gap-2 border-none bg-muted/30 hover:bg-muted"
           onClick={() => {
             queryClient?.invalidateQueries({ queryKey: ["orders"] });
+            queryClient?.invalidateQueries({ queryKey: ["dashboard"] });
           }}
         >
           <RotateCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} /> Làm mới

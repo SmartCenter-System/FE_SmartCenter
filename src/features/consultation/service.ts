@@ -81,7 +81,32 @@ export const consultationService = {
   },
 
   async updateStatus(id: string, status: ConsultationStatus): Promise<void> {
-    return apiClient.patch(API_ENDPOINTS.CONSULTATION.STATUS(id), { status }) as any;
+    const intStatus = status === "PROCESSED" ? 1 : status === "CANCELLED" ? 2 : 0;
+    
+    try {
+      // Thử PUT với route /status kèm enum dạng số (tiêu chuẩn phổ biến trong .NET)
+      await apiClient.put(API_ENDPOINTS.CONSULTATION.STATUS(id), { status: intStatus });
+      return;
+    } catch {
+      try {
+        // Thử PUT với route /status kèm chuỗi gốc
+        await apiClient.put(API_ENDPOINTS.CONSULTATION.STATUS(id), { status });
+        return;
+      } catch {
+        try {
+          // Thử PATCH mặc định
+          await apiClient.patch(API_ENDPOINTS.CONSULTATION.STATUS(id), { status });
+          return;
+        } catch {
+          // Fallback sang gọi các endpoint chuyên biệt /accept và /reject
+          if (status === "PROCESSED") {
+            await apiClient.put(API_ENDPOINTS.CONSULTATION.ACCEPT(id));
+          } else if (status === "CANCELLED") {
+            await apiClient.put(API_ENDPOINTS.CONSULTATION.REJECT(id));
+          }
+        }
+      }
+    }
   },
 
   create(payload: CreateConsultationPayload) {
