@@ -28,17 +28,19 @@ export const dashboardService = {
 
   // Stats cho Admin - Tự động tổng hợp và bọc lót toàn diện qua lớp Normalizer Adapter
   getAdminStats: async (): Promise<CleanAdminDashboard> => {
-    // Tự động gom dữ liệu thực tế từ các dịch vụ con (Bypass mock endpoint để tránh lỗi 404 trên Render)
+    // Tự động gom dữ liệu thực tế từ các dịch vụ con kết hợp fallback an toàn
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [usersRes, coursesRes, consultationsRes, ordersRes] = await Promise.all([
+    const [statsRes, usersRes, coursesRes, consultationsRes, ordersRes] = await Promise.all([
+      // Tạm thời tắt gọi trực tiếp endpoint stats do BE đang bị lỗi unhandled exception (500), dùng hoàn toàn dữ liệu tự động tổng hợp
+      Promise.resolve(null),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      apiClient.get<any>("/api/admin/users", { params: { Role: 2, PageSize: 1 } }).catch(() => ({ data: [], totalCount: 0 })),
+      apiClient.get<any>(API_ENDPOINTS.ADMIN.USERS, { params: { Role: 2, PageSize: 1 } }).catch(() => ({ data: [], totalCount: 0 })),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      apiClient.get<any>("/api/Courses", { params: { PageSize: 1 } }).catch(() => ({ data: [], totalCount: 0 })),
+      apiClient.get<any>(API_ENDPOINTS.COURSES.BASE, { params: { PageSize: 1 } }).catch(() => ({ data: [], totalCount: 0 })),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       apiClient.get<any>("/api/ConsultationRequest").catch(() => ({ data: [] })),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      apiClient.get<any>("/api/admin/orders", { params: { PageSize: 100 } }).catch(() => ({ data: [] })),
+      apiClient.get<any>(API_ENDPOINTS.ADMIN.ORDERS, { params: { PageSize: 100 } }).catch(() => ({ data: [] })),
     ]);
 
     const usersCount = Number(usersRes?.totalCount ?? usersRes?.total ?? (usersRes?.data ? usersRes.data.length : 0));
@@ -46,13 +48,13 @@ export const dashboardService = {
     const orders = ordersRes?.data || ordersRes?.items || (Array.isArray(ordersRes) ? ordersRes : []);
     const consultations = consultationsRes?.data || consultationsRes?.items || (Array.isArray(consultationsRes) ? consultationsRes : []);
 
-    // Tính doanh thu THÁNG HIỆN TẠI
+    // Tính doanh thu THÁNG HIỆN TẠI fallback
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const monthlyRevenue = orders
+    const monthlyRevenueFallback = orders
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((o: any) => {
         const orderDate = new Date(o.createdAt || o.orderDate);
@@ -69,17 +71,23 @@ export const dashboardService = {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .reduce((sum: number, o: any) => sum + (o.totalAmount || o.amount || 0), 0);
 
+    // Bọc lót an toàn tuyệt đối: Bỏ qua lỗi bất ngờ (success: false) từ Backend API
+    const isValidStats = statsRes && (statsRes as any).success !== false && !(statsRes as any).errors;
+    const rawStats = isValidStats ? ((statsRes as any).data || statsRes) : {};
+
     const rawPayload = {
-      totalStudents: usersCount,
-      activeCourses: coursesCount,
+      ...rawStats,
+      totalStudents: rawStats?.totalStudents ?? rawStats?.TotalStudents ?? usersCount,
+      activeCourses: rawStats?.activeCourses ?? rawStats?.ActiveCourses ?? coursesCount,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      pendingConsultations: consultations.filter((c: any) => c.status === "PENDING" || c.status === 0).length,
-      monthlyRevenue,
-      recentOrders: orders.slice(0, 5),
+      pendingConsultations: rawStats?.pendingConsultations ?? rawStats?.PendingConsultations ?? consultations.filter((c: any) => c.status === "PENDING" || c.status === 0).length,
+      monthlyRevenue: rawStats?.monthlyRevenue ?? rawStats?.MonthlyRevenue ?? monthlyRevenueFallback,
+      recentOrders: Array.isArray(rawStats?.recentOrders) && rawStats.recentOrders.length > 0 ? rawStats.recentOrders : orders.slice(0, 5),
       systemHealth: {
         api: "stable" as const,
         database: "stable" as const,
         storageUsage: 42,
+        ...rawStats?.systemHealth,
       },
     };
 
@@ -92,7 +100,7 @@ export const dashboardService = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const coursesRes = await apiClient
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .get<any>("/api/Courses", {
+      .get<any>(API_ENDPOINTS.COURSES.BASE, {
         params: { LecturerId: lecturerId, PageSize: 100 },
       })
       .catch(() => ({ items: [], totalCount: 0 }));
@@ -112,19 +120,25 @@ export const dashboardService = {
 
   // Stats cho Staff
   getStaffStats: async (): Promise<CleanStaffDashboard> => {
-    // Tổng hợp trực tiếp từ danh sách Tư vấn và Đơn hàng
+    // Tổng hợp từ danh sách thực tế để đảm bảo hệ thống trơn tru
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [consultationsRes, ordersRes] = await Promise.all([
+    const [statsRes, consultationsRes, ordersRes] = await Promise.all([
+      // Bỏ qua gọi API stats trực tiếp để tránh lỗi BE, sử dụng fallback gom nhóm
+      Promise.resolve(null),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      apiClient.get<any>("/api/ConsultationRequest").catch(() => ({ data: [] })),
+      apiClient.get<any>(API_ENDPOINTS.CONSULTATION.BASE).catch(() => ({ data: [] })),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      apiClient.get<any>("/api/admin/orders", { params: { PageSize: 100 } }).catch(() => ({ data: [] })),
+      apiClient.get<any>(API_ENDPOINTS.ADMIN.ORDERS, { params: { PageSize: 100 } }).catch(() => ({ data: [] })),
     ]);
+
+    // Bọc lót an toàn tuyệt đối nếu API bị lỗi logic nội bộ
+    const isValidStats = statsRes && (statsRes as any).success !== false && !(statsRes as any).errors;
+    const rawStats = isValidStats ? ((statsRes as any).data || statsRes) : {};
 
     const consultations = consultationsRes?.data || (Array.isArray(consultationsRes) ? consultationsRes : []);
     const orders = ordersRes?.data || ordersRes?.items || [];
 
-    const totalRevenue = orders
+    const totalRevenueFallback = orders
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((o: any) => {
         const pStatus = String(o.paymentStatus || "").toUpperCase();
@@ -137,11 +151,12 @@ export const dashboardService = {
       .reduce((sum: number, o: any) => sum + (o.totalAmount || o.amount || 0), 0);
 
     return normalizeStaffDashboard({
-      totalLeads: consultations.length,
+      ...rawStats,
+      totalLeads: rawStats?.totalLeads ?? rawStats?.TotalLeads ?? consultations.length,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      pendingLeads: consultations.filter((c: any) => c.status === "PENDING").length,
-      totalOrders: orders.length,
-      totalRevenue,
+      pendingLeads: rawStats?.pendingLeads ?? rawStats?.PendingLeads ?? consultations.filter((c: any) => c.status === "PENDING").length,
+      totalOrders: rawStats?.totalOrders ?? rawStats?.TotalOrders ?? orders.length,
+      totalRevenue: rawStats?.totalRevenue ?? rawStats?.TotalRevenue ?? totalRevenueFallback,
     });
   },
 

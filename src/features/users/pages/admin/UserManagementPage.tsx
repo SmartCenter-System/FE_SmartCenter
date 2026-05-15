@@ -179,6 +179,7 @@ export default function UserManagementPage() {
       userService.toggleUserStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Đã cập nhật trạng thái");
       setIsConfirmLockOpen(false);
     }
@@ -188,6 +189,7 @@ export default function UserManagementPage() {
     mutationFn: (id: string) => userService.deleteUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Đã xóa người dùng");
       setIsConfirmDeleteOpen(false);
     }
@@ -197,6 +199,7 @@ export default function UserManagementPage() {
     mutationFn: (data: CreateUserFormValues) => userService.createInternalUser(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Tạo tài khoản thành công");
       setIsCreateDialogOpen(false);
       createForm.reset();

@@ -20,8 +20,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 
-const ITEMS_PER_PAGE = 5;
-
 export default function CourseManagementPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -30,53 +28,61 @@ export default function CourseManagementPage() {
   const [pageSize] = useState(10);
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
 
-  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
-    queryKey: ["courses", "admin-list", search, format, pageIndex, pageSize],
-    queryFn: () => courseService.getAll({ 
-      Keyword: search || undefined, 
-      Mode: format === "ALL" ? undefined : format,
-      page: pageIndex,
-      limit: pageSize,
-    }),
-  });
-
-  // 1. Lấy toàn bộ để thống kê chính xác 100% và tránh gọi nhiều API
-  const { data: allCoursesRes } = useQuery({
+  // Lấy toàn bộ danh sách để thống kê chính xác 100% và thực hiện lọc phía client cực mượt
+  const { data: allCoursesRes, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ["courses", "admin-all-for-stats"],
     queryFn: () => courseService.getCourses({ limit: 1000 }),
     staleTime: 5 * 60 * 1000,
   });
   const allCourses = allCoursesRes?.data || [];
 
-  const courses = data?.data || [];
-  const isStatsLoading = !allCoursesRes;
+  // Lọc trực tiếp phía client đảm bảo tìm kiếm và chọn hình thức luôn chạy mượt mà ngay tức thì
+  const filteredCourses = useMemo(() => {
+    return allCourses.filter((c) => {
+      const matchesSearch = !search || 
+        c.courseName.toLowerCase().includes(search.toLowerCase()) ||
+        c.courseId.toLowerCase().includes(search.toLowerCase());
+      
+      const matchesFormat = format === "ALL" || c.courseType === format;
+      
+      return matchesSearch && matchesFormat;
+    });
+  }, [allCourses, search, format]);
+
+  const totalFiltered = filteredCourses.length;
+  const totalPages = Math.ceil(totalFiltered / pageSize) || 1;
+
+  const courses = useMemo(() => {
+    const start = (pageIndex - 1) * pageSize;
+    return filteredCourses.slice(start, start + pageSize);
+  }, [filteredCourses, pageIndex, pageSize]);
+
+  const isStatsLoading = isLoading;
 
   // Global stats that stay constant regardless of table filters
   const stats = [
-    { 
-      label: "Tổng khóa học", 
-      value: allCoursesRes?.total || allCourses.length, 
-      icon: BookOpen, 
-      color: "bg-blue-500", 
-      loading: isStatsLoading 
+    {
+      label: "Tổng khóa học",
+      value: allCoursesRes?.total || allCourses.length,
+      icon: BookOpen,
+      color: "bg-blue-500",
+      loading: isStatsLoading,
     },
-    { 
-      label: "Học Online", 
-      value: allCourses.filter(c => c.courseMode === 1 || c.courseMode === "1").length, 
-      icon: Globe, 
-      color: "bg-green-500", 
-      loading: isStatsLoading 
+    {
+      label: "Học Online",
+      value: allCourses.filter((c) => c.courseType === 1).length,
+      icon: Globe,
+      color: "bg-green-500",
+      loading: isStatsLoading,
     },
-    { 
-      label: "Tại trung tâm", 
-      value: allCourses.filter(c => c.courseMode === 2 || c.courseMode === "2").length, 
-      icon: Building2, 
-      color: "bg-purple-500", 
-      loading: isStatsLoading 
+    {
+      label: "Tại trung tâm",
+      value: allCourses.filter((c) => c.courseType === 2).length,
+      icon: Building2,
+      color: "bg-purple-500",
+      loading: isStatsLoading,
     },
   ];
-
-  const totalPages = Math.ceil((data?.total || 0) / pageSize) || 1;
 
   const handleSearchChange = (val: string) => {
     setSearch(val);
@@ -94,21 +100,25 @@ export default function CourseManagementPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-            <Link to="/admin" className="hover:text-primary transition-colors">Admin</Link>
+            <Link to="/admin" className="hover:text-primary transition-colors">
+              Admin
+            </Link>
             <ChevronRight className="h-4 w-4" />
             <span className="text-foreground font-medium">Khóa học</span>
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Quản lý khóa học</h1>
-          <p className="text-muted-foreground">Hệ thống quản lý và điều phối các chương trình đào tạo của SmartCenter.</p>
+          <p className="text-muted-foreground">
+            Hệ thống quản lý và điều phối các chương trình đào tạo của SmartCenter.
+          </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            size="icon" 
+          <Button
+            variant="outline"
+            size="icon"
             onClick={() => {
               refetch();
               queryClient.invalidateQueries({ queryKey: ["courses"] });
-            }} 
+            }}
             disabled={isLoading || isRefetching}
             className="rounded-full hover:rotate-180 transition-transform duration-500"
             title="Làm mới dữ liệu"
@@ -131,13 +141,9 @@ export default function CourseManagementPage() {
             <CardContent className="p-6 flex items-center justify-between">
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">{s.label}</p>
-                {s.loading ? (
-                  <Skeleton className="h-9 w-16" />
-                ) : (
-                  <p className="text-3xl font-bold">{s.value}</p>
-                )}
+                {s.loading ? <Skeleton className="h-9 w-16" /> : <p className="text-3xl font-bold">{s.value}</p>}
               </div>
-              <div className={`p-3 rounded-2xl ${s.color} bg-opacity-10 text-${s.color.split('-')[1]}-600`}>
+              <div className={`p-3 rounded-2xl ${s.color} bg-opacity-10 text-${s.color.split("-")[1]}-600`}>
                 <s.icon className="h-6 w-6" />
               </div>
             </CardContent>
@@ -150,7 +156,16 @@ export default function CourseManagementPage() {
           <div>Đã có lỗi từ server. Vui lòng thử lại sau hoặc xóa bộ lọc.</div>
           <div className="flex gap-2">
             <Button onClick={() => refetch()}>Thử lại</Button>
-            <Button variant="outline" onClick={() => { setSearch(""); setFormat("ALL"); setPage(1); }}>Xóa bộ lọc</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearch("");
+                setFormat("ALL");
+                setPage(1);
+              }}
+            >
+              Xóa bộ lọc
+            </Button>
           </div>
         </div>
       )}
@@ -165,20 +180,12 @@ export default function CourseManagementPage() {
           viewMode={viewMode}
           onViewModeChange={setViewMode}
         />
-        
+
         <div className="p-0">
           {viewMode === "table" ? (
-            <CourseTable 
-              courses={courses} 
-              isLoading={isLoading} 
-              onDeleteSuccess={() => refetch()}
-            />
+            <CourseTable courses={courses} isLoading={isLoading} onDeleteSuccess={() => refetch()} />
           ) : (
-            <CourseGrid
-              courses={courses}
-              isLoading={isLoading}
-              onDeleteSuccess={() => refetch()}
-            />
+            <CourseGrid courses={courses} isLoading={isLoading} onDeleteSuccess={() => refetch()} />
           )}
         </div>
 
@@ -195,7 +202,7 @@ export default function CourseManagementPage() {
                     text="Trước"
                   />
                 </PaginationItem>
-                
+
                 {[...Array(totalPages)].map((_, i) => {
                   const p = i + 1;
                   // Only show current, first, last, and neighbors

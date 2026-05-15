@@ -112,7 +112,7 @@ const normalizeUser = (u: any): User => {
 export const userService = {
   // Lấy danh sách người dùng
   async getUsers(params?: UserFilterParams): Promise<{ data: User[]; total: number }> {
-    const roleValue = params?.role && params.role !== "ALL" ? params.role : undefined;
+    const roleValue = params?.role && params.role !== "ALL" ? ROLE_MAP[params.role] : undefined;
     const statusValue = params?.status === "ACTIVE" ? 1 : params?.status === "LOCKED" ? 0 : undefined;
 
     const res: any = await apiClient.get(API_ENDPOINTS.ADMIN.USERS, {
@@ -153,7 +153,7 @@ export const userService = {
   },
 
   async getById(id: string): Promise<User> {
-    const res: any = await apiClient.get(`${API_ENDPOINTS.ADMIN.USERS}/${id}`);
+    const res: any = await apiClient.get(API_ENDPOINTS.ADMIN.USER_BY_ID(id));
     return normalizeUser(res);
   },
 
@@ -194,6 +194,8 @@ export const userService = {
     let endpoint = API_ENDPOINTS.AUTH.REGISTER;
     if (data.role === "LECTURER") {
       endpoint = API_ENDPOINTS.AUTH.REGISTER_LECTURER;
+    } else if (data.role === "STAFF") {
+      endpoint = API_ENDPOINTS.AUTH.REGISTER_STAFF;
     }
 
     const res: any = await apiClient.post(endpoint, { request: payload });
@@ -212,6 +214,6 @@ export const userService = {
 
   // Xóa người dùng
   async deleteUser(id: string): Promise<void> {
-    await apiClient.delete(`${API_ENDPOINTS.ADMIN.USERS}/${id}`);
+    await apiClient.delete(API_ENDPOINTS.ADMIN.USER_BY_ID(id));
   },
 };

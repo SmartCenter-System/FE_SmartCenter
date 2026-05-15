@@ -5,7 +5,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Link } from "react-router-dom";
 import { Edit, ListVideo, BookOpen, Trash2, Globe, Building2, AlertTriangle, Loader2 } from "lucide-react";
 import type { Course } from "../type";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { courseService } from "../services";
 import { toast } from "sonner";
 import {
@@ -24,11 +24,14 @@ interface CourseGridProps {
 }
 
 export function CourseGrid({ courses, isLoading, onDeleteSuccess }: CourseGridProps) {
+  const queryClient = useQueryClient();
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => courseService.remove(id),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["courses"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Đã xóa khóa học");
       setDeleteId(null);
       onDeleteSuccess?.();

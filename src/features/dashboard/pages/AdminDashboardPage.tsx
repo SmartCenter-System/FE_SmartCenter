@@ -213,52 +213,52 @@ export default function AdminDashboardPage() {
                 ? Array(3)
                     .fill(0)
                     .map((_, i) => (
-                      <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-border/50">
-                        <div className="flex items-center gap-4">
-                          <Skeleton className="h-10 w-10 rounded-full" />
-                          <div className="space-y-2">
-                            <Skeleton className="h-4 w-32" />
-                            <Skeleton className="h-3 w-24" />
+                      <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-xl border border-border/50">
+                        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                          <Skeleton className="h-8 w-8 sm:h-10 sm:w-10 rounded-full flex-shrink-0" />
+                          <div className="space-y-2 min-w-0">
+                            <Skeleton className="h-4 w-24 sm:w-32" />
+                            <Skeleton className="h-3 w-16 sm:w-24" />
                           </div>
                         </div>
-                        <div className="text-right space-y-2">
-                          <Skeleton className="h-4 w-20" />
-                          <Skeleton className="h-4 w-12 ml-auto" />
+                        <div className="text-right space-y-2 flex-shrink-0 ml-2">
+                          <Skeleton className="h-4 w-16 sm:w-20" />
+                          <Skeleton className="h-4 w-10 sm:w-12 ml-auto" />
                         </div>
                       </div>
                     ))
                 : recentOrders.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-10 text-muted-foreground italic text-sm">
+                    <div className="flex flex-col items-center justify-center py-10 text-muted-foreground italic text-xs sm:text-sm">
                        Chưa có giao dịch nào được ghi nhận.
                     </div>
                   ) : recentOrders.map((order, i) => (
                     <div
                       key={order.id || i}
-                      className="flex items-center justify-between p-4 rounded-xl border border-border/50 hover:bg-muted/30 transition-colors cursor-pointer"
+                      className="flex items-center justify-between p-3 sm:p-4 rounded-xl border border-border/50 hover:bg-muted/30 transition-colors cursor-pointer gap-2"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                      <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary flex-shrink-0 text-xs sm:text-base">
                           {order.student.charAt(0)}
                         </div>
-                        <div>
-                          <p className="font-semibold text-sm">{order.student}</p>
-                          <p className="text-xs text-muted-foreground">{order.course} • <span className="font-mono">{order.createdAt}</span></p>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-xs sm:text-sm truncate">{order.student}</p>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{order.course} • <span className="font-mono">{order.createdAt}</span></p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-sm text-primary">{order.amount}</p>
+                      <div className="text-right flex-shrink-0 ml-1 sm:ml-2">
+                        <p className="font-bold text-xs sm:text-sm text-primary">{order.amount}</p>
                         <Badge
                           variant={order.status === "PAID" ? "default" : "secondary"}
-                          className={`text-[10px] h-5 border-none font-bold ${order.status === "PAID" ? "bg-green-500 text-white" : order.status === "CANCELLED" ? "bg-red-500 text-white" : ""}`}
+                          className={`text-[8px] sm:text-[10px] h-4 sm:h-5 px-1.5 sm:px-2 border-none font-bold ${order.status === "PAID" ? "bg-green-500 text-white" : order.status === "CANCELLED" ? "bg-red-500 text-white" : ""}`}
                         >
                           {order.status === "PAID" ? "THÀNH CÔNG" : order.status === "CANCELLED" ? "ĐÃ HỦY" : order.status}
                         </Badge>
                       </div>
                     </div>
                   ))}
-              <Button variant="ghost" className="w-full text-primary hover:text-primary/80 group rounded-xl">
+              <Button variant="ghost" className="w-full text-primary hover:text-primary/80 group rounded-xl text-xs sm:text-sm">
                 Xem tất cả giao dịch{" "}
-                <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-1 group-hover:translate-x-1 transition-transform" />
               </Button>
             </div>
           </CardContent>

@@ -119,6 +119,7 @@ export function CourseForm({ initialData, courseId, onSuccess, redirectPath }: C
       queryClient.invalidateQueries({ queryKey: ["admin-course", finalCourseId] });
       queryClient.invalidateQueries({ queryKey: ["courses"] });
       queryClient.invalidateQueries({ queryKey: ["lecturer-courses"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
 
       toast.success(courseId ? "Đã cập nhật" : "Đã tạo khóa học");
       if (onSuccess) onSuccess();

@@ -73,37 +73,73 @@ const ExploreCoursePage: React.FC = () => {
   // =========================
   // Query params (Server-side filtering)
   // =========================
-  const queryParams = useMemo(
-    () => ({
-      PageIndex: pageIndex,
-      PageSize: DEFAULT_PAGE_SIZE,
-      Keyword: filters.keyword || undefined,
-      CategoryId: filters.categoryId,
-      Mode: filters.mode,
-      MinPrice: filters.minPrice,
-      MaxPrice: filters.maxPrice,
-    }),
-    [filters, pageIndex],
-  );
-
   // =========================
-  // API
+  // API: Tải toàn bộ danh mục để đảm bảo khả năng lọc mượt mà phía client
   // =========================
-  const { data: rawData, isLoading, isFetching, isError, refetch } = usePublicCourses(queryParams);
+  const { data: rawData, isLoading, isFetching, isError, refetch } = usePublicCourses({
+    PageIndex: 1,
+    PageSize: 1000,
+  });
 
-  const courses = rawData?.items || [];
-  const totalCount = rawData?.total || 0;
+  const allItems = rawData?.items || [];
+
+  // Lọc phía client đảm bảo chính xác tuyệt đối theo từ khóa, danh mục, hình thức và giá
+  const filteredCourses = useMemo(() => {
+    return allItems.filter((course) => {
+      const matchesKeyword = !filters.keyword || 
+        course.title.toLowerCase().includes(filters.keyword.toLowerCase());
+      
+      const matchesCategory = !filters.categoryId || 
+        course.cateId === filters.categoryId;
+        
+      const matchesMode = filters.mode === undefined || 
+        course.mode === filters.mode;
+        
+      const matchesMinPrice = filters.minPrice === undefined || 
+        course.price >= filters.minPrice;
+        
+      const matchesMaxPrice = filters.maxPrice === undefined || 
+        course.price <= filters.maxPrice;
+        
+      return matchesKeyword && matchesCategory && matchesMode && matchesMinPrice && matchesMaxPrice;
+    });
+  }, [allItems, filters]);
+
+  const totalCount = filteredCourses.length;
   const totalPages = Math.ceil(totalCount / DEFAULT_PAGE_SIZE) || 1;
+
+  // Cắt mảng theo trang hiện tại
+  const courses = useMemo(() => {
+    const start = (pageIndex - 1) * DEFAULT_PAGE_SIZE;
+    return filteredCourses.slice(start, start + DEFAULT_PAGE_SIZE);
+  }, [filteredCourses, pageIndex]);
 
   // =========================
   // Categories
   // =========================
   
-  /**
-   * Danh sách danh mục đã được chuẩn hóa (từ Category API).
-   * Adapter Layer đã đảm bảo dữ liệu luôn là mảng Category[] sạch sẽ.
-   */
-  const { data: categories = [] } = useCategories();
+  const { data: apiCategories = [] } = useCategories();
+
+  // Tự động trích xuất các danh mục hiện có trực tiếp từ danh sách khóa học tải về làm lớp dự phòng (fallback) cực kỳ bền vững
+  const categories = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+    
+    // Thêm các danh mục từ API trước
+    apiCategories.forEach((cat) => {
+      if (cat.id && cat.name) {
+        map.set(cat.id, cat);
+      }
+    });
+
+    // Bổ sung các danh mục trích xuất trực tiếp từ khóa học hiện có
+    allItems.forEach((course) => {
+      if (course.cateId && course.cateName && !map.has(course.cateId)) {
+        map.set(course.cateId, { id: course.cateId, name: course.cateName });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [apiCategories, allItems]);
 
   // =========================
   // Logic (Event Handlers)
