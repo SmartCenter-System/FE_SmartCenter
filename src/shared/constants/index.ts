@@ -135,9 +135,11 @@ export const API_ENDPOINTS = {
    * ConsultationRequest endpoints
    */
   CONSULTATION: {
-    BASE: "/ConsultationRequest",
-    CREATE: "/ConsultationRequest/create-consultation-request",
-    STATUS: (id: string) => `/ConsultationRequest/${id}/status`,
+    BASE: "/api/ConsultationRequest",
+    CREATE: "/api/ConsultationRequest/create-consultation-request",
+    STATUS: (id: string) => `/api/ConsultationRequest/${id}/status`,
+    ACCEPT: (staffId: string) => `/api/ConsultationRequest/${staffId}/accept`,
+    REJECT: (staffId: string) => `/api/ConsultationRequest/${staffId}/reject`,
   },
 
   /**

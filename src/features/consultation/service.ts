@@ -43,7 +43,13 @@ function toFormData(payload: CreateConsultationPayload) {
   return formData;
 }
 
-export type ConsultationStatus = "PENDING" | "PROCESSED" | "CANCELLED";
+export type ConsultationStatus =
+  | "PENDING"
+  | "CONSULTING"
+  | "ACCEPTED"
+  | "PROCESSED"
+  | "REJECTED"
+  | "CANCELLED";
 
 export interface ConsultationRequest {
   id: string;
@@ -57,12 +63,24 @@ export interface ConsultationRequest {
   createdAt: string;
 }
 
+function normalizeConsultationStatus(status: unknown): ConsultationStatus {
+  const value = String(status ?? "PENDING").trim().toUpperCase();
+
+  if (value === "CONSULTING") return "CONSULTING";
+  if (value === "ACCEPTED") return "ACCEPTED";
+  if (value === "PROCESSED") return "PROCESSED";
+  if (value === "REJECTED") return "REJECTED";
+  if (value === "CANCELLED") return "CANCELLED";
+  return "PENDING";
+}
+
 export const consultationService = {
   async getConsultations(params?: any): Promise<{ totalCount: number; items: ConsultationRequest[] }> {
     const res = await apiClient.get<any>(API_ENDPOINTS.CONSULTATION.BASE, { params });
+    const payload = res?.data ?? res;
     // Handle both {items: []} and direct array responses
-    const items = res?.items || (Array.isArray(res) ? res : []);
-    const totalCount = res?.totalCount ?? items.length;
+    const items = payload?.items || (Array.isArray(payload) ? payload : []);
+    const totalCount = payload?.totalCount ?? items.length;
     
     // Normalize fields
     const normalizedItems = items.map((item: any) => ({
@@ -73,15 +91,23 @@ export const consultationService = {
       courseId: item.courseId,
       courseName: item.courseName || item.courseInterest || "N/A",
       note: item.note || item.message || "",
-      status: item.status || "PENDING",
+      status: normalizeConsultationStatus(item.status),
       createdAt: item.createdAt || new Date().toISOString(),
     }));
 
     return { totalCount, items: normalizedItems };
   },
 
-  async updateStatus(id: string, status: ConsultationStatus): Promise<void> {
-    return apiClient.patch(API_ENDPOINTS.CONSULTATION.STATUS(id), { status }) as any;
+  async accept(staffId: string, consultationId: string): Promise<void> {
+    return apiClient.post(API_ENDPOINTS.CONSULTATION.ACCEPT(staffId), {}, {
+      params: { consultationId },
+    }) as any;
+  },
+
+  async reject(staffId: string, consultationId: string): Promise<void> {
+    return apiClient.post(API_ENDPOINTS.CONSULTATION.REJECT(staffId), {}, {
+      params: { consultationId },
+    }) as any;
   },
 
   create(payload: CreateConsultationPayload) {
