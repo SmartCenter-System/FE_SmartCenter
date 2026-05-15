@@ -146,10 +146,8 @@ export const API_ENDPOINTS = {
     BASE: "/api/ConsultationRequest",
     CREATE: "/api/ConsultationRequest/create-consultation-request",
     STATUS: (id: string) => `/api/ConsultationRequest/${id}/status`,
-    ACCEPT: (id: string) => `/api/ConsultationRequest/${id}/accept`,
-    REJECT: (id: string) => `/api/ConsultationRequest/${id}/reject`,
-    STATS: "/api/ConsultationRequest/dashboard/stats",
-    ENROLLMENT: "/api/ConsultationRequest/Enrollment",
+    ACCEPT: (staffId: string) => `/api/ConsultationRequest/${staffId}/accept`,
+    REJECT: (staffId: string) => `/api/ConsultationRequest/${staffId}/reject`,
   },
 
   /**

@@ -88,9 +88,9 @@ export default function StudentDashboardPage() {
   const { data: enrolledCoursesData, isLoading: isEnrolledLoading } = useQuery({
     queryKey: ["myEnrollments"],
     queryFn: () => enrollmentService.getMyEnrollmentCourses(),
-    refetchInterval: 5_000,
-    refetchIntervalInBackground: false,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5, // Keep data fresh for 5 minutes
+    gcTime: 1000 * 60 * 10, // Keep data in cache for 10 minutes
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
   });
 
   const enrollmentItems = Array.isArray(enrolledCoursesData)

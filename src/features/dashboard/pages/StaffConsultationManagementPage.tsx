@@ -1,93 +1,137 @@
 import { useState } from "react";
-import { 
-  Search, 
-  Filter, 
-  MoreVertical, 
-  Phone, 
-  Mail, 
-  Calendar,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Loader2
+import {
+  Search,
+  Filter,
+  MessageSquare,
+  Users,
+  ShoppingCart,
+  Loader2,
 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { Badge } from "@/shared/components/ui/badge";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/shared/components/ui/dropdown-menu";
-import { toast } from "sonner";
-import { consultationService, type ConsultationStatus, type ConsultationRequest } from "@/features/consultation/service";
+import { StatCard } from "../components/index";
+import { ConsultationTable, type ConsultationRequest } from "../components/index";
+import { useDashboardStaff } from "../hooks/useDashboardStaff";
+import { useConsultationRequests } from "../hooks/useConsultationRequests";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationEllipsis,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/shared/components/ui/pagination";
 
 export default function StaffConsultationManagementPage() {
-  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  const { data: consultationsRes, isLoading } = useQuery({
-    queryKey: ["consultations", "list"],
-    queryFn: () => consultationService.getConsultations(),
-  });
+  // Fetch stats từ API
+  const { data: statsData } = useDashboardStaff();
 
-  const consultations = consultationsRes?.items || [];
+  // Fetch consultation requests từ API (paged)
+  const { data: consultationData, isLoading } = useConsultationRequests(page, pageSize, search);
 
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string, status: ConsultationStatus }) => 
-      consultationService.updateStatus(id, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["consultations"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      toast.success("Đã cập nhật trạng thái");
-    }
-  });
+  // Map API data to ConsultationRequest format
+  const items = consultationData?.items || [];
+  const totalCount = consultationData?.totalCount ?? 0;
 
-  const getStatusBadge = (status: ConsultationStatus) => {
-    switch (status) {
-      case "PENDING":
-        return <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-none"><Clock className="h-3 w-3 mr-1" /> Chờ xử lý</Badge>;
-      case "PROCESSED":
-        return <Badge variant="secondary" className="bg-green-100 text-green-700 border-none"><CheckCircle2 className="h-3 w-3 mr-1" /> Đã tư vấn</Badge>;
-      case "CANCELLED":
-        return <Badge variant="secondary" className="bg-red-100 text-red-700 border-none"><XCircle className="h-3 w-3 mr-1" /> Đã hủy</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
+  function mapStatus(s?: string): "Chờ xử lý" | "Chấp nhận" | "Từ chối" {
+    if (!s) return "Chờ xử lý";
+    const us = String(s).toUpperCase();
+    if (us === "PENDING") return "Chờ xử lý";
+    if (us === "PROCESSED" || us === "ACCEPTED") return "Chấp nhận";
+    if (us === "CANCELLED" || us === "REJECTED") return "Từ chối";
+    return "Chờ xử lý";
+  }
 
-  const filteredData = (consultations || []).filter(item => 
-    item.fullName.toLowerCase().includes(search.toLowerCase()) ||
-    item.phone.includes(search) ||
-    item.email.toLowerCase().includes(search.toLowerCase())
+  const consultations: ConsultationRequest[] = items.map((item) => ({
+    id: item.id,
+    studentName: item.fullName,
+    studentEmail: item.email,
+    courseInterest: item.courseName || "Không xác định",
+    courseTier: undefined,
+    requestDate: new Date(item.createdAt).toLocaleDateString("vi-VN"),
+    requestTime: new Date(item.createdAt).toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    status: mapStatus(item.status) as "Chờ xử lý" | "Chấp nhận" | "Từ chối",
+  }));
+
+
+  const filteredData = consultations.filter(
+    (item) =>
+      item.studentName.toLowerCase().includes(search.toLowerCase()) ||
+      item.studentEmail.toLowerCase().includes(search.toLowerCase()) ||
+      item.courseInterest.toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  function getPaginationItems(total: number, current: number): (number | "ellipsis")[] {
+    const delta = 1; // show current +/- delta
+    const range: (number | "ellipsis")[] = [];
+    const left = Math.max(1, current - delta);
+    const right = Math.min(total, current + delta);
+
+    for (let i = 1; i <= total; i++) {
+      if (i === 1 || i === total || (i >= left && i <= right)) {
+        range.push(i);
+      } else if (i === left - 1 || i === right + 1) {
+        range.push("ellipsis");
+      }
+    }
+
+    // Remove consecutive duplicates
+    return range.filter((v, idx, arr) => idx === 0 || v !== arr[idx - 1]);
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Quản lý Tư vấn</h1>
-          <p className="text-muted-foreground mt-1">Theo dõi và xử lý các yêu cầu tư vấn khóa học từ khách hàng.</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Academic Support
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Quản lý yêu cầu tư vấn, sinh viên mới và đơn hàng
+          </p>
         </div>
-        <Button className="gap-2">
-          <Calendar className="h-4 w-4" /> Xuất báo cáo tuần
-        </Button>
       </div>
 
-      <Card className="border-none shadow-sm">
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard
+          icon={<MessageSquare className="h-8 w-8 text-amber-500" />}
+          count={statsData?.pendingConsultations ?? 0}
+          label="Yêu cầu tư vấn"
+          description="Cần phản hồi hôm nay"
+        />
+        <StatCard
+          icon={<Users className="h-8 w-8 text-blue-500" />}
+          count={statsData?.newStudentsToday ?? 0}
+          label="Học viên mới"
+          description="Đã tham gia đến 08:00 AM"
+        />
+        <StatCard
+          icon={<ShoppingCart className="h-8 w-8 text-green-500" />}
+          count={statsData?.pendingOrders ?? 0}
+          label="Đơn hàng"
+          description="Chờ xử lý"
+        />
+      </div>
+
+      {/* Consultation Requests Section */}
+      <Card className="border-0 shadow-sm">
         <CardHeader className="pb-3">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="relative w-full md:w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Tìm kiếm theo tên, SĐT hoặc Email..." 
-                className="pl-10" 
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div>
+              <h2 className="text-xl font-semibold">Yêu cầu tư vấn </h2>
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" className="gap-2">
@@ -95,85 +139,87 @@ export default function StaffConsultationManagementPage() {
               </Button>
             </div>
           </div>
+
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Tìm kiếm học viên..."
+              className="pl-10"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4 text-muted-foreground">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
-              <p>Đang tải danh sách yêu cầu...</p>
+              <p>Đang tải yêu cầu tư vấn...</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-muted-foreground font-medium">
-                    <th className="text-left py-4 px-2">Khách hàng</th>
-                    <th className="text-left py-4 px-2">Khóa học quan tâm</th>
-                    <th className="text-left py-4 px-2">Trạng thái</th>
-                    <th className="text-left py-4 px-2">Ngày gửi</th>
-                    <th className="text-right py-4 px-2">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredData.map((item) => (
-                    <tr key={item.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                      <td className="py-4 px-2">
-                        <div className="flex flex-col">
-                          <span className="font-bold">{item.fullName}</span>
-                          <span className="text-xs text-muted-foreground">{item.phone}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-2">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="font-normal text-[10px]">{item.courseName}</Badge>
-                        </div>
-                      </td>
-                      <td className="py-4 px-2">
-                        {getStatusBadge(item.status)}
-                      </td>
-                      <td className="py-4 px-2 text-muted-foreground text-xs">
-                        {new Date(item.createdAt).toLocaleDateString("vi-VN")}
-                      </td>
-                      <td className="py-4 px-2 text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600">
-                            <Phone className="h-4 w-4" />
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="gap-2">
-                                <Mail className="h-4 w-4" /> Gửi Email
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className="gap-2"
-                                onClick={() => updateStatusMutation.mutate({ id: item.id, status: "PROCESSED" })}
-                              >
-                                <CheckCircle2 className="h-4 w-4" /> Đánh dấu đã tư vấn
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className="gap-2 text-red-600"
-                                onClick={() => updateStatusMutation.mutate({ id: item.id, status: "CANCELLED" })}
-                              >
-                                <XCircle className="h-4 w-4" /> Hủy yêu cầu
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <>
+              <ConsultationTable
+                data={filteredData}
+              />
+
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">Hiển thị {items.length} / {totalCount} yêu cầu</p>
+                {totalPages > 1 && (
+                  <Pagination>
+                    <PaginationContent className="flex-wrap gap-2">
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setPage((cur) => Math.max(1, cur - 1));
+                          }}
+                          aria-disabled={page === 1}
+                          text="Trước"
+                          className={`h-10 w-auto min-w-0 shrink-0 rounded-xl border border-border bg-card px-4 text-muted-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary ${page === 1 ? "pointer-events-none opacity-50" : ""}`}
+                        />
+                      </PaginationItem>
+
+                      {getPaginationItems(totalPages, page).map((item, idx) =>
+                        item === "ellipsis" ? (
+                          <PaginationItem key={`ellipsis-${idx}`}>
+                            <PaginationEllipsis className="text-slate-400" />
+                          </PaginationItem>
+                        ) : (
+                          <PaginationItem key={item}>
+                            <PaginationLink
+                              href={`#page-${item}`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setPage(item as number);
+                              }}
+                              isActive={item === page}
+                              className="h-10 w-10 rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary data-[active=true]:border-primary data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:shadow-sm"
+                            >
+                              {item}
+                            </PaginationLink>
+                          </PaginationItem>
+                        )
+                      )}
+
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setPage((cur) => Math.min(totalPages, cur + 1));
+                          }}
+                          aria-disabled={page === totalPages}
+                          text="Sau"
+                          className={`h-10 w-auto min-w-0 shrink-0 rounded-xl border border-border bg-card px-4 text-muted-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary ${page === totalPages ? "pointer-events-none opacity-50" : ""}`}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
+              </div>
+            </>
           )}
-          <div className="mt-6 flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">Hiển thị {filteredData.length} yêu cầu</p>
-          </div>
         </CardContent>
       </Card>
     </div>

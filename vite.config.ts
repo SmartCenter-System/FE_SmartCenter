@@ -35,7 +35,7 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
       },
-      "/ConsultationRequest": {
+      "/api/ConsultationRequest": {
         target: API_TARGET,
         changeOrigin: true,
         secure: true,

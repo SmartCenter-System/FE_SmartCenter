@@ -11,7 +11,6 @@ export default function StaffLayout() {
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/staff/dashboard" },
     { icon: CreditCard, label: "Ghi danh học viên", path: "/staff/enrollments" },
-    { icon: Users, label: "Quản lý Tư vấn", path: "/staff/consultations" },
     { icon: Settings, label: "Cài đặt", path: "/staff/settings" },
   ];
   

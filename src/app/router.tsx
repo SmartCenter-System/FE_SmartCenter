@@ -150,7 +150,6 @@ const router = createBrowserRouter([
           { index: true, element: <StaffDashboardPage /> },
           { path: "dashboard", element: <StaffDashboardPage /> },
           { path: "enrollments", element: <EnrollmentManagementPage /> },
-          { path: "consultations", element: <StaffConsultationManagementPage /> },
           { path: "settings", element: <SettingsPage /> },
         ],
       },

@@ -150,10 +150,11 @@ export default function Header({ variant = "fixed", tone = "solid" }: HeaderProp
                       )}
                       <Link
                         to={dashboardPath}
-                        className="flex items-center gap-1 text-xs sm:text-sm font-semibold text-primary hover:opacity-80 bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20"
+                        title="Dashboard"
+                        aria-label="Dashboard"
+                        className="flex items-center gap-2 text-sm font-semibold text-primary hover:opacity-80"
                       >
-                        <LayoutDashboard className="h-3.5 w-3.5 flex-shrink-0" />
-                        <span className="hidden sm:inline">Dashboard</span>
+                        <LayoutDashboard className="h-4 w-4" />
                       </Link>
                     </div>
                   );

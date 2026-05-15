@@ -11,9 +11,9 @@ export function useLessonDocuments(lessonId?: string, enabled = true) {
     queryKey: DOCUMENT_QUERY_KEYS.byLesson(lessonId),
     queryFn: () => documentService.getByLesson(lessonId as string),
     enabled: enabled && Boolean(lessonId),
-    refetchInterval: 5_000,
-    refetchIntervalInBackground: false,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5, // Keep data fresh for 5 minutes
+    gcTime: 1000 * 60 * 10, // Keep data in cache for 10 minutes
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
     retry: false,
   });
 }
