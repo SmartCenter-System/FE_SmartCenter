@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   Search,
@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/shared/components/ui/input";
+import PaginationBar from "@/shared/components/common/PaginationBar";
 import {
   Card,
   CardContent,
@@ -35,13 +36,26 @@ import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/store";
 import {
   consultationService,
+  type ConsultationRequest,
   type ConsultationStatus,
 } from "@/features/consultation/service";
+
+const PAGE_SIZE = 10;
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string") return message;
+  }
+
+  return fallback;
+}
 
 export default function EnrollmentManagementPage() {
   const queryClient = useQueryClient();
   const staffId = useAuthStore((state) => state.userId);
   const [searchTerm, setSearchTerm] = useState("");
+  const [pageIndex, setPageIndex] = useState(1);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const { data: consultations, isLoading: isLoadingConsultations } = useQuery({
@@ -62,8 +76,8 @@ export default function EnrollmentManagementPage() {
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
       toast.success("Đã chấp nhận yêu cầu tư vấn");
     },
-    onError: (error: any) => {
-      toast.error(error?.message || "Không thể chấp nhận yêu cầu tư vấn");
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, "Không thể chấp nhận yêu cầu tư vấn"));
     },
     onSettled: () => {
       setProcessingId(null);
@@ -83,8 +97,8 @@ export default function EnrollmentManagementPage() {
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
       toast.success("Đã từ chối yêu cầu tư vấn");
     },
-    onError: (error: any) => {
-      toast.error(error?.message || "Không thể từ chối yêu cầu tư vấn");
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, "Không thể từ chối yêu cầu tư vấn"));
     },
     onSettled: () => {
       setProcessingId(null);
@@ -128,10 +142,44 @@ export default function EnrollmentManagementPage() {
     String(status).trim().toUpperCase() === "PENDING";
 
   const leads = consultations?.items || [];
-  const filteredConsultations = leads.filter((lead: any) => {
+  const filteredConsultations = leads.filter((lead: ConsultationRequest) => {
     const text = `${lead.fullName ?? ""} ${lead.phone ?? ""}`.toLowerCase();
     return text.includes(searchTerm.toLowerCase());
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredConsultations.length / PAGE_SIZE));
+  const currentPage = Math.min(pageIndex, totalPages);
+  const canGoPrevious = currentPage > 1;
+  const canGoNext = currentPage < totalPages;
+
+  const paginationItems = useMemo(() => {
+      const items: (number | "ellipsis")[] = [];
+
+    for (let page = 1; page <= totalPages; page += 1) {
+      const isEdge = page === 1 || page === totalPages;
+      const isNearActive = Math.abs(page - currentPage) <= 1;
+
+      if (isEdge || isNearActive) {
+        items.push(page);
+        continue;
+      }
+
+      if (items[items.length - 1] !== "ellipsis") {
+        items.push("ellipsis");
+      }
+    }
+
+    return items;
+  }, [currentPage, totalPages]);
+
+  const paginatedConsultations = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredConsultations.slice(start, start + PAGE_SIZE);
+  }, [filteredConsultations, currentPage]);
+
+  const handlePageChange = (nextPage: number) => {
+    setPageIndex(Math.min(Math.max(nextPage, 1), totalPages));
+  };
 
   const handleStatusChange = (leadId: string, value: ConsultationStatus) => {
     if (value === "PENDING") {
@@ -168,7 +216,10 @@ export default function EnrollmentManagementPage() {
                     placeholder="Tìm theo tên hoặc SĐT..."
                     className="pl-9"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setPageIndex(1);
+                    }}
                   />
                 </div>
               </div>
@@ -200,7 +251,7 @@ export default function EnrollmentManagementPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredConsultations.map((lead: any) => (
+                      paginatedConsultations.map((lead: ConsultationRequest) => (
                         <TableRow key={lead.id}>
                           <TableCell>
                             <div className="font-medium text-sm">{lead.fullName}</div>
@@ -258,6 +309,18 @@ export default function EnrollmentManagementPage() {
                   </TableBody>
                 </Table>
               </div>
+              {filteredConsultations.length > PAGE_SIZE ? (
+                <PaginationBar
+                  className="mt-5 justify-center"
+                  items={paginationItems}
+                  activePage={currentPage}
+                  previousDisabled={!canGoPrevious}
+                  nextDisabled={!canGoNext}
+                  onPageChange={handlePageChange}
+                  onPrevious={() => handlePageChange(currentPage - 1)}
+                  onNext={() => handlePageChange(currentPage + 1)}
+                />
+              ) : null}
             </CardContent>
           </Card>
         </div>
