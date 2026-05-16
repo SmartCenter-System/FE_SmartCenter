@@ -13,7 +13,7 @@ export default function SettingsPage() {
             <Settings className="h-3 w-3" />
             Hệ thống
           </div>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-black leading-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
             Cài đặt tài khoản
           </h1>
           <p className="text-muted-foreground text-lg max-w-2xl leading-relaxed">

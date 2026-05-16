@@ -51,6 +51,14 @@ export const examService = {
   },
 
   // Grading
+  async getSubmittedExams(params: { CourseId?: string; ExamId?: string }) {
+    return apiClient.get(API_ENDPOINTS.GRADE_EXAM.SUBMITTED, { params });
+  },
+
+  async getSubmissionDetail(examId: string) {
+    return apiClient.get(API_ENDPOINTS.EXAM_MANAGEMENT.BY_ID(examId));
+  },
+
   async gradeExam(data: { examId: string; studentId: string; gradeDetails: any[] }) {
     return apiClient.post(API_ENDPOINTS.GRADE_EXAM.BASE, data);
   }
