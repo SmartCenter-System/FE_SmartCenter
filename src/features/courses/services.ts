@@ -184,7 +184,7 @@ export const courseService = {
       imgUrl: data.imgUrl,
       courseType: data.courseType,
       maxStudents: data.maxStudents,
-      academicYear: String(data.academicYear || ""),
+      academicYear: data.academicYear,
       lecturerId: data.lecturerId,
       startAt: data.startAt,
       endAt: data.endAt,
@@ -209,7 +209,7 @@ export const courseService = {
       startAt: data.startAt,
       endAt: data.endAt,
       maxStudents: data.maxStudents,
-      academicYear: data.academicYear ? String(data.academicYear) : undefined,
+      academicYear: data.academicYear,
       lecturerId: data.lecturerId,
       isActive: data.isActive,
     };
