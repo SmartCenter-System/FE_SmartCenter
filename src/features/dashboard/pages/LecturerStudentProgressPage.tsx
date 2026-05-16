@@ -41,8 +41,8 @@ export default function LecturerStudentProgressPage() {
   const { data: progressData, isLoading: isProgressLoading } = useQuery({
     queryKey: ["course-progress", courseId],
     queryFn: async () => {
-      const res = await apiClient.get<any>(API_ENDPOINTS.PROGRESS.BY_COURSE(courseId!));
-      return Array.isArray(res) ? res : res?.items || [];
+      const res = await courseService.getCourseProgress(courseId!);
+      return Array.isArray(res) ? res : (res as any)?.items || [];
     },
     enabled: !!courseId,
   });
@@ -219,7 +219,7 @@ export default function LecturerStudentProgressPage() {
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               className="gap-2"
-                              onClick={() => navigate(`/lecturer/exams/placeholder-exam/grade/${student.studentId}`)}
+                              onClick={() => navigate(`/lecturer/exams/${courseId}/grade/${student.studentId}`)}
                             >
                               <GraduationCap className="h-4 w-4" /> Chấm điểm bài tập
                             </DropdownMenuItem>

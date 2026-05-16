@@ -319,4 +319,8 @@ export const courseService = {
     const res: any = await apiClient.get(API_ENDPOINTS.COURSES.DASHBOARD);
     return res.data;
   },
+
+  async getCourseProgress(courseId: string) {
+    return apiClient.get(API_ENDPOINTS.PROGRESS.BY_COURSE(courseId));
+  },
 };

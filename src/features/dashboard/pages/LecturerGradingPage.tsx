@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/sha
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Input } from "@/shared/components/ui/input";
 import { toast } from "sonner";
-import { useGradeExam } from "@/features/courses/hooks/useExams";
+import { useGradeExam, useSubmissionDetail } from "@/features/courses/hooks/useExams";
 import { apiClient } from "@/lib/axios";
 
 import { Badge } from "@/shared/components/ui/badge";
@@ -28,23 +28,21 @@ export default function LecturerGradingPage() {
   const [grade, setGrade] = useState<number>(0);
   const [feedback, setFeedback] = useState("");
 
-  const { data: submission, isLoading } = useQuery({
-    queryKey: ["exam-submission", examId, studentId],
-    queryFn: async () => {
-      // Mocking submission details for demo
-      return {
-        studentName: "Nguyễn Văn A",
-        examTitle: "Bài kiểm tra cuối chương 1",
-        submittedAt: new Date().toISOString(),
-        answers: [
-          { question: "React là gì?", studentAnswer: "React là thư viện JavaScript để xây dựng UI.", isCorrect: true, score: 2 },
-          { question: "Tại sao nên dùng React?", studentAnswer: "Vì nó nhanh và dễ dùng.", isCorrect: true, score: 2 },
-          { question: "Essay: Ưu điểm của Hooks?", studentAnswer: "Hooks giúp tái sử dụng logic mà không cần class...", isCorrect: null, score: null },
-        ]
-      };
-    },
-    enabled: !!examId && !!studentId,
-  });
+  const { data: rawSubmission, isLoading } = useSubmissionDetail(examId);
+
+  // Map API response to UI structure if needed
+  const submission = rawSubmission ? {
+    studentName: rawSubmission.studentName || "Học viên",
+    examTitle: rawSubmission.examTitle || "Bài kiểm tra",
+    submittedAt: rawSubmission.submittedAt,
+    answers: rawSubmission.answers?.map((ans: any) => ({
+      question: ans.questionTitle || ans.question || "Câu hỏi",
+      studentAnswer: ans.studentAnswer || ans.answerText || "Chưa có câu trả lời",
+      isCorrect: ans.isCorrect,
+      score: ans.score || 0,
+      id: ans.id || ans.examManagementDetailId
+    })) || []
+  } : null;
 
   const gradeMutation = useGradeExam();
 
@@ -52,13 +50,11 @@ export default function LecturerGradingPage() {
     gradeMutation.mutate({
       examId: examId!,
       studentId: studentId!,
-      gradeDetails: [
-        {
-          examManagementDetailId: "some-id", // Should come from submission
-          point: grade,
-          feedback: feedback
-        }
-      ]
+      gradeDetails: submission?.answers?.map((ans: any) => ({
+        examManagementDetailId: ans.id,
+        point: ans.isCorrect ? ans.score : grade, // For essay questions, we use the manual grade
+        feedback: feedback
+      })) || []
     }, {
       onSuccess: () => {
         navigate(-1);
