@@ -495,7 +495,6 @@ export default function UserManagementPage() {
                     <SelectContent className="rounded-xl">
                       <SelectItem value="STAFF">Nhân viên</SelectItem>
                       <SelectItem value="LECTURER">Giảng viên</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -519,7 +518,12 @@ export default function UserManagementPage() {
                   placeholder="••••••••" 
                   className="rounded-xl border-2 focus-visible:ring-primary h-11"
                 />
-                <p className="text-[10px] text-muted-foreground ml-1">* Mật khẩu mặc định nếu để trống: 123456aA@</p>
+                <p className="text-[10px] text-muted-foreground ml-1">
+                  * Mật khẩu mặc định nếu để trống:{" "}
+                  <span className="font-bold text-primary">
+                    {createForm.watch("role") === "STAFF" ? "Staff@123" : "Lecturer@123"}
+                  </span>
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone" className="font-bold ml-1">Số điện thoại</Label>
