@@ -10,13 +10,12 @@ import {
   Clock,
   XCircle,
   MoreHorizontal,
-  Filter,
   Loader2,
   DollarSign,
   RotateCw,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent } from "@/shared/components/ui/card";
+import { Card } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";

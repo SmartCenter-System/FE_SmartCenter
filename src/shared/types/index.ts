@@ -27,6 +27,8 @@ export interface PaginatedData<T> {
   hasNextPage?: boolean;
 }
 
+export type PaginatedList<T> = PaginatedData<T>;
+
 /**
  * Alias cho PaginatedData để tương thích với BaseService
  */

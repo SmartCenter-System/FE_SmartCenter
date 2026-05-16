@@ -7,6 +7,13 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { Badge } from "@/shared/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 
 export interface ConsultationRequest {
   id: string;
@@ -17,21 +24,27 @@ export interface ConsultationRequest {
   courseTier?: string;
   requestDate: string;
   requestTime: string;
-  status: "Chờ xử lý" | "Chấp nhận" | "Từ chối";
+  status: "Chờ xử lý" | "Đang tư vấn" | "Đã tư vấn" | "Từ chối";
 }
 
 interface ConsultationTableProps {
   data: ConsultationRequest[];
+  processingId?: string | null;
+  onStatusChange?: (consultation: ConsultationRequest, status: ConsultationRequest["status"]) => void;
 }
 
 export function ConsultationTable({
   data,
+  processingId,
+  onStatusChange,
 }: ConsultationTableProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Chờ xử lý":
         return "bg-yellow-100 text-yellow-800";
-      case "Chấp nhận":
+      case "Đang tư vấn":
+        return "bg-blue-100 text-blue-800";
+      case "Đã tư vấn":
         return "bg-green-100 text-green-800";
       case "Từ chối":
         return "bg-red-100 text-red-800";
@@ -43,6 +56,9 @@ export function ConsultationTable({
   const getStatusLabel = (status: string) => {
     return status;
   };
+
+  const canChangeStatus = (status: ConsultationRequest["status"]) =>
+    status === "Chờ xử lý" || status === "Đang tư vấn";
 
   return (
     <div className="rounded-lg border border-border bg-white overflow-hidden">
@@ -112,12 +128,40 @@ export function ConsultationTable({
                 </div>
               </TableCell>
               <TableCell>
-                <Badge
-                  variant="secondary"
-                  className={`${getStatusColor(consultation.status)}`}
-                >
-                  {getStatusLabel(consultation.status)}
-                </Badge>
+                {canChangeStatus(consultation.status) && onStatusChange ? (
+                  <Select
+                    value={consultation.status}
+                    disabled={processingId === consultation.id}
+                    onValueChange={(status: ConsultationRequest["status"]) =>
+                      onStatusChange(consultation, status)
+                    }
+                  >
+                    <SelectTrigger className="h-9 w-[150px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Chờ xử lý" className="text-xs text-yellow-700">
+                        Chờ xử lý
+                      </SelectItem>
+                      <SelectItem value="Đang tư vấn" className="text-xs text-blue-700">
+                        Đang tư vấn
+                      </SelectItem>
+                      <SelectItem value="Đã tư vấn" className="text-xs text-green-700">
+                        Đã tư vấn
+                      </SelectItem>
+                      <SelectItem value="Từ chối" className="text-xs text-red-700">
+                        Từ chối
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Badge
+                    variant="secondary"
+                    className={`${getStatusColor(consultation.status)}`}
+                  >
+                    {getStatusLabel(consultation.status)}
+                  </Badge>
+                )}
               </TableCell>
             </TableRow>
           ))}

@@ -1,4 +1,3 @@
-export { CommentSection } from "./CommentSection";
 export { CourseListSkeleton } from "./CourseCardSkeleton";
 export { CourseFilter } from "./CourseFilter";
 export { CourseForm } from "./CourseForm";

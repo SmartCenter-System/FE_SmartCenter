@@ -1,92 +1,50 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Send, Trash2, User, Loader2, MessageSquare } from "lucide-react";
-import { apiClient } from "@/lib/axios";
-import { API_ENDPOINTS } from "@/shared/constants";
+
 import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
 import { useAuthStore } from "@/features/auth/store";
 import { EmptyState } from "@/shared/components/common/EmptyState";
-
-interface Comment {
-  id: string;
-  content: string;
-  userId: string;
-  userName: string;
-  avatar?: string;
-  createdAt: string;
-}
+import { useCreateComment, useDeleteComment, useLessonComments } from "../hooks";
 
 interface CommentSectionProps {
   lessonId: string;
 }
 
 export function CommentSection({ lessonId }: CommentSectionProps) {
-  const queryClient = useQueryClient();
   const { userId, accessToken } = useAuthStore();
   const [newComment, setNewComment] = useState("");
   const isAuthenticated = Boolean(accessToken);
 
-  const { data: comments = [], isLoading } = useQuery<Comment[]>({
-    queryKey: ["comments", lessonId],
-    queryFn: async () => {
-      const res = (await apiClient.get<any>(API_ENDPOINTS.COMMENT.BY_LESSON(lessonId))) as any;
-      const rawData = res?.items || (Array.isArray(res) ? res : []);
-      return rawData.map((c: any) => ({
-        id: c.id || c.commentId,
-        content: c.content,
-        userId: c.userId,
-        userName: c.userName || c.user?.fullName || "Người dùng",
-        avatar: c.avatar || c.user?.avatar,
-        createdAt: c.createdAt,
-      }));
-    },
-    enabled: !!lessonId && isAuthenticated,
-    retry: false,
-  });
+  const { data: comments = [], isLoading } = useLessonComments(lessonId, isAuthenticated);
+  const createMutation = useCreateComment(lessonId);
+  const deleteMutation = useDeleteComment(lessonId);
 
-  const createMutation = useMutation({
-    mutationFn: (content: string) =>
-      apiClient.post(API_ENDPOINTS.COMMENT.BASE, {
-        lessonId,
-        content,
-      }),
-    onSuccess: () => {
-      setNewComment("");
-      queryClient.invalidateQueries({ queryKey: ["comments", lessonId] });
-      toast.success("Đã gửi thảo luận!");
-    },
-  });
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
 
-  const deleteMutation = useMutation({
-    mutationFn: (commentId: string) =>
-      apiClient.delete(API_ENDPOINTS.COMMENT.DELETE(commentId)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["comments", lessonId] });
-      toast.success("Đã xóa thảo luận");
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
     if (!accessToken) {
       toast.error("Vui lòng đăng nhập để tham gia thảo luận");
       return;
     }
-    if (!newComment.trim()) return;
-    createMutation.mutate(newComment);
+
+    const content = newComment.trim();
+    if (!content) return;
+
+    createMutation.mutate(content, {
+      onSuccess: () => setNewComment(""),
+    });
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="mb-4 flex items-center gap-2">
         <MessageSquare className="h-5 w-5 text-primary" />
         <h3 className="text-lg font-bold">Thảo luận ({comments.length})</h3>
       </div>
 
-      {/* Input Section */}
       <div className="flex gap-4">
         <Avatar className="h-10 w-10 shrink-0 border">
           <AvatarImage src="" />
@@ -98,8 +56,8 @@ export function CommentSection({ lessonId }: CommentSectionProps) {
           <Textarea
             placeholder="Đặt câu hỏi hoặc chia sẻ cảm nghĩ của bạn..."
             value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            className="min-h-[100px] rounded-2xl resize-none focus-visible:ring-primary/20"
+            onChange={(event) => setNewComment(event.target.value)}
+            className="min-h-[100px] resize-none rounded-2xl focus-visible:ring-primary/20"
           />
           <div className="flex justify-end">
             <Button
@@ -127,17 +85,17 @@ export function CommentSection({ lessonId }: CommentSectionProps) {
           />
         ) : (
           comments.map((comment) => (
-            <div key={comment.id} className="flex gap-4 group">
+            <div key={comment.id} className="group flex gap-4">
               <Avatar className="h-10 w-10 shrink-0 border">
                 <AvatarImage src={comment.avatar} />
-                <AvatarFallback className="bg-muted text-muted-foreground uppercase text-xs">
+                <AvatarFallback className="bg-muted text-xs uppercase text-muted-foreground">
                   {comment.userName.substring(0, 2)}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm">{comment.userName}</span>
+                    <span className="text-sm font-bold">{comment.userName}</span>
                     <span className="text-[10px] text-muted-foreground">
                       {new Date(comment.createdAt).toLocaleDateString("vi-VN", {
                         hour: "2-digit",
@@ -149,7 +107,7 @@ export function CommentSection({ lessonId }: CommentSectionProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500 hover:bg-red-50"
+                      className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
                       onClick={() => {
                         if (confirm("Xóa thảo luận này?")) {
                           deleteMutation.mutate(comment.id);
@@ -160,7 +118,7 @@ export function CommentSection({ lessonId }: CommentSectionProps) {
                     </Button>
                   )}
                 </div>
-                <p className="text-sm mt-1 text-foreground/80 leading-relaxed bg-muted/30 p-3 rounded-2xl rounded-tl-none">
+                <p className="mt-1 rounded-2xl rounded-tl-none bg-muted/30 p-3 text-sm leading-relaxed text-foreground/80">
                   {comment.content}
                 </p>
               </div>

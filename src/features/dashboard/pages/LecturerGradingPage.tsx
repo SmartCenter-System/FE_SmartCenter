@@ -1,12 +1,9 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { 
   ArrowLeft, 
-  CheckCircle2, 
-  AlertCircle, 
   Save, 
-  User, 
   FileText,
   Loader2
 } from "lucide-react";
@@ -14,9 +11,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Input } from "@/shared/components/ui/input";
-import { toast } from "sonner";
-import { useGradeExam, useSubmissionDetail } from "@/features/courses/hooks/useExams";
-import { apiClient } from "@/lib/axios";
+import { useGradeExam } from "@/features/courses/hooks/useExams";
 
 import { Badge } from "@/shared/components/ui/badge";
 import { Label } from "@/shared/components/ui/label";
@@ -24,7 +19,6 @@ import { Label } from "@/shared/components/ui/label";
 export default function LecturerGradingPage() {
   const { examId, studentId } = useParams();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [grade, setGrade] = useState<number>(0);
   const [feedback, setFeedback] = useState("");
 

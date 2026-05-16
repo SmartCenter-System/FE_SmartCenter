@@ -26,6 +26,13 @@ import {
 } from "@/shared/components/ui/table";
 import { Badge } from "@/shared/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -33,7 +40,6 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { toast } from "sonner";
-import { useAuthStore } from "@/features/auth/store";
 import {
   consultationService,
   type ConsultationRequest,
@@ -53,52 +59,41 @@ function getErrorMessage(error: unknown, fallback: string) {
 
 export default function EnrollmentManagementPage() {
   const queryClient = useQueryClient();
-  const staffId = useAuthStore((state) => state.userId);
   const [searchTerm, setSearchTerm] = useState("");
   const [pageIndex, setPageIndex] = useState(1);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [selectedConsultation, setSelectedConsultation] = useState<ConsultationRequest | null>(null);
 
   const { data: consultations, isLoading: isLoadingConsultations } = useQuery({
-    queryKey: ["consultations", "list"],
-    queryFn: () => consultationService.getConsultations(),
+    queryKey: ["consultations", "list", pageIndex, PAGE_SIZE],
+    queryFn: () =>
+      consultationService.getConsultations({
+        PageIndex: pageIndex,
+        PageSize: PAGE_SIZE,
+      }),
   });
 
-  const acceptMutation = useMutation({
-    mutationFn: async (consultationId: string) => {
-      if (!staffId) {
-        throw new Error("Staff ID không tìm thấy");
-      }
-
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({
+      consultationId,
+      status,
+    }: {
+      consultationId: string;
+      status: ConsultationStatus;
+    }) => {
       setProcessingId(consultationId);
-      return consultationService.accept(staffId, consultationId);
+      return consultationService.updateStatus(consultationId, status);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
-      toast.success("Đã chấp nhận yêu cầu tư vấn");
+      toast.success(
+        variables.status === "PROCESSING"
+          ? "Đã chuyển sang trạng thái đang tư vấn"
+          : "Đã cập nhật trạng thái tư vấn",
+      );
     },
     onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, "Không thể chấp nhận yêu cầu tư vấn"));
-    },
-    onSettled: () => {
-      setProcessingId(null);
-    },
-  });
-
-  const rejectMutation = useMutation({
-    mutationFn: async (consultationId: string) => {
-      if (!staffId) {
-        throw new Error("Staff ID không tìm thấy");
-      }
-
-      setProcessingId(consultationId);
-      return consultationService.reject(staffId, consultationId);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["consultations"] });
-      toast.success("Đã từ chối yêu cầu tư vấn");
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, "Không thể từ chối yêu cầu tư vấn"));
+      toast.error(getErrorMessage(error, "Không thể cập nhật trạng thái tư vấn"));
     },
     onSettled: () => {
       setProcessingId(null);
@@ -109,8 +104,10 @@ export default function EnrollmentManagementPage() {
     switch (status) {
       case "PENDING":
         return <Clock className="h-4 w-4 text-amber-500" />;
+      case "PROCESSING":
       case "CONSULTING":
       case "ACCEPTED":
+        return <Clock className="h-4 w-4 text-blue-500" />;
       case "PROCESSED":
         return <CheckCircle2 className="h-4 w-4 text-green-500" />;
       case "REJECTED":
@@ -125,6 +122,7 @@ export default function EnrollmentManagementPage() {
     switch (status) {
       case "PENDING":
         return "Chờ xử lý";
+      case "PROCESSING":
       case "CONSULTING":
       case "ACCEPTED":
         return "Đang tư vấn";
@@ -138,8 +136,11 @@ export default function EnrollmentManagementPage() {
     }
   };
 
-  const isPendingStatus = (status: ConsultationStatus) =>
-    String(status).trim().toUpperCase() === "PENDING";
+  const canChangeStatus = (status: ConsultationStatus) =>
+    ["PENDING", "PROCESSING", "CONSULTING", "ACCEPTED"].includes(String(status).trim().toUpperCase());
+
+  const getEditableStatusValue = (status: ConsultationStatus) =>
+    status === "ACCEPTED" || status === "CONSULTING" ? "PROCESSING" : status;
 
   const leads = consultations?.items || [];
   const filteredConsultations = leads.filter((lead: ConsultationRequest) => {
@@ -147,7 +148,8 @@ export default function EnrollmentManagementPage() {
     return text.includes(searchTerm.toLowerCase());
   });
 
-  const totalPages = Math.max(1, Math.ceil(filteredConsultations.length / PAGE_SIZE));
+  const totalCount = consultations?.totalCount ?? filteredConsultations.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const currentPage = Math.min(pageIndex, totalPages);
   const canGoPrevious = currentPage > 1;
   const canGoNext = currentPage < totalPages;
@@ -172,26 +174,40 @@ export default function EnrollmentManagementPage() {
     return items;
   }, [currentPage, totalPages]);
 
-  const paginatedConsultations = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return filteredConsultations.slice(start, start + PAGE_SIZE);
-  }, [filteredConsultations, currentPage]);
+  const paginatedConsultations = filteredConsultations;
 
   const handlePageChange = (nextPage: number) => {
     setPageIndex(Math.min(Math.max(nextPage, 1), totalPages));
   };
 
-  const handleStatusChange = (leadId: string, value: ConsultationStatus) => {
+  const handleStatusChange = (lead: ConsultationRequest, value: ConsultationStatus) => {
     if (value === "PENDING") {
       return;
     }
 
-    if (value === "REJECTED" || value === "CANCELLED") {
-      rejectMutation.mutate(leadId);
+    if (value === getEditableStatusValue(lead.status)) {
       return;
     }
 
-    acceptMutation.mutate(leadId);
+    updateStatusMutation.mutate({
+      consultationId: lead.id,
+      status: value,
+    });
+  };
+
+  const formatDateTime = (value?: string) => {
+    if (!value) return "Không có thông tin";
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Không có thông tin";
+
+    return date.toLocaleString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
   return (
@@ -252,7 +268,19 @@ export default function EnrollmentManagementPage() {
                       </TableRow>
                     ) : (
                       paginatedConsultations.map((lead: ConsultationRequest) => (
-                        <TableRow key={lead.id}>
+                        <TableRow
+                          key={lead.id}
+                          tabIndex={0}
+                          role="button"
+                          className="cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
+                          onClick={() => setSelectedConsultation(lead)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              setSelectedConsultation(lead);
+                            }
+                          }}
+                        >
                           <TableCell>
                             <div className="font-medium text-sm">{lead.fullName}</div>
                             <div className="text-xs text-muted-foreground mt-0.5">
@@ -264,12 +292,12 @@ export default function EnrollmentManagementPage() {
                               {lead.courseName}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            {isPendingStatus(lead.status) ? (
+                          <TableCell onClick={(event) => event.stopPropagation()}>
+                            {canChangeStatus(lead.status) ? (
                               <Select
-                                value={lead.status}
+                                value={getEditableStatusValue(lead.status)}
                                 onValueChange={(value: ConsultationStatus) =>
-                                  handleStatusChange(lead.id, value)
+                                  handleStatusChange(lead, value)
                                 }
                                 disabled={processingId === lead.id}
                               >
@@ -283,7 +311,7 @@ export default function EnrollmentManagementPage() {
                                   <SelectItem value="PENDING" className="text-xs text-amber-600 font-medium">
                                     Chờ xử lý
                                   </SelectItem>
-                                  <SelectItem value="CONSULTING" className="text-xs text-blue-600 font-medium">
+                                  <SelectItem value="PROCESSING" className="text-xs text-blue-600 font-medium">
                                     Đang tư vấn
                                   </SelectItem>
                                   <SelectItem value="PROCESSED" className="text-xs text-green-600 font-medium">
@@ -309,7 +337,7 @@ export default function EnrollmentManagementPage() {
                   </TableBody>
                 </Table>
               </div>
-              {filteredConsultations.length > PAGE_SIZE ? (
+              {totalCount > PAGE_SIZE ? (
                 <PaginationBar
                   className="mt-5 justify-center"
                   items={paginationItems}
@@ -325,6 +353,63 @@ export default function EnrollmentManagementPage() {
           </Card>
         </div>
       </div>
+
+      <Dialog
+        open={!!selectedConsultation}
+        onOpenChange={(open) => {
+          if (!open) setSelectedConsultation(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Thông tin tư vấn</DialogTitle>
+            <DialogDescription>
+              Chi tiết yêu cầu tư vấn của học viên.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedConsultation ? (
+            <div className="space-y-5">
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-base font-semibold text-foreground">
+                      {selectedConsultation.fullName}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {selectedConsultation.email}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="shrink-0 font-normal">
+                    {getStatusLabel(selectedConsultation.status)}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs font-medium uppercase text-muted-foreground">Số điện thoại</p>
+                  <p className="mt-1 text-sm font-medium">{selectedConsultation.phone || "Không có thông tin"}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase text-muted-foreground">Ngày gửi</p>
+                  <p className="mt-1 text-sm font-medium">{formatDateTime(selectedConsultation.createdAt)}</p>
+                </div>
+                <div className="sm:col-span-2">
+                  <p className="text-xs font-medium uppercase text-muted-foreground">Khóa học quan tâm</p>
+                  <p className="mt-1 text-sm font-medium">{selectedConsultation.courseName || "Không có thông tin"}</p>
+                </div>
+                <div className="sm:col-span-2">
+                  <p className="text-xs font-medium uppercase text-muted-foreground">Ghi chú</p>
+                  <p className="mt-1 whitespace-pre-line text-sm">
+                    {selectedConsultation.note || "Không có ghi chú"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

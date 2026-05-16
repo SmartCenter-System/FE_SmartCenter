@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { consultationService } from "@/features/consultation/service";
+import type { ConsultationQueryParams } from "@/features/consultation/service";
 
 export interface ConsultationItem {
   id: string;
@@ -17,7 +18,7 @@ export function useConsultationRequests(page = 1, pageSize = 10, search?: string
   return useQuery<{ totalCount: number; items: ConsultationItem[] }>({
     queryKey: ["consultation-requests", page, pageSize, search],
     queryFn: async () => {
-      const params: any = { Page: page, PageSize: pageSize };
+      const params: ConsultationQueryParams = { PageIndex: page, PageSize: pageSize };
       if (search) params.Search = search;
       const res = await consultationService.getConsultations(params);
       return res as { totalCount: number; items: ConsultationItem[] };

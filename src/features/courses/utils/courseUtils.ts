@@ -1,4 +1,4 @@
-import { Monitor, Users, MapPin, Globe } from "lucide-react";
+import { Monitor, Users, Globe } from "lucide-react";
 
 export const getModeIcon = (mode: number | string) => {
   const m = Number(mode);

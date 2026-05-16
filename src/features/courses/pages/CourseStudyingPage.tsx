@@ -8,9 +8,16 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { ChevronLeft, Lock } from "lucide-react";
 import { useMyEnrollments } from "@/features/enrollment";
 import { LessonDocuments } from "@/features/document/components/LessonDocuments";
-import { CommentSection } from "../components/CommentSection";
+import { CommentSection } from "@/features/comment";
 import { lessonService } from "../services/lessonService";
+import type { Lesson } from "../services/lessonService";
 import { useCourse } from "../hooks/useCourses";
+
+interface StudySection {
+  id: string;
+  title: string;
+  lessons: Lesson[];
+}
 
 export default function CourseStudyingPage() {
   const { id, lessonId } = useParams();
@@ -36,15 +43,7 @@ export default function CourseStudyingPage() {
     return enrollments.some((item) => String(item.courseId ?? "").trim().toLowerCase() === currentCourseId);
   }, [courseData?.courseId, enrollments, id]);
 
-  const normalizePreviewLesson = (lesson: {
-    id?: string;
-    title?: string;
-    description?: string;
-    videoUrl?: string | null;
-    order?: number;
-    isPreview?: boolean;
-    duration?: number;
-  }) => {
+  const normalizePreviewLesson = (lesson: Partial<Lesson> & { videoUrl?: string | null }): Lesson => {
     return {
       id: String(lesson.id ?? ""),
       title: String(lesson.title ?? ""),
@@ -56,9 +55,7 @@ export default function CourseStudyingPage() {
     };
   };
 
-  const { data: sectionLessonsData } = useQuery<
-    { id: string; title: string; lessons: { id: string; title: string; description?: string; videoUrl?: string; order?: number; isPreview?: boolean; duration?: number }[] }[]
-  >({
+  const { data: sectionLessonsData } = useQuery<StudySection[]>({
     queryKey: ["courses", "content", id, isPurchased], // Đồng bộ key với CourseDetailPage
     queryFn: async () => {
       if (!courseData || !Array.isArray(courseData.sections)) return [];
@@ -70,10 +67,7 @@ export default function CourseStudyingPage() {
           return {
             id: String(section.id ?? ""),
             title: String(section.title ?? ""),
-            lessons: (Array.isArray(rawLessons) ? rawLessons : []).map(lesson => {
-              const normalized = normalizePreviewLesson(lesson as any);
-              return normalized;
-            }),
+            lessons: (Array.isArray(rawLessons) ? rawLessons : []).map((item) => normalizePreviewLesson(item)),
           };
         }),
       );
@@ -84,16 +78,20 @@ export default function CourseStudyingPage() {
     retry: false,
   });
 
-  const sections = useMemo(() => {
+  const sections = useMemo<StudySection[]>(() => {
     if (!courseData) return [];
     if (Array.isArray(sectionLessonsData) && sectionLessonsData.length > 0) {
       return sectionLessonsData;
     }
-    return (courseData as any).sections ?? [];
+    return (courseData.sections ?? []).map((section) => ({
+      id: String(section.id ?? ""),
+      title: String(section.title ?? ""),
+      lessons: (section.lessons ?? []).map((item) => normalizePreviewLesson(item)),
+    }));
   }, [courseData, sectionLessonsData]);
 
   const allLessons = useMemo(
-    () => sections.flatMap((section: any) => section.lessons ?? []),
+    () => sections.flatMap((section) => section.lessons ?? []),
     [sections],
   );
 
@@ -102,14 +100,14 @@ export default function CourseStudyingPage() {
 
     if (!lessonId) {
       // Tìm bài học đầu tiên có thể xem (preview hoặc đã mua)
-      const firstAccessible = allLessons.find((l: any) => l.isPreview || isPurchased) || allLessons[0];
+      const firstAccessible = allLessons.find((item) => item.isPreview || isPurchased) || allLessons[0];
       if (firstAccessible) {
         navigate(`/courses/${id}/study/${firstAccessible.id}`, { replace: true });
         return firstAccessible;
       }
     }
     
-    const found = allLessons.find((item: any) => item.id === lessonId);
+    const found = allLessons.find((item) => item.id === lessonId);
     
     // Nếu học viên cố tình truy cập bài học không tồn tại hoặc bài học bị khóa mà chưa mua
     // Chúng ta sẽ để logic canView xử lý việc hiển thị "Locked Screen" 
@@ -250,11 +248,11 @@ export default function CourseStudyingPage() {
               <CardContent>
                 <h2 className="text-lg font-semibold mb-4">Danh sách bài học</h2>
                 <ul className="space-y-2">
-                  {sections.map((section: any) => (
+                  {sections.map((section) => (
                     <li key={section.id} className="space-y-2">
                       <p className="text-sm font-semibold">{section.title}</p>
                       <ul className="space-y-2">
-                        {section.lessons?.map((item: any) => {
+                        {section.lessons?.map((item) => {
                           const isActive = item.id === lesson.id;
                           const allowed = item.isPreview || isPurchased;
                           return (
