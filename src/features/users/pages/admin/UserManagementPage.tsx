@@ -9,7 +9,6 @@ import {
   ShieldAlert, 
   UserPlus,
   RotateCw,
-  Trash2,
   Loader2,
   Eye,
   Users,
@@ -77,7 +76,6 @@ export default function UserManagementPage() {
   // UI States
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isConfirmLockOpen, setIsConfirmLockOpen] = useState(false);
-  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
@@ -186,15 +184,6 @@ export default function UserManagementPage() {
     }
   });
 
-  const deleteUserMutation = useMutation({
-    mutationFn: (id: string) => userService.deleteUser(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      toast.success("Đã xóa người dùng");
-      setIsConfirmDeleteOpen(false);
-    }
-  });
 
   const createUserMutation = useMutation({
     mutationFn: (data: CreateUserFormValues) => userService.createInternalUser(data),
@@ -217,10 +206,6 @@ export default function UserManagementPage() {
     toggleStatusMutation.mutate({ id: selectedUser.id, status: newStatus });
   };
 
-  const confirmDelete = () => {
-    if (!selectedUser) return;
-    deleteUserMutation.mutate(selectedUser.id);
-  };
 
   const statusBadge = (status: UserStatus) => {
     return status === "ACTIVE" 
@@ -419,18 +404,6 @@ export default function UserManagementPage() {
                           {user.status === "ACTIVE" ? <><Lock className="h-4 w-4" /> Khóa tài khoản</> : <><Unlock className="h-4 w-4" /> Mở khóa tài khoản</>}
                           {user.id === currentUserId && <span className="text-[10px] bg-red-100 text-red-600 px-1 rounded ml-auto">Bạn</span>}
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="rounded-lg gap-2 text-red-600 cursor-pointer focus:bg-red-50 focus:text-red-600"
-                          disabled={user.id === currentUserId}
-                          onClick={() => {
-                            if (user.id === currentUserId) return;
-                            setSelectedUser(user);
-                            setIsConfirmDeleteOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" /> Xóa tài khoản
-                          {user.id === currentUserId && <span className="text-[10px] bg-red-100 text-red-600 px-1 rounded ml-auto">Bạn</span>}
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -605,34 +578,6 @@ export default function UserManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isConfirmDeleteOpen} onOpenChange={setIsConfirmDeleteOpen}>
-        <DialogContent className="sm:max-w-[420px] rounded-3xl p-6 border-none shadow-2xl">
-          <div className="flex flex-col items-center text-center gap-4">
-            <div className="p-4 rounded-full bg-red-100 text-red-600">
-              <ShieldAlert className="h-8 w-8" />
-            </div>
-            <div>
-              <DialogTitle className="text-xl font-bold">Xóa tài khoản vĩnh viễn?</DialogTitle>
-              <DialogDescription className="mt-2">
-                Hành động này <b>không thể hoàn tác</b>. Mọi dữ liệu liên quan đến <b>{selectedUser?.fullName}</b> sẽ bị xóa khỏi hệ thống.
-              </DialogDescription>
-            </div>
-          </div>
-          <DialogFooter className="grid grid-cols-2 gap-3 mt-6">
-            <Button variant="outline" onClick={() => setIsConfirmDeleteOpen(false)} className="rounded-xl border-2">Quay lại</Button>
-            <Button 
-              variant="destructive" 
-              onClick={confirmDelete}
-              disabled={deleteUserMutation.isPending}
-              className="rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all"
-            >
-              {deleteUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Xác nhận xóa
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>

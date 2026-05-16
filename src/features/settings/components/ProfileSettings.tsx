@@ -14,9 +14,13 @@ import { Textarea } from "@/shared/components/ui/textarea";
 import { Button } from "@/shared/components/ui/button";
 
 interface ProfileFormValues {
-  fullName: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone: string;
+  address: string;
+  city: string;
+  zaloLink: string;
   bio: string;
   avatar: string;
   expertise: string;
@@ -41,9 +45,13 @@ export default function ProfileSettings() {
   // 2. Setup Form with react-hook-form
   const form = useForm<ProfileFormValues>({
     values: profile ? {
-      fullName: profile.fullName,
+      firstName: (profile as any).firstName || profile.fullName.split(" ")[0] || "",
+      lastName: (profile as any).lastName || profile.fullName.split(" ").slice(1).join(" ") || "",
       email: profile.email,
       phone: profile.phone || "",
+      address: profile.address || "",
+      city: profile.city || "",
+      zaloLink: profile.zaloLink || "",
       bio: profile.bio || "",
       avatar: profile.avatar || "",
       expertise: profile.expertise || "",
@@ -53,14 +61,13 @@ export default function ProfileSettings() {
   // 3. Update Profile using useMutation
   const updateMutation = useMutation({
     mutationFn: (data: ProfileFormValues) => {
-      const nameParts = data.fullName.trim().split(" ");
-      const firstName = nameParts[0] || "";
-      const lastName = nameParts.slice(1).join(" ") || "";
-
       return userService.updateProfile({
-        firstName,
-        lastName,
+        firstName: data.firstName,
+        lastName: data.lastName,
         phone: data.phone,
+        address: data.address,
+        city: data.city,
+        zaloLink: data.zaloLink,
         bio: data.bio,
         expertise: data.expertise,
         imgUrl: data.avatar,
@@ -68,7 +75,7 @@ export default function ProfileSettings() {
     },
     onSuccess: () => {
       toast.success("Đã lưu thay đổi");
-      queryClient.invalidateQueries({ queryKey: ["user-profile", userId] });
+      queryClient.invalidateQueries({ queryKey: ["users", "profile", userId || authUserId] });
     }
   });
 
@@ -113,7 +120,7 @@ export default function ProfileSettings() {
               <Avatar className="h-32 w-32 border-8 border-background shadow-2xl relative z-10 hover:scale-105 transition-transform duration-300">
                 <AvatarImage src={form.watch("avatar")} />
                 <AvatarFallback className="text-2xl bg-muted">
-                  {form.watch("fullName")?.substring(0, 2).toUpperCase() || "USER"}
+                  {form.watch("firstName")?.substring(0, 1).toUpperCase()}{form.watch("lastName")?.substring(0, 1).toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <button className="absolute bottom-1 right-1 z-20 p-2 bg-primary text-white rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all">
@@ -133,7 +140,7 @@ export default function ProfileSettings() {
         <CardHeader className="pt-20 pb-6 text-center">
           <div className="flex flex-col items-center">
             <CardTitle className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
-              {form.watch("fullName") || "Hồ sơ cá nhân"}
+              {form.watch("firstName")} {form.watch("lastName") || "Hồ sơ cá nhân"}
             </CardTitle>
             <CardDescription className="text-lg mt-1">{form.watch("email")}</CardDescription>
             <div className="mt-4 flex gap-2">
@@ -160,7 +167,7 @@ export default function ProfileSettings() {
                 <div className="h-full bg-primary w-[85%] rounded-full"></div>
               </div>
               <p className="text-sm text-muted-foreground">
-                Hồ sơ của bạn đã hoàn thành 85%. Thêm số điện thoại để bảo mật tốt hơn.
+                Hồ sơ của bạn đã hoàn thành 85%. Thêm thông tin để mọi người biết về bạn.
               </p>
             </CardContent>
           </Card>
@@ -172,7 +179,7 @@ export default function ProfileSettings() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-xl">Thông tin cá nhân</CardTitle>
-                  <CardDescription>Cập nhật thông tin cơ bản của bạn để mọi người biết về bạn.</CardDescription>
+                  <CardDescription>Cập nhật thông tin cơ bản của bạn.</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -180,14 +187,26 @@ export default function ProfileSettings() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="fullName" className="text-sm font-semibold ml-1">Họ và tên</Label>
+                    <Label htmlFor="firstName" className="text-sm font-semibold ml-1">Họ</Label>
                     <Input 
-                      id="fullName" 
-                      {...form.register("fullName")}
+                      id="firstName" 
+                      {...form.register("firstName")}
                       className="rounded-xl h-12 bg-muted/30 focus:bg-background transition-all" 
-                      placeholder="Nguyễn Văn A" 
+                      placeholder="Nguyễn" 
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName" className="text-sm font-semibold ml-1">Tên</Label>
+                    <Input 
+                      id="lastName" 
+                      {...form.register("lastName")}
+                      className="rounded-xl h-12 bg-muted/30 focus:bg-background transition-all" 
+                      placeholder="Văn A" 
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-sm font-semibold ml-1">Email</Label>
                     <Input 
@@ -198,9 +217,6 @@ export default function ProfileSettings() {
                       className="rounded-xl h-12 bg-muted/10 cursor-not-allowed border-dashed" 
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="phone" className="text-sm font-semibold ml-1">Số điện thoại</Label>
                     <Input 
@@ -210,15 +226,47 @@ export default function ProfileSettings() {
                       placeholder="0123 456 789" 
                     />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="expertise" className="text-sm font-semibold ml-1">Chuyên môn (nếu có)</Label>
+                    <Label htmlFor="city" className="text-sm font-semibold ml-1">Thành phố</Label>
                     <Input 
-                      id="expertise" 
-                      {...form.register("expertise")}
+                      id="city" 
+                      {...form.register("city")}
                       className="rounded-xl h-12 bg-muted/30 focus:bg-background transition-all" 
-                      placeholder="Web Design, Marketing..." 
+                      placeholder="Hồ Chí Minh" 
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="zaloLink" className="text-sm font-semibold ml-1">Link Zalo</Label>
+                    <Input 
+                      id="zaloLink" 
+                      {...form.register("zaloLink")}
+                      className="rounded-xl h-12 bg-muted/30 focus:bg-background transition-all" 
+                      placeholder="https://zalo.me/..." 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="text-sm font-semibold ml-1">Địa chỉ cụ thể</Label>
+                  <Input 
+                    id="address" 
+                    {...form.register("address")}
+                    className="rounded-xl h-12 bg-muted/30 focus:bg-background transition-all" 
+                    placeholder="Số 1, đường ABC..." 
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="expertise" className="text-sm font-semibold ml-1">Chuyên môn (nếu có)</Label>
+                  <Input 
+                    id="expertise" 
+                    {...form.register("expertise")}
+                    className="rounded-xl h-12 bg-muted/30 focus:bg-background transition-all" 
+                    placeholder="Web Design, Marketing..." 
+                  />
                 </div>
 
                 <div className="space-y-2">

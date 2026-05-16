@@ -50,6 +50,9 @@ export interface User {
   phone?: string;
   bio?: string;
   expertise?: string;
+  address?: string;
+  city?: string;
+  zaloLink?: string;
   createdAt: string;
 }
 
@@ -105,6 +108,9 @@ const normalizeUser = (u: any): User => {
     phone: u.phone || u.Phone || "",
     bio: u.bio || u.Bio || "",
     expertise: u.expertise || u.Expertise || "",
+    address: u.address || u.Address || "",
+    city: u.city || u.City || "",
+    zaloLink: u.zaloLink || u.ZaloLink || "",
     createdAt: u.createdAt || u.CreatedAt || new Date().toISOString(),
   };
 };
@@ -210,10 +216,5 @@ export const userService = {
 
   async updateProfile(data: UpdateProfileRequest): Promise<void> {
     await apiClient.post(API_ENDPOINTS.USER.UPDATE_PROFILE, data);
-  },
-
-  // Xóa người dùng
-  async deleteUser(id: string): Promise<void> {
-    await apiClient.delete(API_ENDPOINTS.ADMIN.USER_BY_ID(id));
   },
 };
