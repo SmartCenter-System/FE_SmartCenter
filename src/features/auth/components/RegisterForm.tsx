@@ -16,6 +16,7 @@ const registerSchema = z
     firstName: z.string().min(1, "Họ không được để trống"),
     lastName: z.string().min(1, "Tên không được để trống"),
     email: z.string().min(1, "Email không được để trống").email("Email không hợp lệ"),
+    phone: z.string().min(10, "Số điện thoại phải có ít nhất 10 số").regex(/^[0-9]+$/, "Số điện thoại chỉ được chứa số"),
     password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
     confirmPassword: z.string().min(1, "Vui lòng xác nhận mật khẩu"),
   })
@@ -32,22 +33,35 @@ export function RegisterForm() {
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
+    mode: "onTouched",
     defaultValues: {
       firstName: "",
       lastName: "",
       email: "",
+      phone: "",
       password: "",
       confirmPassword: "",
     },
   });
 
   const onSubmit = (data: RegisterFormValues) => {
-    // Only send the fields expected by the API
-    registerUser({
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      password: data.password,
+    registerUser(data, {
+      onError: (error: any) => {
+        // Map server-side validation errors to form fields
+        const serverErrors = error.response?.data?.errors;
+        if (serverErrors && typeof serverErrors === "object") {
+          Object.keys(serverErrors).forEach((key) => {
+            const field = key.toLowerCase() as keyof RegisterFormValues;
+            const message = Array.isArray(serverErrors[key]) 
+              ? serverErrors[key][0] 
+              : serverErrors[key];
+            
+            if (field in data) {
+              form.setError(field as any, { type: "server", message });
+            }
+          });
+        }
+      }
     });
   };
 
@@ -100,6 +114,20 @@ export function RegisterForm() {
                     <FormLabel>Email</FormLabel>
                     <FormControl>
                       <Input type="email" placeholder="you@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Số điện thoại</FormLabel>
+                    <FormControl>
+                      <Input type="tel" placeholder="0123456789" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

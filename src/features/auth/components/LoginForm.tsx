@@ -23,6 +23,7 @@ export function LoginForm() {
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
+    mode: "onTouched",
     defaultValues: {
       email: "",
       password: "",
@@ -30,7 +31,20 @@ export function LoginForm() {
   });
 
   const onSubmit = (data: LoginFormValues) => {
-    login(data);
+    login(data, {
+      onError: (error: any) => {
+        const serverErrors = error.response?.data?.errors;
+        if (serverErrors && typeof serverErrors === "object") {
+          Object.keys(serverErrors).forEach((key) => {
+            const field = key.toLowerCase() as keyof LoginFormValues;
+            if (field in data) {
+              const message = Array.isArray(serverErrors[key]) ? serverErrors[key][0] : serverErrors[key];
+              form.setError(field as any, { type: "server", message });
+            }
+          });
+        }
+      }
+    });
   };
 
   return (
