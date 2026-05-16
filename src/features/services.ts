@@ -10,11 +10,11 @@ import type { Category, CategoryRaw } from "./courses/type";
 // ==========================================
 export const authService = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials, { silent: true } as any) as unknown as AuthResponse;
+    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials) as unknown as AuthResponse;
   },
 
   async register(data: RegisterRequest): Promise<AuthResponse> {
-    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, data, { silent: true } as any) as unknown as AuthResponse;
+    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, data) as unknown as AuthResponse;
   },
 
   async logout(): Promise<void> {
