@@ -18,30 +18,37 @@ export function useRegister() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const payload = ((res as any)?.data ?? res) as AuthResponseRaw;
       
-      if (!payload.accessToken || !payload.refreshToken) {
-        toast.error("Phản hồi đăng ký không hợp lệ.");
+      // Nếu Backend trả về token ngay (Auto login sau khi đăng ký)
+      if (payload.accessToken && payload.refreshToken) {
+        // 1. Chạy qua máy lọc nước
+        const cleanUser = normalizeAuthResponse(payload, payload.accessToken);
+
+        // 2. Lưu vào kho
+        setAuth({
+          accessToken: payload.accessToken,
+          refreshToken: payload.refreshToken,
+          userId: cleanUser.userId,
+          role: cleanUser.role,
+          email: cleanUser.email,
+          firstName: cleanUser.firstName,
+          lastName: cleanUser.lastName,
+        });
+
+        toast.success("Đăng ký thành công! Đang chuyển hướng...");
+        navigate("/dashboard", { replace: true });
         return;
       }
 
-      // 1. Chạy qua máy lọc nước
-      const cleanUser = normalizeAuthResponse(payload, payload.accessToken);
-
-      // 2. Lưu vào kho
-      setAuth({
-        accessToken: payload.accessToken,
-        refreshToken: payload.refreshToken,
-        userId: cleanUser.userId,
-        role: cleanUser.role,
-        email: cleanUser.email,
-        firstName: cleanUser.firstName,
-        lastName: cleanUser.lastName,
-      });
-
-      toast.success("Đăng ký thành công! Hãy kiểm tra email.");
-      navigate(`/verify-email?email=${encodeURIComponent(variables.email)}`, { 
+      // Nếu Backend KHÔNG trả về token (Yêu cầu xác thực email trước)
+      toast.success("Đăng ký thành công! Hãy kiểm tra email của bạn.");
+      navigate(`/login`, { 
         replace: true,
-        state: location.state 
+        state: { email: variables.email } 
       });
+    },
+    onError: (error: any) => {
+      const message = error.userMessage || error.message || "Đăng ký thất bại";
+      toast.error(message);
     }
   });
 }

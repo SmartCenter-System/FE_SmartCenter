@@ -1,11 +1,12 @@
 import { toast } from "sonner";
 import type { RoleType } from "@/shared/types";
 import { useMutation } from "@tanstack/react-query";
-import type { AuthResponse, LoginRequest } from "../type";
+import type { AuthResponse, LoginRequest, AuthResponseRaw } from "../type";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store";
 import { jwtDecode } from "jwt-decode";
 import { authService } from "@/features/services";
+import { normalizeAuthResponse } from "../normalize";
 
 interface JwtPayload {
   sub: string;
@@ -69,77 +70,40 @@ export function useLogin() {
   return useMutation<AuthResponse, Error, LoginRequest>({
     mutationFn: (data) => authService.login(data),
     onSuccess: (res) => {
-      const payload = ((res as unknown as { data?: AuthResponse })?.data ?? res) as AuthResponse;
-      const payloadRecord = payload as unknown as Record<string, unknown>;
-      const userRecord = (payloadRecord.user ?? {}) as Record<string, unknown>;
-
-      const accessToken = pickString(payloadRecord, ["accessToken", "AccessToken"]);
-      const refreshToken = pickString(payloadRecord, ["refreshToken", "RefreshToken"]);
+      // 1. Unbox payload if nested
+      const payload = ((res as any)?.data ?? res) as AuthResponseRaw;
+      const accessToken = payload.accessToken || (payload as any).AccessToken;
+      const refreshToken = payload.refreshToken || (payload as any).RefreshToken;
 
       if (!accessToken || !refreshToken) {
         toast.error("Phản hồi đăng nhập không hợp lệ. Vui lòng thử lại.");
         return;
       }
 
-      const decoded = jwtDecode<JwtPayload>(accessToken);
-      const decodedRole =
-        decoded.role ??
-        (decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] as RoleType | undefined);
-      
-      const role =
-        normalizeRole(pickString(payloadRecord, ["role", "Role"])) ??
-        normalizeRole(pickString(userRecord, ["role", "Role"])) ??
-        normalizeRole(decodedRole) ??
-        "STUDENT";
+      // 2. Chạy qua máy lọc nước (Normalize)
+      const cleanUser = normalizeAuthResponse(payload, accessToken);
 
-      const fullName =
-        pickString(payloadRecord, ["fullname", "fullName", "FullName"]) ??
-        [
-          pickString(userRecord, ["lastName", "LastName"]),
-          pickString(userRecord, ["firstName", "FirstName"]),
-        ]
-          .filter(Boolean)
-          .join(" ");
-      
-      const splitName = splitFullName(fullName);
-
-      const userId = 
-        pickString(payloadRecord, ["userId", "UserId", "studentId", "StudentId"]) ??
-        pickString(userRecord, ["userId", "UserId", "studentId", "StudentId"]) ??
-        decoded.UserId ??
-        decoded.studentId ??
-        decoded.sub ??
-        decoded.userId ??
-        decoded.nameid ??
-        decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ??
-        "";
-
+      // 3. Lưu vào kho
       setAuth({
         accessToken,
         refreshToken,
-        role,
-        userId,
-        email:
-          pickString(payloadRecord, ["email", "Email"]) ??
-          pickString(userRecord, ["email", "Email"]) ??
-          decoded.Email ??
-          decoded.email ??
-          null,
-        firstName:
-          pickString(userRecord, ["firstName", "FirstName"]) ??
-          splitName.firstName,
-        lastName:
-          pickString(userRecord, ["lastName", "LastName"]) ??
-          splitName.lastName,
+        userId: cleanUser.userId,
+        role: cleanUser.role,
+        email: cleanUser.email,
+        firstName: cleanUser.firstName,
+        lastName: cleanUser.lastName,
       });
 
       toast.success("Đăng nhập thành công");
 
-      // Chuyển hướng
-      if (from && from !== "/") {
+      // 4. Chuyển hướng thông minh
+      // Tránh việc quay lại trang login/register sau khi đã đăng nhập
+      const isAuthPage = from === "/login" || from === "/register" || from === "/verify-email";
+      
+      if (from && from !== "/" && !isAuthPage) {
         navigate(from, { replace: true });
       } else {
-        switch (role) {
+        switch (cleanUser.role) {
           case "ADMIN":
             navigate("/admin", { replace: true });
             break;
@@ -155,6 +119,10 @@ export function useLogin() {
             break;
         }
       }
+    },
+    onError: (error: any) => {
+      const message = error.userMessage || error.message || "Đăng nhập thất bại";
+      toast.error(message);
     }
   });
 }
