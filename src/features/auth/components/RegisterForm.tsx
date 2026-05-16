@@ -47,7 +47,6 @@ export function RegisterForm() {
   const onSubmit = (data: RegisterFormValues) => {
     registerUser(data, {
       onError: (error: any) => {
-        // Map server-side validation errors to form fields
         const serverErrors = error.response?.data?.errors;
         if (serverErrors && typeof serverErrors === "object") {
           Object.keys(serverErrors).forEach((key) => {
@@ -65,17 +64,19 @@ export function RegisterForm() {
     });
   };
 
+  const inputClasses = "h-12 rounded-lg border-input bg-muted/30 px-4 text-sm shadow-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary/20";
+
   return (
-    <Card className="w-full max-w-md border-none shadow-none bg-transparent">
-      <CardHeader className="text-center space-y-2">
-        <CardTitle className="text-3xl font-bold tracking-tight">Tạo tài khoản</CardTitle>
-        <CardDescription className="text-muted-foreground text-sm">
-          Bắt đầu hành trình học tập cùng Smart Center.
-        </CardDescription>
+    <Card className="w-full overflow-hidden rounded-2xl border border-border bg-card shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
+      <CardHeader className="space-y-5 px-6 pb-6 pt-8 text-center sm:px-8">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#3039A9] shadow-[0_8px_20px_rgba(48,57,169,0.24)]">
+          <img src="/images/Logo.png" alt="Smart Center" className="h-7 w-7 object-contain" />
+        </div>
+        <CardTitle className="text-2xl font-semibold tracking-tight text-foreground">Tạo tài khoản</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-6 pb-6 sm:px-8">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <FormField
@@ -83,9 +84,9 @@ export function RegisterForm() {
                   name="firstName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Họ</FormLabel>
+                      <FormLabel className="text-sm font-medium text-slate-800">Họ</FormLabel>
                       <FormControl>
-                        <Input placeholder="Nguyễn Văn" {...field} />
+                        <Input placeholder="Nguyễn Văn" className={inputClasses} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -96,9 +97,9 @@ export function RegisterForm() {
                   name="lastName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tên</FormLabel>
+                      <FormLabel className="text-sm font-medium text-slate-800">Tên</FormLabel>
                       <FormControl>
-                        <Input placeholder="A" {...field} />
+                        <Input placeholder="A" className={inputClasses} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -111,9 +112,9 @@ export function RegisterForm() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel className="text-sm font-medium text-slate-800">Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="you@example.com" {...field} />
+                      <Input type="email" placeholder="you@example.com" className={inputClasses} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -125,9 +126,9 @@ export function RegisterForm() {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Số điện thoại</FormLabel>
+                    <FormLabel className="text-sm font-medium text-slate-800">Số điện thoại</FormLabel>
                     <FormControl>
-                      <Input type="tel" placeholder="0123456789" {...field} />
+                      <Input type="tel" placeholder="0123456789" className={inputClasses} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -139,18 +140,18 @@ export function RegisterForm() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Mật khẩu</FormLabel>
+                    <FormLabel className="text-sm font-medium text-slate-800">Mật khẩu</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
                           type={showPassword ? "text" : "password"}
                           placeholder="••••••••"
-                          className="pr-10"
+                          className={`${inputClasses} pr-11`}
                           {...field}
                         />
                         <button
                           type="button"
-                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors"
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 transition-colors hover:text-slate-900"
                           onClick={() => setShowPassword(!showPassword)}
                         >
                           {showPassword ? (
@@ -171,9 +172,14 @@ export function RegisterForm() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Xác nhận mật khẩu</FormLabel>
+                    <FormLabel className="text-sm font-medium text-slate-800">Xác nhận mật khẩu</FormLabel>
                     <FormControl>
-                      <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} />
+                      <Input 
+                        type={showPassword ? "text" : "password"} 
+                        placeholder="••••••••" 
+                        className={inputClasses}
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -198,10 +204,10 @@ export function RegisterForm() {
           </form>
         </Form>
       </CardContent>
-      <CardFooter className="flex justify-center">
+      <CardFooter className="flex justify-center px-6 pb-8 sm:px-8">
         <p className="text-sm text-muted-foreground">
           Đã có tài khoản?{" "}
-          <Link to="/login" className="font-medium text-primary hover:underline hover:text-primary/80">
+          <Link to="/login" className="font-medium text-foreground underline-offset-3 hover:underline">
             Đăng nhập
           </Link>
         </p>
