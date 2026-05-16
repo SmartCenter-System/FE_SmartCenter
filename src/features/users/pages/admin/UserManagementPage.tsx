@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { 
   Search,
   Lock, 
@@ -60,6 +62,16 @@ import { Label } from "@/shared/components/ui/label";
 import { toast } from "sonner";
 import { userService, type UserRole, type UserStatus, type User } from "@/features/users/services";
 
+const createUserSchema = z.object({
+  fullName: z.string().min(2, "Họ và tên phải có ít nhất 2 ký tự"),
+  email: z.string().email("Email không hợp lệ"),
+  role: z.enum(["STAFF", "LECTURER", "STUDENT", "ADMIN"]),
+  password: z.string().optional(),
+  phone: z.string().optional(),
+  bio: z.string().optional(),
+  expertise: z.string().optional(),
+});
+
 interface CreateUserFormValues {
   fullName: string;
   email: string;
@@ -92,6 +104,7 @@ export default function UserManagementPage() {
 
   // react-hook-form for creation
   const createForm = useForm<CreateUserFormValues>({
+    resolver: zodResolver(createUserSchema),
     defaultValues: {
       fullName: "",
       email: "",
@@ -102,6 +115,8 @@ export default function UserManagementPage() {
       expertise: "",
     }
   });
+
+  const { formState: { errors: createErrors } } = createForm;
 
   // 1. Lấy toàn bộ danh sách để đảm bảo dữ liệu thống kê và bảng luôn khớp nhau
   const { data: allUsersData, isLoading, isRefetching, refetch } = useQuery({
@@ -299,7 +314,6 @@ export default function UserManagementPage() {
             <SelectItem value="STUDENT">Học sinh</SelectItem>
             <SelectItem value="LECTURER">Giảng viên</SelectItem>
             <SelectItem value="STAFF">Nhân viên</SelectItem>
-            <SelectItem value="ADMIN">Admin</SelectItem>
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={(val) => {
@@ -476,12 +490,13 @@ export default function UserManagementPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="fullName" className="font-bold ml-1">Họ và tên</Label>
-                  <Input 
+                   <Input 
                     id="fullName" 
                     {...createForm.register("fullName")}
                     placeholder="Nguyễn Văn A" 
-                    className="rounded-xl border-2 focus-visible:ring-primary h-11"
+                    className={`rounded-xl border-2 focus-visible:ring-primary h-11 ${createErrors.fullName ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                   />
+                  {createErrors.fullName && <p className="text-xs text-destructive ml-1">{createErrors.fullName.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role" className="font-bold ml-1">Vai trò</Label>
@@ -501,13 +516,14 @@ export default function UserManagementPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email" className="font-bold ml-1">Email</Label>
-                <Input 
+                 <Input 
                   id="email" 
                   {...createForm.register("email")}
                   type="email" 
                   placeholder="name@example.com" 
-                  className="rounded-xl border-2 focus-visible:ring-primary h-11"
+                  className={`rounded-xl border-2 focus-visible:ring-primary h-11 ${createErrors.email ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                 />
+                {createErrors.email && <p className="text-xs text-destructive ml-1">{createErrors.email.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password" className="font-bold ml-1">Mật khẩu ban đầu</Label>
