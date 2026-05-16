@@ -184,13 +184,13 @@ export const courseService = {
       imgUrl: data.imgUrl,
       courseType: data.courseType,
       maxStudents: data.maxStudents,
-      academicYear: data.academicYear,
+      academicYear: String(data.academicYear || ""),
       lecturerId: data.lecturerId,
       startAt: data.startAt,
       endAt: data.endAt,
     };
 
-    const res = (await apiClient.post<CourseRaw>(API_ENDPOINTS.COURSES.BASE, payload)) as unknown as CourseRaw;
+    const res = (await apiClient.post<CourseRaw>(API_ENDPOINTS.COURSES.BASE, { request: payload })) as unknown as CourseRaw;
     return normalizeCourse(res);
   },
 
@@ -205,13 +205,16 @@ export const courseService = {
       description: data.description,
       basePrice: data.basePrice,
       imgUrl: data.imgUrl,
+      courseType: data.courseType,
       startAt: data.startAt,
       endAt: data.endAt,
       maxStudents: data.maxStudents,
+      academicYear: data.academicYear ? String(data.academicYear) : undefined,
+      lecturerId: data.lecturerId,
       isActive: data.isActive,
     };
 
-    const res = (await apiClient.put<CourseRaw>(API_ENDPOINTS.COURSES.BY_ID(courseId), payload)) as unknown as CourseRaw;
+    const res = (await apiClient.put<CourseRaw>(API_ENDPOINTS.COURSES.BY_ID(courseId), { request: payload })) as unknown as CourseRaw;
     return normalizeCourse(res);
   },
 

@@ -1,11 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboardService";
 import { useAuthStore } from "@/features/auth/store";
-import type {
-  CleanAdminDashboard,
-  CleanLecturerDashboard,
-  CleanStaffDashboard,
-} from "../type";
+import type { CleanAdminDashboard, CleanLecturerDashboard, CleanStaffDashboard } from "../type";
 
 // ─── Admin Dashboard Hook ───────────────────────────────────────
 export function useAdminDashboardData() {
