@@ -76,7 +76,7 @@ export const categoryService = {
    */
   async getAll(): Promise<Category[]> {
     // 1. Fetch data
-    const res = await apiClient.get<any>(API_ENDPOINTS.CATEGORY.GET_ALL);
+    const res: any = await apiClient.get(API_ENDPOINTS.CATEGORY.GET_ALL);
     
     // 2. Bóc vỏ bọc linh hoạt cho mọi dạng envelope trả về từ BE
     const items: CategoryRaw[] = Array.isArray(res) 

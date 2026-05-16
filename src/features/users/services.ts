@@ -127,18 +127,18 @@ export const userService = {
     });
 
     const rawData = res?.data || res?.items || (Array.isArray(res) ? res : []);
-    let data = rawData.map(normalizeUser);
+    let data = rawData.map((u: any) => normalizeUser(u));
 
     // Fallback: Lọc thủ công tại FE nếu BE trả về sai (đảm bảo tính chính xác cho người dùng)
     if (params?.status && params.status !== "ALL") {
-      data = data.filter(u => u.status === params.status);
+      data = data.filter((u: User) => u.status === params.status);
     }
     if (params?.role && params.role !== "ALL") {
-      data = data.filter(u => u.role === params.role);
+      data = data.filter((u: User) => u.role === params.role);
     }
     if (params?.search) {
       const s = params.search.toLowerCase();
-      data = data.filter(u => 
+      data = data.filter((u: User) => 
         u.fullName.toLowerCase().includes(s) || 
         u.email.toLowerCase().includes(s)
       );

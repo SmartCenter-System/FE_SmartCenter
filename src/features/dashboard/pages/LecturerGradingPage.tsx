@@ -29,13 +29,14 @@ export default function LecturerGradingPage() {
   const [feedback, setFeedback] = useState("");
 
   const { data: rawSubmission, isLoading } = useSubmissionDetail(examId);
+  const rs = rawSubmission as any;
 
   // Map API response to UI structure if needed
-  const submission = rawSubmission ? {
-    studentName: rawSubmission.studentName || "Học viên",
-    examTitle: rawSubmission.examTitle || "Bài kiểm tra",
-    submittedAt: rawSubmission.submittedAt,
-    answers: rawSubmission.answers?.map((ans: any) => ({
+  const submission = rs ? {
+    studentName: rs.studentName || "Học viên",
+    examTitle: rs.examTitle || "Bài kiểm tra",
+    submittedAt: rs.submittedAt,
+    answers: rs.answers?.map((ans: any) => ({
       question: ans.questionTitle || ans.question || "Câu hỏi",
       studentAnswer: ans.studentAnswer || ans.answerText || "Chưa có câu trả lời",
       isCorrect: ans.isCorrect,

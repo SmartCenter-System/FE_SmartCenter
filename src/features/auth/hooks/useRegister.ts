@@ -30,7 +30,11 @@ export function useRegister() {
       setAuth({
         accessToken: payload.accessToken,
         refreshToken: payload.refreshToken,
-        user: cleanUser,
+        userId: cleanUser.userId,
+        role: cleanUser.role,
+        email: cleanUser.email,
+        firstName: cleanUser.firstName,
+        lastName: cleanUser.lastName,
       });
 
       toast.success("Đăng ký thành công! Hãy kiểm tra email.");

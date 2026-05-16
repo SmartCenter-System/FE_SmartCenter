@@ -2,7 +2,7 @@ import type { BaseEntityRaw } from "@/shared/types";
 import type { SepayWebhookRequest } from "./paymentService";
 
 export interface CreateOrderRequest {
-  studentId: string;
+  studentId?: string;
   cartId: string;
 }
 

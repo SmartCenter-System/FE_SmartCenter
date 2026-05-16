@@ -5,10 +5,8 @@ import {
   Users, 
   MessageCircle, 
   Settings,
-  Menu,
   ChevronRight
 } from "lucide-react";
-import { Button } from "@/shared/components/ui/button";
 import ProgressBar from "@/shared/components/common/ProgressBar";
 import ScrollToTop from "@/shared/components/common/ScrollToTop";
 import Header from "@/shared/components/common/Header";

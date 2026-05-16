@@ -95,7 +95,8 @@ export default function CourseContentEditor() {
   const [activeSection, setActiveSection] = useState<Section | null>(null);
 
   const { data: exams } = useExams(courseId!);
-  const currentLessonExam = (exams as any[])?.find((e) => e.lessonId === activeLesson?.id);
+  const currentLessonExam = (exams as any)?.find?.((e: any) => e.lessonId === activeLesson?.id) || 
+                          (exams as any)?.data?.find?.((e: any) => e.lessonId === activeLesson?.id);
   const createExamMutation = useCreateExam();
 
   const createSectionMutation = useCreateSection();
@@ -684,7 +685,7 @@ export default function CourseContentEditor() {
                   title: examTitle,
                   countDown: examDuration,
                   totalPoints: examPoints,
-                  lessonId: activeLesson?.id,
+                  lessonId: activeLesson?.id || "",
                 });
               }}
               disabled={!examTitle.trim() || createExamMutation.isPending}

@@ -28,6 +28,11 @@ export interface PaginatedData<T> {
 }
 
 /**
+ * Alias cho PaginatedData để tương thích với BaseService
+ */
+export type PaginatedList<T> = PaginatedData<T>;
+
+/**
  * Các trường dữ liệu hệ thống chung của một Raw Entity
  */
 export interface BaseEntityRaw {

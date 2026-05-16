@@ -161,7 +161,7 @@ export default function CourseManagementPage() {
               onClick={() => {
                 setSearch("");
                 setFormat("ALL");
-                setPage(1);
+                setPageIndex(1);
               }}
             >
               Xóa bộ lọc

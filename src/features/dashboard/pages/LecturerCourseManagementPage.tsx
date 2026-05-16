@@ -194,7 +194,7 @@ export default function LecturerCourseManagementPage() {
                           className="gap-2 font-semibold"
                           onClick={() => {
                             const newStatus = !course.isActive;
-                            courseService.update(course.courseId, { ...course, isActive: newStatus })
+                            courseService.update(course.courseId, { ...course, isActive: newStatus } as any)
                               .then(() => {
                                 queryClient.invalidateQueries({ queryKey: ["lecturer-courses"] });
                                 toast.success(newStatus ? "Đã xuất bản" : "Đã tạm ẩn");

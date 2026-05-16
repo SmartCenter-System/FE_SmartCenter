@@ -4,7 +4,6 @@ export { CourseFilter } from "./CourseFilter";
 export { CourseForm } from "./CourseForm";
 export { CourseGrid } from "./CourseGrid";
 export { CourseTable } from "./CourseTable";
-export { PublicCourseFilter } from "./PublicCourseFilter";
 
 export { CourseForm as CourseFormV2 } from "./forms/CourseForm";
 export { LessonForm } from "./forms/LessonForm";
