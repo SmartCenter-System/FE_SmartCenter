@@ -2,7 +2,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { CourseForm } from "@/features/courses/components/CourseForm";
-import { ClassManagement } from "@/features/classes/components/ClassManagement";
 import { useQuery } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
 
@@ -47,10 +46,6 @@ export default function CourseEditorPage() {
       <div className="mt-8">
         <CourseForm initialData={course} courseId={id} />
       </div>
-
-      {isEditMode && id && (
-        <ClassManagement courseId={id} />
-      )}
     </div>
   );
 }

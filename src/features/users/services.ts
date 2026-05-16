@@ -50,6 +50,9 @@ export interface User {
   phone?: string;
   bio?: string;
   expertise?: string;
+  address?: string;
+  city?: string;
+  zaloLink?: string;
   createdAt: string;
 }
 
@@ -79,7 +82,7 @@ const normalizeUser = (u: any): User => {
   // Chuẩn hóa Status
   const rawStatus = u.status ?? u.Status ?? u.isActive ?? u.IsActive;
   let normalizedStatus: UserStatus = "LOCKED";
-  
+
   // Các giá trị được coi là ACTIVE
   const activeValues = [1, "1", true, "true", "ACTIVE", "Active", "active"];
   if (activeValues.includes(rawStatus)) {
@@ -105,6 +108,9 @@ const normalizeUser = (u: any): User => {
     phone: u.phone || u.Phone || "",
     bio: u.bio || u.Bio || "",
     expertise: u.expertise || u.Expertise || "",
+    address: u.address || u.Address || "",
+    city: u.city || u.City || "",
+    zaloLink: u.zaloLink || u.ZaloLink || "",
     createdAt: u.createdAt || u.CreatedAt || new Date().toISOString(),
   };
 };
@@ -127,7 +133,7 @@ export const userService = {
     });
 
     const rawData = res?.data || res?.items || (Array.isArray(res) ? res : []);
-    let data = rawData.map(normalizeUser);
+    let data = rawData.map((u: any) => normalizeUser(u));
 
     // Fallback: Lọc thủ công tại FE nếu BE trả về sai (đảm bảo tính chính xác cho người dùng)
     if (params?.status && params.status !== "ALL") {
@@ -144,7 +150,8 @@ export const userService = {
       );
     }
 
-    const isFiltered = (params?.status && params.status !== "ALL") || (params?.role && params.role !== "ALL") || !!params?.search;
+    const isFiltered =
+      (params?.status && params.status !== "ALL") || (params?.role && params.role !== "ALL") || !!params?.search;
 
     return {
       data,
@@ -159,10 +166,8 @@ export const userService = {
 
   // Thay đổi trạng thái tài khoản
   async toggleUserStatus(id: string, newStatus: UserStatus): Promise<void> {
-    const endpoint = newStatus === "ACTIVE" 
-      ? API_ENDPOINTS.ADMIN.USER_UNLOCK(id) 
-      : API_ENDPOINTS.ADMIN.USER_LOCK(id);
-    
+    const endpoint = newStatus === "ACTIVE" ? API_ENDPOINTS.ADMIN.USER_UNLOCK(id) : API_ENDPOINTS.ADMIN.USER_LOCK(id);
+
     await apiClient.patch(endpoint);
   },
 
@@ -176,30 +181,45 @@ export const userService = {
     bio?: string;
     expertise?: string;
   }): Promise<User> {
+    // Xử lý tách Tên và Họ
     const nameParts = data.fullName.trim().split(" ");
     const lastName = nameParts.length > 1 ? nameParts.pop() || "" : "";
     const firstName = nameParts.join(" ") || data.fullName;
 
+    // Phân luồng xử lý riêng biệt cho từng Role (Trừ Admin)
+    if (data.role === "LECTURER") {
+      const payload = {
+        firstName,
+        lastName,
+        email: data.email,
+        password: data.password || "Lecturer@123",
+        phone: data.phone || "",
+        bio: data.bio || "",
+        expertise: data.expertise || "",
+      };
+      return apiClient.post(API_ENDPOINTS.AUTH.REGISTER_LECTURER, payload);
+    }
+
+    if (data.role === "STAFF") {
+      const payload = {
+        firstName,
+        lastName,
+        email: data.email,
+        password: data.password || "Staff@123",
+        phone: data.phone || "",
+      };
+      return apiClient.post(API_ENDPOINTS.AUTH.REGISTER_STAFF, payload);
+    }
+
+    // Mặc định là Học viên (STUDENT)
     const payload = {
       firstName,
       lastName,
       email: data.email,
-      password: data.password || "123456aA@",
+      password: data.password || "Student@123",
       phone: data.phone || "",
-      bio: data.bio || "",
-      expertise: data.expertise || "",
     };
-
-    // Chọn endpoint dựa trên Role
-    let endpoint = API_ENDPOINTS.AUTH.REGISTER;
-    if (data.role === "LECTURER") {
-      endpoint = API_ENDPOINTS.AUTH.REGISTER_LECTURER;
-    } else if (data.role === "STAFF") {
-      endpoint = API_ENDPOINTS.AUTH.REGISTER_STAFF;
-    }
-
-    const res: any = await apiClient.post(endpoint, { request: payload });
-    return res;
+    return apiClient.post(API_ENDPOINTS.AUTH.REGISTER, payload);
   },
 
   // Profile methods
@@ -210,10 +230,5 @@ export const userService = {
 
   async updateProfile(data: UpdateProfileRequest): Promise<void> {
     await apiClient.post(API_ENDPOINTS.USER.UPDATE_PROFILE, data);
-  },
-
-  // Xóa người dùng
-  async deleteUser(id: string): Promise<void> {
-    await apiClient.delete(API_ENDPOINTS.ADMIN.USER_BY_ID(id));
   },
 };

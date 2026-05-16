@@ -8,6 +8,7 @@ export const EXAM_QUERY_KEYS = {
   byCourse: (courseId: string) => [...EXAM_QUERY_KEYS.all, "course", courseId] as const,
   byId: (examId: string) => [...EXAM_QUERY_KEYS.all, examId] as const,
   submissions: (examId: string) => [...EXAM_QUERY_KEYS.all, examId, "submissions"] as const,
+  submissionDetail: (submissionId: string) => [...EXAM_QUERY_KEYS.all, "submission", submissionId] as const,
 };
 
 export function useExams(courseId?: string) {
@@ -64,6 +65,22 @@ export function useGradeExam() {
       queryClient.invalidateQueries({ queryKey: EXAM_QUERY_KEYS.all });
       toast.success("Chấm điểm thành công");
     }
+  });
+}
+
+export function useSubmittedExams(params: { CourseId?: string; ExamId?: string }) {
+  return useQuery({
+    queryKey: [...EXAM_QUERY_KEYS.all, "submitted", params],
+    queryFn: () => examService.getSubmittedExams(params),
+    enabled: !!(params.CourseId || params.ExamId),
+  });
+}
+
+export function useSubmissionDetail(submissionId?: string) {
+  return useQuery({
+    queryKey: EXAM_QUERY_KEYS.submissionDetail(submissionId || ""),
+    queryFn: () => examService.getSubmissionDetail(submissionId!),
+    enabled: !!submissionId,
   });
 }
 

@@ -205,9 +205,12 @@ export const courseService = {
       description: data.description,
       basePrice: data.basePrice,
       imgUrl: data.imgUrl,
+      courseType: data.courseType,
       startAt: data.startAt,
       endAt: data.endAt,
       maxStudents: data.maxStudents,
+      academicYear: data.academicYear,
+      lecturerId: data.lecturerId,
       isActive: data.isActive,
     };
 
@@ -318,5 +321,9 @@ export const courseService = {
   async getDashboardData() {
     const res: any = await apiClient.get(API_ENDPOINTS.COURSES.DASHBOARD);
     return res.data;
+  },
+
+  async getCourseProgress(courseId: string) {
+    return apiClient.get(API_ENDPOINTS.PROGRESS.BY_COURSE(courseId));
   },
 };

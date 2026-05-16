@@ -5,6 +5,7 @@ import { Toaster } from "@/shared/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
 import router from "./router";
 import { queryClient } from "@/lib/queryClient";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
         <RouterProvider router={router} />
         <Toaster position="bottom-right" richColors />
         <ReactQueryDevtools initialIsOpen={false} />
+        <SpeedInsights />
       </QueryClientProvider>
     </ThemeProvider>
   );

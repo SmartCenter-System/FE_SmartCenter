@@ -77,6 +77,7 @@ export const updateCourseSchema = z.object({
   endAt: z.string().optional(),
   maxStudents: z.number().optional(),
   lecturerId: z.string().optional(),
+  academicYear: z.number().optional(),
   isActive: z.boolean().optional(),
 }).refine(
   (data) => {

@@ -10,7 +10,7 @@ export interface RegisterRequest {
   password: string;
   firstName: string;
   lastName: string;
-  phone?: string;
+  phone: string;
 }
 
 export interface RegisterLecturerRequest extends RegisterRequest {
@@ -26,6 +26,30 @@ export interface AuthResponse {
   email?: string;
   fullname?: string;
   role?: string;
+}
+
+/**
+ * Cấu trúc thô từ API (để normalize)
+ */
+export type AuthResponseRaw = AuthResponse;
+
+/**
+ * Cấu trúc User đã được chuẩn hóa (sau khi ghép JWT claims)
+ */
+export interface CleanUser {
+  userId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: RoleType;
+  avatar: string | null;
+}
+
+/**
+ * Cấu trúc claims từ JWT token
+ */
+export interface JwtClaimsRaw {
+  [key: string]: any;
 }
 
 export interface User {

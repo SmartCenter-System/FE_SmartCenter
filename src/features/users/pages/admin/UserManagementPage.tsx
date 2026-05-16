@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { 
   Search,
   Lock, 
@@ -9,7 +11,6 @@ import {
   ShieldAlert, 
   UserPlus,
   RotateCw,
-  Trash2,
   Loader2,
   Eye,
   Users,
@@ -61,6 +62,16 @@ import { Label } from "@/shared/components/ui/label";
 import { toast } from "sonner";
 import { userService, type UserRole, type UserStatus, type User } from "@/features/users/services";
 
+const createUserSchema = z.object({
+  fullName: z.string().min(2, "Họ và tên phải có ít nhất 2 ký tự"),
+  email: z.string().email("Email không hợp lệ"),
+  role: z.enum(["STAFF", "LECTURER", "STUDENT", "ADMIN"]),
+  password: z.string().optional(),
+  phone: z.string().optional(),
+  bio: z.string().optional(),
+  expertise: z.string().optional(),
+});
+
 interface CreateUserFormValues {
   fullName: string;
   email: string;
@@ -77,7 +88,6 @@ export default function UserManagementPage() {
   // UI States
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isConfirmLockOpen, setIsConfirmLockOpen] = useState(false);
-  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
@@ -90,10 +100,11 @@ export default function UserManagementPage() {
   const [pageIndex, setPageIndex] = useState(1);
   const [pageSize] = useState(10);
 
-  const { userId: currentUserId } = useAuthStore();
+  const { userId: currentUserId, accessToken } = useAuthStore();
 
   // react-hook-form for creation
   const createForm = useForm<CreateUserFormValues>({
+    resolver: zodResolver(createUserSchema),
     defaultValues: {
       fullName: "",
       email: "",
@@ -105,10 +116,13 @@ export default function UserManagementPage() {
     }
   });
 
+  const { formState: { errors: createErrors } } = createForm;
+
   // 1. Lấy toàn bộ danh sách để đảm bảo dữ liệu thống kê và bảng luôn khớp nhau
   const { data: allUsersData, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ["users", "admin-list"],
     queryFn: () => userService.getUsers({ limit: 1000 }),
+    enabled: !!accessToken,
   });
 
   const allUsers = allUsersData?.data || [];
@@ -185,15 +199,6 @@ export default function UserManagementPage() {
     }
   });
 
-  const deleteUserMutation = useMutation({
-    mutationFn: (id: string) => userService.deleteUser(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      toast.success("Đã xóa người dùng");
-      setIsConfirmDeleteOpen(false);
-    }
-  });
 
   const createUserMutation = useMutation({
     mutationFn: (data: CreateUserFormValues) => userService.createInternalUser(data),
@@ -216,10 +221,6 @@ export default function UserManagementPage() {
     toggleStatusMutation.mutate({ id: selectedUser.id, status: newStatus });
   };
 
-  const confirmDelete = () => {
-    if (!selectedUser) return;
-    deleteUserMutation.mutate(selectedUser.id);
-  };
 
   const statusBadge = (status: UserStatus) => {
     return status === "ACTIVE" 
@@ -313,7 +314,6 @@ export default function UserManagementPage() {
             <SelectItem value="STUDENT">Học sinh</SelectItem>
             <SelectItem value="LECTURER">Giảng viên</SelectItem>
             <SelectItem value="STAFF">Nhân viên</SelectItem>
-            <SelectItem value="ADMIN">Admin</SelectItem>
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={(val) => {
@@ -418,18 +418,6 @@ export default function UserManagementPage() {
                           {user.status === "ACTIVE" ? <><Lock className="h-4 w-4" /> Khóa tài khoản</> : <><Unlock className="h-4 w-4" /> Mở khóa tài khoản</>}
                           {user.id === currentUserId && <span className="text-[10px] bg-red-100 text-red-600 px-1 rounded ml-auto">Bạn</span>}
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="rounded-lg gap-2 text-red-600 cursor-pointer focus:bg-red-50 focus:text-red-600"
-                          disabled={user.id === currentUserId}
-                          onClick={() => {
-                            if (user.id === currentUserId) return;
-                            setSelectedUser(user);
-                            setIsConfirmDeleteOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" /> Xóa tài khoản
-                          {user.id === currentUserId && <span className="text-[10px] bg-red-100 text-red-600 px-1 rounded ml-auto">Bạn</span>}
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -502,12 +490,13 @@ export default function UserManagementPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="fullName" className="font-bold ml-1">Họ và tên</Label>
-                  <Input 
+                   <Input 
                     id="fullName" 
                     {...createForm.register("fullName")}
                     placeholder="Nguyễn Văn A" 
-                    className="rounded-xl border-2 focus-visible:ring-primary h-11"
+                    className={`rounded-xl border-2 focus-visible:ring-primary h-11 ${createErrors.fullName ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                   />
+                  {createErrors.fullName && <p className="text-xs text-destructive ml-1">{createErrors.fullName.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role" className="font-bold ml-1">Vai trò</Label>
@@ -521,20 +510,20 @@ export default function UserManagementPage() {
                     <SelectContent className="rounded-xl">
                       <SelectItem value="STAFF">Nhân viên</SelectItem>
                       <SelectItem value="LECTURER">Giảng viên</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email" className="font-bold ml-1">Email</Label>
-                <Input 
+                 <Input 
                   id="email" 
                   {...createForm.register("email")}
                   type="email" 
                   placeholder="name@example.com" 
-                  className="rounded-xl border-2 focus-visible:ring-primary h-11"
+                  className={`rounded-xl border-2 focus-visible:ring-primary h-11 ${createErrors.email ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                 />
+                {createErrors.email && <p className="text-xs text-destructive ml-1">{createErrors.email.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password" className="font-bold ml-1">Mật khẩu ban đầu</Label>
@@ -545,7 +534,12 @@ export default function UserManagementPage() {
                   placeholder="••••••••" 
                   className="rounded-xl border-2 focus-visible:ring-primary h-11"
                 />
-                <p className="text-[10px] text-muted-foreground ml-1">* Mật khẩu mặc định nếu để trống: 123456aA@</p>
+                <p className="text-[10px] text-muted-foreground ml-1">
+                  * Mật khẩu mặc định nếu để trống:{" "}
+                  <span className="font-bold text-primary">
+                    {createForm.watch("role") === "STAFF" ? "Staff@123" : "Lecturer@123"}
+                  </span>
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone" className="font-bold ml-1">Số điện thoại</Label>
@@ -604,34 +598,6 @@ export default function UserManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isConfirmDeleteOpen} onOpenChange={setIsConfirmDeleteOpen}>
-        <DialogContent className="sm:max-w-[420px] rounded-3xl p-6 border-none shadow-2xl">
-          <div className="flex flex-col items-center text-center gap-4">
-            <div className="p-4 rounded-full bg-red-100 text-red-600">
-              <ShieldAlert className="h-8 w-8" />
-            </div>
-            <div>
-              <DialogTitle className="text-xl font-bold">Xóa tài khoản vĩnh viễn?</DialogTitle>
-              <DialogDescription className="mt-2">
-                Hành động này <b>không thể hoàn tác</b>. Mọi dữ liệu liên quan đến <b>{selectedUser?.fullName}</b> sẽ bị xóa khỏi hệ thống.
-              </DialogDescription>
-            </div>
-          </div>
-          <DialogFooter className="grid grid-cols-2 gap-3 mt-6">
-            <Button variant="outline" onClick={() => setIsConfirmDeleteOpen(false)} className="rounded-xl border-2">Quay lại</Button>
-            <Button 
-              variant="destructive" 
-              onClick={confirmDelete}
-              disabled={deleteUserMutation.isPending}
-              className="rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all"
-            >
-              {deleteUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Xác nhận xóa
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>

@@ -10,11 +10,11 @@ import type { Category, CategoryRaw } from "./courses/type";
 // ==========================================
 export const authService = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials, { silent: true } as any) as unknown as AuthResponse;
+    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials) as unknown as AuthResponse;
   },
 
   async register(data: RegisterRequest): Promise<AuthResponse> {
-    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, data, { silent: true } as any) as unknown as AuthResponse;
+    return apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, data) as unknown as AuthResponse;
   },
 
   async logout(): Promise<void> {
@@ -76,7 +76,7 @@ export const categoryService = {
    */
   async getAll(): Promise<Category[]> {
     // 1. Fetch data
-    const res = await apiClient.get<any>(API_ENDPOINTS.CATEGORY.GET_ALL);
+    const res: any = await apiClient.get(API_ENDPOINTS.CATEGORY.GET_ALL);
     
     // 2. Bóc vỏ bọc linh hoạt cho mọi dạng envelope trả về từ BE
     const items: CategoryRaw[] = Array.isArray(res) 

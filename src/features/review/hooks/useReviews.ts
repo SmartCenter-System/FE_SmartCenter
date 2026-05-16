@@ -18,12 +18,12 @@ export function useReviews(courseId?: string, studentId?: string, enabled = true
   });
 }
 
-export function useCourseReviewQueries(courseIds: string[]) {
+export function useCourseReviewQueries(courseIds: string[], enabled = true) {
   return useQueries({
     queries: courseIds.map((courseId) => ({
       queryKey: REVIEW_KEYS.list(courseId),
       queryFn: () => reviewService.getReviews(courseId),
-      enabled: Boolean(courseId),
+      enabled: Boolean(courseId) && enabled,
       staleTime: 1000 * 60 * 5,
       gcTime: 1000 * 60 * 15,
       retry: 1,

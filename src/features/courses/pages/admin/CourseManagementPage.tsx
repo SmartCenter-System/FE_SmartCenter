@@ -19,9 +19,11 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { courseService } from "@/features/courses/services";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { useAuthStore } from "@/features/auth/store";
 
 export default function CourseManagementPage() {
   const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
   const [search, setSearch] = useState("");
   const [format, setFormat] = useState<1 | 2 | "ALL">("ALL");
   const [pageIndex, setPageIndex] = useState(1);
@@ -33,6 +35,7 @@ export default function CourseManagementPage() {
     queryKey: ["courses", "admin-all-for-stats"],
     queryFn: () => courseService.getCourses({ limit: 1000 }),
     staleTime: 5 * 60 * 1000,
+    enabled: !!accessToken,
   });
   const allCourses = allCoursesRes?.data || [];
 

@@ -15,7 +15,7 @@ export default function LecturerLayout() {
   const location = useLocation();
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/lecturer" },
+    { icon: LayoutDashboard, label: "Tổng quan", path: "/lecturer" },
     { icon: BookOpen, label: "Khóa học của tôi", path: "/lecturer/courses" },
     { icon: Users, label: "Học viên", path: "/lecturer/students" },
     { icon: MessageCircle, label: "Thảo luận", path: "/lecturer/discussions" },
