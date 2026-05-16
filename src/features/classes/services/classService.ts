@@ -7,8 +7,8 @@ export const classService = {
    */
   getClassesByCourseId: async (courseId: string): Promise<Class[]> => {
     // Giả định endpoint là /api/Class/by-course/{courseId} hoặc dùng query params
-    const res = await apiClient.get<Class[]>("/api/Class", { params: { courseId } });
-    return Array.isArray(res) ? res : [];
+    const res = (await apiClient.get<Class[]>("/api/Class", { params: { courseId } })) as any;
+    return Array.isArray(res) ? res : (res?.data || []);
   },
 
   /**
@@ -19,14 +19,14 @@ export const classService = {
       ...data,
       courseId,
     };
-    return apiClient.post<Class>("/api/Class", payload);
+    return (await apiClient.post<Class>("/api/Class", payload)) as unknown as Class;
   },
 
   /**
    * Cập nhật thông tin lớp học
    */
   updateClass: async (classId: string, data: Partial<CreateClassInput>): Promise<Class> => {
-    return apiClient.put<Class>(`/api/Class/${classId}`, data);
+    return (await apiClient.put<Class>(`/api/Class/${classId}`, data)) as unknown as Class;
   },
 
   /**
