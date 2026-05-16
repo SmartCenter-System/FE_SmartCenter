@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, BookOpen, CircleHelp, Phone, User } from "lucide-react";
+import { Home, BookOpen, Phone, Star, User } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/features/auth/store";
@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/shared/components/ui/theme-toggle";
 const navigationItems = [
   { icon: Home, label: "Trang chủ", path: "/" },
   { icon: BookOpen, label: "Khóa học", path: "/courses" },
-  { icon: CircleHelp, label: "Hỗ trợ", path: "/help" },
+  { icon: Star, label: "Đánh giá", path: "/review" },
   { icon: Phone, label: "Tư vấn", path: "/consultation" },
   { icon: User, label: "Cá nhân", path: "/profile" },
 ];
