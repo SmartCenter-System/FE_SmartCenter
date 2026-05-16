@@ -17,7 +17,7 @@ export default function AdminLayout() {
   const location = useLocation();
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
+    { icon: LayoutDashboard, label: "Tổng quan", path: "/admin/dashboard" },
     { icon: BookOpen, label: "Khóa học", path: "/admin/courses" },
     { icon: Users, label: "Người dùng", path: "/admin/users" },
     { icon: ShoppingCart, label: "Đơn hàng", path: "/admin/orders" },

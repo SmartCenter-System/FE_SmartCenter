@@ -8,7 +8,7 @@ export default function StaffLayout() {
   const location = useLocation();
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/staff/dashboard" },
+    { icon: LayoutDashboard, label: "Tổng quan", path: "/staff/dashboard" },
     { icon: CreditCard, label: "Ghi danh học viên", path: "/staff/enrollments" },
     { icon: Settings, label: "Cài đặt", path: "/staff/settings" },
   ];
