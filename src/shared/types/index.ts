@@ -27,6 +27,8 @@ export interface PaginatedData<T> {
   hasNextPage?: boolean;
 }
 
+export type PaginatedList<T> = PaginatedData<T>;
+
 /**
  * Các trường dữ liệu hệ thống chung của một Raw Entity
  */

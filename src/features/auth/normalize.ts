@@ -1,5 +1,5 @@
 import { jwtDecode } from "jwt-decode";
-import type { AuthResponseRaw, CleanUser, JwtClaimsRaw } from "./type";
+import type { AuthResponse, CleanUser, JwtClaimsRaw } from "./type";
 import type { RoleType } from "@/shared/types";
 
 const ROLE_MAP: Record<string, RoleType> = {
@@ -26,7 +26,7 @@ function splitFullName(fullname: string) {
  * Adapter chuẩn hóa dữ liệu User từ Auth API và JWT Token.
  * Gom rác từ JWT và API vào một object CleanUser duy nhất.
  */
-export function normalizeAuthResponse(raw: AuthResponseRaw, token?: string): CleanUser {
+export function normalizeAuthResponse(raw: AuthResponse, token?: string): CleanUser {
   let claims: JwtClaimsRaw = {};
   
   if (token) {

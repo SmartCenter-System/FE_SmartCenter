@@ -43,12 +43,12 @@ export const lessonService = {
 
   async create(courseId: string, sectionId: string, data: { title: string; description?: string; videoUrl?: string; order?: number; isPreview?: boolean; duration?: number }): Promise<Lesson> {
     const res = await apiClient.post<any>(API_ENDPOINTS.LESSON.BASE, data, { params: { courseId, sectionId } });
-    return res;
+    return res as unknown as Lesson;
   },
 
   async update(courseId: string, sectionId: string, lessonId: string, data: Partial<Lesson>): Promise<Lesson> {
     const res = await apiClient.put<any>(API_ENDPOINTS.LESSON.BY_ID(lessonId), data, { params: { courseId, sectionId } });
-    return res;
+    return res as unknown as Lesson;
   },
 
   async remove(courseId: string, sectionId: string, lessonId: string): Promise<void> {

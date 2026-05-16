@@ -1,6 +1,5 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, CreditCard, Menu, ChevronRight, Users, Settings } from "lucide-react";
-import { Button } from "@/shared/components/ui/button";
+import { LayoutDashboard, CreditCard, ChevronRight, Users, Settings } from "lucide-react";
 import ProgressBar from "@/shared/components/common/ProgressBar";
 import ScrollToTop from "@/shared/components/common/ScrollToTop";
 import Header from "@/shared/components/common/Header";
@@ -10,7 +9,7 @@ export default function StaffLayout() {
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/staff/dashboard" },
-    { icon: CreditCard, label: "Ghi danh học viên", path: "/staff/enrollments" },
+    { icon: CreditCard, label: "Yêu cầu mới", path: "/staff/enrollments" },
     { icon: Settings, label: "Cài đặt", path: "/staff/settings" },
   ];
   

@@ -14,15 +14,7 @@ import { StatCard } from "../components/index";
 import { ConsultationTable, type ConsultationRequest } from "../components/index";
 import { useDashboardStaff } from "../hooks/useDashboardStaff";
 import { useConsultationRequests } from "../hooks/useConsultationRequests";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationEllipsis,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/shared/components/ui/pagination";
+import PaginationBar from "@/shared/components/common/PaginationBar";
 
 export default function StaffConsultationManagementPage() {
   const [search, setSearch] = useState("");
@@ -39,11 +31,12 @@ export default function StaffConsultationManagementPage() {
   const items = consultationData?.items || [];
   const totalCount = consultationData?.totalCount ?? 0;
 
-  function mapStatus(s?: string): "Chờ xử lý" | "Chấp nhận" | "Từ chối" {
+  function mapStatus(s?: string): ConsultationRequest["status"] {
     if (!s) return "Chờ xử lý";
     const us = String(s).toUpperCase();
     if (us === "PENDING") return "Chờ xử lý";
-    if (us === "PROCESSED" || us === "ACCEPTED") return "Chấp nhận";
+    if (us === "PROCESSING" || us === "CONSULTING" || us === "ACCEPTED") return "Đang tư vấn";
+    if (us === "PROCESSED") return "Đã tư vấn";
     if (us === "CANCELLED" || us === "REJECTED") return "Từ chối";
     return "Chờ xử lý";
   }
@@ -59,7 +52,7 @@ export default function StaffConsultationManagementPage() {
       hour: "2-digit",
       minute: "2-digit",
     }),
-    status: mapStatus(item.status) as "Chờ xử lý" | "Chấp nhận" | "Từ chối",
+    status: mapStatus(item.status),
   }));
 
 
@@ -70,7 +63,10 @@ export default function StaffConsultationManagementPage() {
       item.courseInterest.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const displayTotal = totalCount || items.length;
+  const totalPages = Math.max(1, Math.ceil(displayTotal / pageSize));
+  const canGoPrevious = page > 1;
+  const canGoNext = page < totalPages;
 
   function getPaginationItems(total: number, current: number): (number | "ellipsis")[] {
     const delta = 1; // show current +/- delta
@@ -96,7 +92,7 @@ export default function StaffConsultationManagementPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Academic Support
+            YÊU CẦU TƯ VẤN
           </h1>
           <p className="text-muted-foreground mt-1">
             Quản lý yêu cầu tư vấn, sinh viên mới và đơn hàng
@@ -146,7 +142,10 @@ export default function StaffConsultationManagementPage() {
               placeholder="Tìm kiếm học viên..."
               className="pl-10"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
             />
           </div>
         </CardHeader>
@@ -162,61 +161,17 @@ export default function StaffConsultationManagementPage() {
                 data={filteredData}
               />
 
-              <div className="mt-4 flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">Hiển thị {items.length} / {totalCount} yêu cầu</p>
-                {totalPages > 1 && (
-                  <Pagination>
-                    <PaginationContent className="flex-wrap gap-2">
-                      <PaginationItem>
-                        <PaginationPrevious
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setPage((cur) => Math.max(1, cur - 1));
-                          }}
-                          aria-disabled={page === 1}
-                          text="Trước"
-                          className={`h-10 w-auto min-w-0 shrink-0 rounded-xl border border-border bg-card px-4 text-muted-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary ${page === 1 ? "pointer-events-none opacity-50" : ""}`}
-                        />
-                      </PaginationItem>
-
-                      {getPaginationItems(totalPages, page).map((item, idx) =>
-                        item === "ellipsis" ? (
-                          <PaginationItem key={`ellipsis-${idx}`}>
-                            <PaginationEllipsis className="text-slate-400" />
-                          </PaginationItem>
-                        ) : (
-                          <PaginationItem key={item}>
-                            <PaginationLink
-                              href={`#page-${item}`}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setPage(item as number);
-                              }}
-                              isActive={item === page}
-                              className="h-10 w-10 rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary data-[active=true]:border-primary data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:shadow-sm"
-                            >
-                              {item}
-                            </PaginationLink>
-                          </PaginationItem>
-                        )
-                      )}
-
-                      <PaginationItem>
-                        <PaginationNext
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setPage((cur) => Math.min(totalPages, cur + 1));
-                          }}
-                          aria-disabled={page === totalPages}
-                          text="Sau"
-                          className={`h-10 w-auto min-w-0 shrink-0 rounded-xl border border-border bg-card px-4 text-muted-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary ${page === totalPages ? "pointer-events-none opacity-50" : ""}`}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                )}
+              <div className="mt-4 flex justify-center">
+                <PaginationBar
+                  className="justify-center"
+                  items={getPaginationItems(totalPages, page)}
+                  activePage={page}
+                  previousDisabled={!canGoPrevious}
+                  nextDisabled={!canGoNext}
+                  onPageChange={setPage}
+                  onPrevious={() => setPage((cur) => Math.max(1, cur - 1))}
+                  onNext={() => setPage((cur) => Math.min(totalPages, cur + 1))}
+                />
               </div>
             </>
           )}

@@ -10,10 +10,7 @@ import {
   Save,
   Trash2,
   Loader2,
-  UploadCloud,
-  ImageIcon,
 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -58,7 +55,6 @@ interface Section {
 export default function CourseContentEditor() {
   const { id: courseId } = useParams();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   // Form state
   const [editTitle, setEditTitle] = useState("");
@@ -95,7 +91,7 @@ export default function CourseContentEditor() {
   const [activeSection, setActiveSection] = useState<Section | null>(null);
 
   const { data: exams } = useExams(courseId!);
-  const currentLessonExam = (exams as any[])?.find((e) => e.lessonId === activeLesson?.id);
+  const currentLessonExam = ((exams as unknown as any[]) || [])?.find((e) => e.lessonId === activeLesson?.id);
   const createExamMutation = useCreateExam();
 
   const createSectionMutation = useCreateSection();
@@ -680,11 +676,12 @@ export default function CourseContentEditor() {
             </Button>
             <Button
               onClick={() => {
+                if (!activeLesson?.id) return;
                 createExamMutation.mutate({
                   title: examTitle,
                   countDown: examDuration,
                   totalPoints: examPoints,
-                  lessonId: activeLesson?.id,
+                  lessonId: activeLesson.id,
                 });
               }}
               disabled={!examTitle.trim() || createExamMutation.isPending}

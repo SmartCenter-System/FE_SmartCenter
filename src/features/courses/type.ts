@@ -1,5 +1,5 @@
 import * as z from "zod";
-import type { BaseFilterParams, ApiResponse, PaginatedData, BaseEntityRaw } from "@/shared/types";
+import type { BaseFilterParams, BaseEntityRaw } from "@/shared/types";
 import { courseSchema, createCourseSchema, updateCourseSchema, courseTypeSchema } from "./schema";
 
 export type CourseType = z.infer<typeof courseTypeSchema>;

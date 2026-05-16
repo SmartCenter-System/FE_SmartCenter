@@ -131,14 +131,14 @@ export const userService = {
 
     // Fallback: Lọc thủ công tại FE nếu BE trả về sai (đảm bảo tính chính xác cho người dùng)
     if (params?.status && params.status !== "ALL") {
-      data = data.filter(u => u.status === params.status);
+      data = data.filter((u: { status: string | undefined; }) => u.status === params.status);
     }
     if (params?.role && params.role !== "ALL") {
-      data = data.filter(u => u.role === params.role);
+      data = data.filter((u: { role: string | undefined; }) => u.role === params.role);
     }
     if (params?.search) {
       const s = params.search.toLowerCase();
-      data = data.filter(u => 
+      data = data.filter((u: { fullName: string; email: string; }) => 
         u.fullName.toLowerCase().includes(s) || 
         u.email.toLowerCase().includes(s)
       );

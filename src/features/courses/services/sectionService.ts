@@ -9,18 +9,18 @@ export interface Section {
 
 export const sectionService = {
   async getAll(courseId: string): Promise<Section[]> {
-    const data = await apiClient.get<any>(API_ENDPOINTS.SECTION.BASE, { params: { courseId } });
+    const data = await apiClient.get<any>(API_ENDPOINTS.SECTION.BASE, { params: { courseId } }) as unknown as { items?: Section[] } | Section[];
     return Array.isArray(data) ? data : data?.items || [];
   },
 
   async create(courseId: string, data: { title: string; position?: number }): Promise<Section> {
     const res = await apiClient.post<any>(API_ENDPOINTS.SECTION.BASE, data, { params: { courseId } });
-    return res;
+    return res as unknown as Section;
   },
 
   async update(courseId: string, sectionId: string, data: { title?: string; position?: number }): Promise<Section> {
     const res = await apiClient.put<any>(API_ENDPOINTS.SECTION.BY_ID(sectionId), data, { params: { courseId } });
-    return res;
+    return res as unknown as Section;
   },
 
   async remove(courseId: string, sectionId: string): Promise<void> {
