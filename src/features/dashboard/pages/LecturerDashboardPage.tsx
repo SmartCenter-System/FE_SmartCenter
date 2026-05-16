@@ -27,12 +27,14 @@ export default function LecturerDashboardPage() {
     queryKey: ["lecturer-dashboard-courses", userId],
     queryFn: () => courseService.getCourses({ LecturerId: userId || undefined, limit: 10 }),
     enabled: !!userId,
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: statsData, isLoading: isLoadingStats } = useQuery({
     queryKey: ["lecturer-dashboard-stats", userId],
     queryFn: () => dashboardService.getLecturerStats(userId || ""),
     enabled: !!userId,
+    staleTime: 1000 * 60 * 5,
   });
 
   const courses = coursesData?.data || [];

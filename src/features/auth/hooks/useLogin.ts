@@ -70,6 +70,9 @@ export function useLogin() {
   return useMutation<AuthResponse, Error, LoginRequest>({
     mutationFn: (data) => authService.login(data),
     onSuccess: (res) => {
+      // eslint-disable-next-line no-console
+      console.debug("Login successful:", res);
+
       // 1. Unbox payload if nested
       const payload = ((res as any)?.data ?? res) as AuthResponseRaw;
       const accessToken = payload.accessToken || (payload as any).AccessToken;
@@ -80,10 +83,10 @@ export function useLogin() {
         return;
       }
 
-      // 2. Chạy qua máy lọc nước (Normalize)
+      // 2. Normalize user data
       const cleanUser = normalizeAuthResponse(payload, accessToken);
 
-      // 3. Lưu vào kho
+      // 3. Save to Store
       setAuth({
         accessToken,
         refreshToken,
@@ -94,31 +97,32 @@ export function useLogin() {
         lastName: cleanUser.lastName,
       });
 
-      toast.success("Đăng nhập thành công");
+      toast.success("Đăng nhập thành công! Đang chuyển hướng...");
 
-      // 4. Chuyển hướng thông minh
-      // Tránh việc quay lại trang login/register sau khi đã đăng nhập
-      const isAuthPage = from === "/login" || from === "/register" || from === "/verify-email";
-      
-      if (from && from !== "/" && !isAuthPage) {
-        navigate(from, { replace: true });
-      } else {
-        switch (cleanUser.role) {
-          case "ADMIN":
-            navigate("/admin", { replace: true });
-            break;
-          case "STAFF":
-            navigate("/staff", { replace: true });
-            break;
-          case "LECTURER":
-            navigate("/lecturer", { replace: true });
-            break;
-          case "STUDENT":
-          default:
-            navigate("/dashboard", { replace: true });
-            break;
+      // 4. Delayed Navigation to ensure UI feedback is visible
+      setTimeout(() => {
+        const isAuthPage = from === "/login" || from === "/register" || from === "/verify-email";
+        
+        if (from && from !== "/" && !isAuthPage) {
+          navigate(from, { replace: true });
+        } else {
+          switch (cleanUser.role) {
+            case "ADMIN":
+              navigate("/admin", { replace: true });
+              break;
+            case "STAFF":
+              navigate("/staff", { replace: true });
+              break;
+            case "LECTURER":
+              navigate("/lecturer", { replace: true });
+              break;
+            case "STUDENT":
+            default:
+              navigate("/dashboard", { replace: true });
+              break;
+          }
         }
-      }
+      }, 500);
     },
     onError: (error: any) => {
       const message = error.userMessage || error.message || "Đăng nhập thất bại";

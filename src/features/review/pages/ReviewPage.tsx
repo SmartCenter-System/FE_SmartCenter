@@ -139,17 +139,25 @@ function CourseReviewCard({
 export default function ReviewPage() {
   const [pageIndex, setPageIndex] = useState(1);
 
+  // Optimized: Only fetch courses for the current page to avoid loading 1000 items
   const {
     data: coursesData,
     isLoading: isLoadingCourses,
     isError: isCourseError,
     error: courseError,
-  } = usePublicCourses({ PageIndex: 1, PageSize: 1000 });
+  } = usePublicCourses({ 
+    PageIndex: pageIndex, 
+    PageSize: PAGE_SIZE 
+  });
 
   const courses = useMemo(() => coursesData?.items ?? [], [coursesData?.items]);
+  const totalCount = coursesData?.totalCount ?? coursesData?.total ?? 0;
+  
+  // Optimized: Only fetch IDs for the current page's courses
   const courseIds = useMemo(() => courses.map((course) => course.id), [courses]);
 
-  const reviewQueries = useCourseReviewQueries(courseIds);
+  // Optimized: Only fetch reviews for the courses visible on the current page
+  const reviewQueries = useCourseReviewQueries(courseIds, !!courseIds.length);
 
   const reviewsByCourseId = useMemo(() => {
     const map = new Map<string, ReviewItem[]>();
@@ -160,14 +168,16 @@ export default function ReviewPage() {
   }, [courses, reviewQueries]);
 
   const overviewStats = useMemo(() => {
-    const allReviews = Array.from(reviewsByCourseId.values()).flat();
+    // Stats now represent the courses visible on the current page
+    // This is a trade-off to prevent 1000+ API calls
+    const allReviewsOnPage = Array.from(reviewsByCourseId.values()).flat();
     return {
-      courses: courses.length,
-      ...getReviewStats(allReviews),
+      courses: totalCount,
+      ...getReviewStats(allReviewsOnPage),
     };
-  }, [courses.length, reviewsByCourseId]);
+  }, [totalCount, reviewsByCourseId]);
 
-  const totalPages = Math.max(1, Math.ceil(courses.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const canGoPrevious = pageIndex > 1;
   const canGoNext = pageIndex < totalPages;
 
@@ -191,11 +201,6 @@ export default function ReviewPage() {
     return items;
   }, [pageIndex, totalPages]);
 
-  const paginatedCourses = useMemo(() => {
-    const start = (pageIndex - 1) * PAGE_SIZE;
-    return courses.slice(start, start + PAGE_SIZE);
-  }, [courses, pageIndex]);
-
   const handlePageChange = (nextPage: number) => {
     setPageIndex(Math.min(Math.max(nextPage, 1), totalPages));
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -211,7 +216,6 @@ export default function ReviewPage() {
               Review Course
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-5xl">Đánh giá khóa học</h1>
-            
           </div>
 
           <div className="grid grid-cols-3 gap-3 sm:min-w-[420px]">
@@ -262,7 +266,7 @@ export default function ReviewPage() {
         ) : (
           <>
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {paginatedCourses.map((course) => (
+              {courses.map((course) => (
                 <CourseReviewCard key={course.id} course={course} reviews={reviewsByCourseId.get(course.id)} />
               ))}
             </div>

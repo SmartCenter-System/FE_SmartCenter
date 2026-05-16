@@ -90,7 +90,7 @@ export default function UserManagementPage() {
   const [pageIndex, setPageIndex] = useState(1);
   const [pageSize] = useState(10);
 
-  const { userId: currentUserId } = useAuthStore();
+  const { userId: currentUserId, accessToken } = useAuthStore();
 
   // react-hook-form for creation
   const createForm = useForm<CreateUserFormValues>({
@@ -109,6 +109,7 @@ export default function UserManagementPage() {
   const { data: allUsersData, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ["users", "admin-list"],
     queryFn: () => userService.getUsers({ limit: 1000 }),
+    enabled: !!accessToken,
   });
 
   const allUsers = allUsersData?.data || [];
