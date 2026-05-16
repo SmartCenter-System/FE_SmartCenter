@@ -6,6 +6,7 @@ import {
   Lock, 
   Unlock, 
   MoreHorizontal, 
+  ShieldAlert, 
   UserPlus,
   RotateCw,
   Loader2,
@@ -577,34 +578,6 @@ export default function UserManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isConfirmDeleteOpen} onOpenChange={setIsConfirmDeleteOpen}>
-        <DialogContent className="sm:max-w-[420px] rounded-3xl p-6 border-none shadow-2xl">
-          <div className="flex flex-col items-center text-center gap-4">
-            <div className="p-4 rounded-full bg-red-100 text-red-600">
-              <ShieldAlert className="h-8 w-8" />
-            </div>
-            <div>
-              <DialogTitle className="text-xl font-bold">Xóa tài khoản vĩnh viễn?</DialogTitle>
-              <DialogDescription className="mt-2">
-                Hành động này <b>không thể hoàn tác</b>. Mọi dữ liệu liên quan đến <b>{selectedUser?.fullName}</b> sẽ bị xóa khỏi hệ thống.
-              </DialogDescription>
-            </div>
-          </div>
-          <DialogFooter className="grid grid-cols-2 gap-3 mt-6">
-            <Button variant="outline" onClick={() => setIsConfirmDeleteOpen(false)} className="rounded-xl border-2">Quay lại</Button>
-            <Button 
-              variant="destructive" 
-              onClick={confirmDelete}
-              disabled={deleteUserMutation.isPending}
-              className="rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all"
-            >
-              {deleteUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Xác nhận xóa
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
