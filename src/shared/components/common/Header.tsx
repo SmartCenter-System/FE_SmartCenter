@@ -150,8 +150,8 @@ export default function Header({ variant = "fixed", tone = "solid" }: HeaderProp
                       )}
                       <Link
                         to={dashboardPath}
-                        title="Dashboard"
-                        aria-label="Dashboard"
+                        title="Tổng quan"
+                        aria-label="Tổng quan"
                         className="flex items-center gap-2 text-sm font-semibold text-primary hover:opacity-80"
                       >
                         <LayoutDashboard className="h-4 w-4" />
