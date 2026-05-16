@@ -151,7 +151,7 @@ export default function ReviewPage() {
   });
 
   const courses = useMemo(() => coursesData?.items ?? [], [coursesData?.items]);
-  const totalCount = coursesData?.totalCount ?? coursesData?.total ?? 0;
+  const totalCount = coursesData?.total ?? 0;
   
   // Optimized: Only fetch IDs for the current page's courses
   const courseIds = useMemo(() => courses.map((course) => course.id), [courses]);
