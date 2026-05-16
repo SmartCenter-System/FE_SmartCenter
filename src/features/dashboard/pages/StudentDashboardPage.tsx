@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { useDashboardData } from "@/features/dashboard/hooks/useDashboardData";
+import { useAuthStore } from "@/features/auth/store";
 
 function EnrolledCourseCard({
   course,
@@ -81,16 +82,19 @@ export default function StudentDashboardPage() {
   const { data: suggestedCourses, isLoading: isSuggestedLoading } = useQuery({
     queryKey: ["courses", { limit: 4 }],
     queryFn: () => courseService.getAll({ limit: 4 }),
-    staleTime: 0,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 15,
   });
 
   // Fetch danh sách khóa học đã đăng ký của học sinh
+  const { accessToken } = useAuthStore();
   const { data: enrolledCoursesData, isLoading: isEnrolledLoading } = useQuery({
     queryKey: ["myEnrollments"],
     queryFn: () => enrollmentService.getMyEnrollmentCourses(),
     staleTime: 1000 * 60 * 5, // Keep data fresh for 5 minutes
     gcTime: 1000 * 60 * 10, // Keep data in cache for 10 minutes
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    enabled: !!accessToken,
   });
 
   const enrollmentItems = Array.isArray(enrolledCoursesData)

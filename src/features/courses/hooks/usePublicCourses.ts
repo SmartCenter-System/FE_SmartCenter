@@ -24,7 +24,7 @@ export interface PublicCourseFilterState {
  * @param {PublicCourseQueryParams} params - Các tham số truy vấn được gửi đến API.
  * @returns Đối tượng React Query chứa `data`, `isLoading`, `isError` và các phương thức fetch.
  */
-export function usePublicCourses(params: PublicCourseQueryParams) {
+export function usePublicCourses(params: PublicCourseQueryParams, enabled = true) {
   return useQuery({
     queryKey: ["public-courses", params], // Khóa cache duy nhất dựa trên params
     queryFn: () => courseService.getPublicCourses(params), // Gọi API lấy khóa học
@@ -34,6 +34,7 @@ export function usePublicCourses(params: PublicCourseQueryParams) {
     refetchOnMount: false,
     refetchOnWindowFocus: false, // Không gọi lại API khi quay lại tab để tiết kiệm request
     refetchOnReconnect: false,
+    enabled,
   });
 }
 

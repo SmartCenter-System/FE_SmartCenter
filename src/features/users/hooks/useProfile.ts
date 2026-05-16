@@ -2,15 +2,19 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { profileService } from "../profileService";
 import { toast } from "sonner";
 import type { UpdateProfileRequest } from "../services";
+import { useAuthStore } from "@/features/auth/store";
 
 export const PROFILE_QUERY_KEY = ["user-profile"];
 
 export function useProfile() {
+  const { accessToken } = useAuthStore();
+
   return useQuery({
     queryKey: PROFILE_QUERY_KEY,
     queryFn: () => profileService.getProfile(),
     staleTime: 5 * 60 * 1000, // 5 phút
     retry: 1,
+    enabled: !!accessToken,
   });
 }
 

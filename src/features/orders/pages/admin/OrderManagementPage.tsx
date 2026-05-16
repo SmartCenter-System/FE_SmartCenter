@@ -41,9 +41,11 @@ import {
 } from "@/shared/components/ui/pagination";
 import { orderService } from "../../service";
 import type { CleanOrder } from "../../type";
+import { useAuthStore } from "@/features/auth/store";
 
 export default function OrderManagementPage() {
   const queryClient = useQueryClient();
+  const { accessToken } = useAuthStore();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -61,12 +63,14 @@ export default function OrderManagementPage() {
         PageIndex: pageIndex,
         PageSize: pageSize,
       }),
+    enabled: !!accessToken,
   });
 
   const { data: statsData, isLoading: isLoadingStats } = useQuery({
     queryKey: ["orders", "admin-stats"],
     queryFn: () => orderService.getStats(),
     staleTime: 10 * 60 * 1000, // Thống kê có thể giữ lâu hơn một chút
+    enabled: !!accessToken,
   });
 
   // We use the selected order data directly because the admin list API provides all necessary details.

@@ -19,6 +19,8 @@ export function FeaturedCoursesSection() {
   const { data: courses = [], isLoading, isError } = useQuery<PublicCourseItem[], Error>({
     queryKey: ["courses", "top-popular"],
     queryFn: () => courseService.getTopPopularCourses(),
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
   });
 
   const placeholders = Array.from({ length: 6 });

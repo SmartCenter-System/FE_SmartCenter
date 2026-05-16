@@ -8,13 +8,18 @@ export const COURSE_KEYS = {
   detail: (id: string) => ["courses", "detail", id] as const,
 };
 
+import { useAuthStore } from "@/features/auth/store";
+
 export function useCourses(params?: CourseFilterParams) {
+  const { accessToken } = useAuthStore();
+
   return useQuery({
     queryKey: COURSE_KEYS.list(params),
     queryFn: () => courseService.getCourses(params),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 15,
     retry: 1,
+    enabled: !!accessToken,
   });
 }
 

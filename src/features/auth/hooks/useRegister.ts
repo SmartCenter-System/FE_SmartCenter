@@ -15,15 +15,16 @@ export function useRegister() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mutationFn: (data) => authService.register(data) as any,
     onSuccess: (res, variables) => {
+      // eslint-disable-next-line no-console
+      console.debug("Registration successful:", res);
+      
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const payload = ((res as any)?.data ?? res) as AuthResponseRaw;
       
-      // Nếu Backend trả về token ngay (Auto login sau khi đăng ký)
-      if (payload.accessToken && payload.refreshToken) {
-        // 1. Chạy qua máy lọc nước
+      // Case 1: Auto login if tokens are provided
+      if (payload?.accessToken && payload?.refreshToken) {
         const cleanUser = normalizeAuthResponse(payload, payload.accessToken);
 
-        // 2. Lưu vào kho
         setAuth({
           accessToken: payload.accessToken,
           refreshToken: payload.refreshToken,
@@ -34,17 +35,21 @@ export function useRegister() {
           lastName: cleanUser.lastName,
         });
 
-        toast.success("Đăng ký thành công! Đang chuyển hướng...");
+        toast.success("Đăng ký thành công! Chào mừng bạn.");
         navigate("/dashboard", { replace: true });
         return;
       }
 
-      // Nếu Backend KHÔNG trả về token (Yêu cầu xác thực email trước)
-      toast.success("Đăng ký thành công! Hãy kiểm tra email của bạn.");
-      navigate(`/login`, { 
-        replace: true,
-        state: { email: variables.email } 
-      });
+      // Case 2: Standard flow (verify email or manual login)
+      toast.success("Đăng ký thành công! Vui lòng đăng nhập.");
+      
+      // Small delay to let the user see the toast before navigating
+      setTimeout(() => {
+        navigate("/login", { 
+          replace: true,
+          state: { email: variables.email } 
+        });
+      }, 500);
     },
     onError: (error: any) => {
       const message = error.userMessage || error.message || "Đăng ký thất bại";
