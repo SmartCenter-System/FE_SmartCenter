@@ -45,7 +45,9 @@ export function RegisterForm() {
   });
 
   const onSubmit = (data: RegisterFormValues) => {
-    registerUser(data, {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { confirmPassword, ...payload } = data;
+    registerUser(payload, {
       onError: (error: any) => {
         const serverErrors = error.response?.data?.errors;
         if (serverErrors && typeof serverErrors === "object") {
